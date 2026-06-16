@@ -1,0 +1,72 @@
+# TigerWear E-commerce
+
+Next.js storefront for a clothing seller — **retail (per piece)** and **wholesale (bulk)** with live inventory by size and color. UI layout inspired by [NextMerce](https://demo.nextmerce.com/), with a warm terracotta palette instead of the default blue.
+
+## Stack
+
+- **Next.js 16** (App Router)
+- **Supabase** (PostgreSQL) — products, variants, stock, wholesale tiers
+- **Zustand** — cart (persisted in localStorage)
+- **Tailwind CSS v4**
+
+## Quick start
+
+```bash
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000). Mock catalog data loads by default (`NEXT_PUBLIC_USE_MOCK_DATA=true`).
+
+## Supabase setup
+
+1. Create a project at [supabase.com](https://supabase.com)
+2. Copy `.env.local.example` → `.env.local` and add your keys:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+NEXT_PUBLIC_USE_MOCK_DATA=false
+```
+
+1. In the Supabase SQL editor, run in order:
+  - `supabase/migrations/001_initial_schema.sql`
+  - `supabase/seed.sql`
+
+## Database schema
+
+
+| Table                     | Purpose                                                              |
+| ------------------------- | -------------------------------------------------------------------- |
+| `categories`              | T-Shirts, Hoodies, etc.                                              |
+| `products`                | Name, retail price, sell mode (`retail` / `wholesale` / `both`), MOQ |
+| `product_variants`        | SKU, size, color, **stock_quantity**                                 |
+| `wholesale_pricing_tiers` | Bulk price breaks (e.g. 12+ @ $18.99)                                |
+| `inventory_movements`     | Audit log when stock changes                                         |
+
+
+Stock is decremented via `decrement_variant_stock()` (wire this at checkout).
+
+## Pages
+
+
+| Route          | Description                                            |
+| -------------- | ------------------------------------------------------ |
+| `/`            | Hero, categories, new arrivals, featured               |
+| `/shop`        | Product grid with category filters                     |
+| `/shop/[slug]` | PDP with size/color, retail vs bulk toggle, tier table |
+| `/wholesale`   | Bulk-focused catalog                                   |
+| `/cart`        | Cart with retail/wholesale line items                  |
+
+
+## Design notes
+
+- **NextMerce-inspired**: hero carousel, category grid, product cards with hover CTA, features bar, promo banners, newsletter
+- **TigerWear palette**: terracotta `#C2410C`, cream background `#FAF7F2`, charcoal text — replaces NextMerce blue
+
+## Next steps
+
+- Stripe checkout + webhook to call `decrement_variant_stock`
+- Admin panel for inventory updates
+- Auth for wholesale customer accounts
+
