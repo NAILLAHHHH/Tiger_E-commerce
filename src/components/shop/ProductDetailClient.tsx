@@ -29,8 +29,7 @@ export default function ProductDetailClient({ product }: Props) {
   );
 
   const canRetail = product.sell_mode !== "wholesale";
-  const canWholesale =
-    product.sell_mode !== "retail" && tiers.length > 0;
+  const canWholesale = product.sell_mode !== "retail";
 
   const [mode, setMode] = useState<PricingMode>(
     canRetail ? "retail" : "wholesale",
@@ -78,7 +77,7 @@ export default function ProductDetailClient({ product }: Props) {
       sku: selectedVariant.sku,
       quantity,
       unitPrice,
-      pricingMode: isWholesale ? "wholesale" : "retail",
+      pricingMode: mode,
     });
   };
 
@@ -93,7 +92,7 @@ export default function ProductDetailClient({ product }: Props) {
               src={gallery[activeImage]}
               alt={product.name}
               fill
-              className="object-cover object-top"
+              className="object-cover object-center"
               priority
               sizes="(max-width: 1024px) 100vw, 50vw"
             />
@@ -114,7 +113,7 @@ export default function ProductDetailClient({ product }: Props) {
                   src={url}
                   alt=""
                   fill
-                  className="object-cover object-top"
+                  className="object-cover object-center"
                   sizes="64px"
                 />
               </button>

@@ -103,7 +103,7 @@ export default function HeroCarousel() {
                   alt={s.title}
                   fill
                   priority={i === 0}
-                  className="object-cover object-top"
+                  className="object-cover object-center"
                   sizes="(max-width: 768px) 100vw, 50vw"
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-dark via-dark/40 to-transparent md:from-dark/80" />

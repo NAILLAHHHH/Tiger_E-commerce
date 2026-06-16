@@ -19,19 +19,22 @@ export function resolveUnitPrice(
   tiers: WholesaleTier[],
   moq: number,
 ): { unitPrice: number; isWholesale: boolean } {
-  if (mode === "wholesale" || quantity >= moq) {
+  if (mode === "wholesale") {
     return {
       unitPrice: getWholesaleUnitPrice(quantity, tiers, retailPrice),
-      isWholesale: tiers.length > 0,
+      isWholesale: true,
     };
   }
+  // Retail mode always uses the per-piece price.
+  // MOQ enforcement is handled by the UI when "wholesale" is selected.
   return { unitPrice: retailPrice, isWholesale: false };
 }
 
 export function formatPrice(amount: number): string {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("rw-RW", {
     style: "currency",
-    currency: "USD",
+    currency: "RWF",
+    maximumFractionDigits: 0,
   }).format(amount);
 }
 

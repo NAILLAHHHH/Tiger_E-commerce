@@ -18,7 +18,7 @@ export default function Header() {
     <header className="sticky top-0 z-50 border-b border-gray-3 bg-surface/95 backdrop-blur-md">
       <div className="bg-dark py-2.5">
         <div className="container-custom flex items-center justify-between text-xs text-gray-4">
-          <p>Free shipping on retail orders over $150</p>
+          <p>Free delivery on retail orders over 150,000 RWF</p>
           <p className="hidden sm:block">
             Bulk pricing from 10+ pieces —{" "}
             <Link href="/wholesale" className="font-semibold text-brand hover:text-white">
