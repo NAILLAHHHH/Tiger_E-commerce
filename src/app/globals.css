@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+:root {
+  /* TygaStyle — red & black from logo */
+  --background: #ffffff;
+  --foreground: #111111;
+  --brand: #e82424;
+  --brand-dark: #c41c1c;
+  --brand-light: #fff1f1;
+  --surface: #ffffff;
+  --muted: #737373;
+  --border: #e5e5e5;
+  --dark: #0a0a0a;
+  --body: #525252;
+  --accent: #e82424;
+  --accent-dark: #c41c1c;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-brand: var(--brand);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-light: var(--brand-light);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-dark: var(--dark);
+  --color-body: var(--body);
+  --color-accent: var(--accent);
+  --color-accent-dark: var(--accent-dark);
+  --color-gray-1: #fafafa;
+  --color-gray-2: #f5f5f5;
+  --color-gray-3: #e5e5e5;
+  --color-gray-4: #a3a3a3;
+  --color-gray-5: #737373;
+  --color-meta-4: #a3a3a3;
+  --color-meta-5: #737373;
+  --color-dark-4: #262626;
+  --color-dark-5: #404040;
+  --font-sans: var(--font-dm-sans);
+  --shadow-card: 0px 6px 24px 0px rgba(0, 0, 0, 0.06),
+    0px 2px 4px 0px rgba(0, 0, 0, 0.04);
+  --shadow-soft: 0px 1px 3px 0px rgba(0, 0, 0, 0.08);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+}
+
+.container-custom {
+  @apply mx-auto w-full max-w-[1320px] px-4 sm:px-6 xl:px-0;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center rounded-[5px] bg-brand px-5 py-2.5 text-sm font-medium text-white transition-colors duration-200 hover:bg-brand-dark;
+}
+
+.btn-outline {
+  @apply inline-flex items-center justify-center rounded-[5px] border border-gray-3 bg-surface px-5 py-2.5 text-sm font-medium text-dark transition-colors duration-200 hover:border-brand hover:text-brand;
+}
+
+.section-title {
+  @apply text-2xl font-semibold tracking-tight text-dark md:text-3xl;
+}
+
+.badge {
+  @apply inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium;
+}
+
+.badge-new {
+  @apply bg-brand-light text-brand-dark;
+}
+
+.badge-sale {
+  @apply bg-brand-light text-brand-dark;
+}
+
+.badge-wholesale {
+  @apply bg-gray-2 text-dark;
+}
