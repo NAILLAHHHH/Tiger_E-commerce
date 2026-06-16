@@ -18,6 +18,33 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000). Mock catalog data loads by default (`NEXT_PUBLIC_USE_MOCK_DATA=true`).
 
+## Docker (production)
+
+Build and run the container:
+
+```bash
+docker build -t tiger-ecommerce .
+docker run --rm -p 3000:3000 \
+  -e NEXT_PUBLIC_USE_MOCK_DATA=true \
+  tiger-ecommerce
+```
+
+Or with Supabase:
+
+```bash
+docker run --rm -p 3000:3000 \
+  -e NEXT_PUBLIC_SUPABASE_URL="https://xxxx.supabase.co" \
+  -e NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key" \
+  -e NEXT_PUBLIC_USE_MOCK_DATA=false \
+  tiger-ecommerce
+```
+
+Compose:
+
+```bash
+NEXT_PUBLIC_USE_MOCK_DATA=true docker compose up --build
+```
+
 ## Supabase setup
 
 1. Create a project at [supabase.com](https://supabase.com)

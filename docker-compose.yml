@@ -1,0 +1,11 @@
+services:
+  web:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      # Required (when using Supabase instead of mock data)
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
+      # Optional
+      NEXT_PUBLIC_USE_MOCK_DATA: ${NEXT_PUBLIC_USE_MOCK_DATA:-true}
