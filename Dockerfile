@@ -28,5 +28,7 @@ COPY --from=builder /app/.next/static ./.next/static
 USER nextjs
 EXPOSE 3000
 
-ENV PORT=3000
+# Render (and many PaaS) inject PORT; don't hardcode it.
+# Bind to all interfaces so the service is reachable outside the container.
+ENV HOSTNAME=0.0.0.0
 CMD ["node", "server.js"]
