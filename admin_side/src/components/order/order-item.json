@@ -1,0 +1,50 @@
+{
+  "collectionName": "components_order_order_items",
+  "info": {
+    "displayName": "Order Item",
+    "description": "Line item snapshot at checkout"
+  },
+  "options": {},
+  "attributes": {
+    "product_id": {
+      "type": "string"
+    },
+    "variant_id": {
+      "type": "string"
+    },
+    "product_name": {
+      "type": "string",
+      "required": true
+    },
+    "product_slug": {
+      "type": "string"
+    },
+    "sku": {
+      "type": "string"
+    },
+    "size": {
+      "type": "string"
+    },
+    "color": {
+      "type": "string"
+    },
+    "quantity": {
+      "type": "integer",
+      "required": true,
+      "min": 1
+    },
+    "unit_price": {
+      "type": "decimal",
+      "required": true
+    },
+    "pricing_mode": {
+      "type": "enumeration",
+      "enum": ["retail", "wholesale"],
+      "default": "retail"
+    },
+    "line_total": {
+      "type": "decimal",
+      "required": true
+    }
+  }
+}

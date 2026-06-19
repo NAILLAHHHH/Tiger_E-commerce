@@ -1,0 +1,59 @@
+{
+  "kind": "collectionType",
+  "collectionName": "orders",
+  "info": {
+    "singularName": "order",
+    "pluralName": "orders",
+    "displayName": "Order",
+    "description": "Customer orders — admin updates status after offline payment"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "order_number": {
+      "type": "string",
+      "unique": true
+    },
+    "customer_name": {
+      "type": "string",
+      "required": true
+    },
+    "phone": {
+      "type": "string",
+      "required": true
+    },
+    "address": {
+      "type": "text"
+    },
+    "notes": {
+      "type": "text"
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": [
+        "pending_contact",
+        "confirmed",
+        "paid",
+        "fulfilled",
+        "cancelled"
+      ],
+      "default": "pending_contact",
+      "required": true
+    },
+    "subtotal": {
+      "type": "decimal",
+      "required": true
+    },
+    "total": {
+      "type": "decimal",
+      "required": true
+    },
+    "items": {
+      "type": "component",
+      "repeatable": true,
+      "component": "order.order-item",
+      "required": true
+    }
+  }
+}
