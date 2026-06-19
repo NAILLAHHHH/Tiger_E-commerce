@@ -2,7 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 import { formatPrice } from "@/lib/pricing";
+import { resolveProductImage } from "@/lib/images";
 import {
   selectCartTotal,
   useCartStore,
@@ -14,6 +16,67 @@ export default function CartPageClient() {
   const removeItem = useCartStore((s) => s.removeItem);
   const clearCart = useCartStore((s) => s.clearCart);
   const total = selectCartTotal(items);
+
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [customerName, setCustomerName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [notes, setNotes] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [orderNumber, setOrderNumber] = useState<string | null>(null);
+
+  const handlePlaceOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customer_name: customerName,
+          phone,
+          address,
+          notes,
+          items,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error ?? "Failed to place order");
+        return;
+      }
+
+      setOrderNumber(data.order_number ?? "confirmed");
+      clearCart();
+      setShowCheckout(false);
+    } catch {
+      setError("Network error — please try again");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (orderNumber) {
+    return (
+      <div className="rounded-2xl bg-surface py-16 text-center shadow-[var(--shadow-soft)]">
+        <p className="text-lg font-semibold text-dark">Order placed!</p>
+        <p className="mt-2 text-sm text-muted">
+          Reference: <span className="font-mono text-brand">{orderNumber}</span>
+        </p>
+        <p className="mx-auto mt-4 max-w-md text-sm text-muted">
+          Our team will contact you to confirm details and arrange payment.
+        </p>
+        <Link href="/shop" className="btn-primary mt-6 inline-flex">
+          Continue shopping
+        </Link>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -40,7 +103,7 @@ export default function CartPageClient() {
             <div className="relative h-24 w-20 shrink-0 overflow-hidden rounded-lg bg-gray-1">
               {item.image && (
                 <Image
-                  src={item.image}
+                  src={resolveProductImage(item.image)}
                   alt={item.name}
                   fill
                   className="object-cover"
@@ -116,20 +179,97 @@ export default function CartPageClient() {
             <span>{formatPrice(total)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted">Shipping</span>
-            <span className="text-muted">Calculated at checkout</span>
+            <span className="text-muted">Payment</span>
+            <span className="text-muted">After admin contact</span>
           </div>
         </div>
         <div className="mt-4 flex justify-between text-lg font-bold">
           <span>Total</span>
           <span className="text-brand">{formatPrice(total)}</span>
         </div>
-        <button type="button" className="btn-primary mt-6 w-full py-3">
-          Proceed to checkout
-        </button>
-        <p className="mt-3 text-center text-xs text-muted">
-          Stripe checkout coming in phase 2
-        </p>
+
+        {!showCheckout ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setShowCheckout(true)}
+              className="btn-primary mt-6 w-full py-3"
+            >
+              Place order
+            </button>
+            <p className="mt-3 text-center text-xs text-muted">
+              We&apos;ll call you to confirm and arrange payment.
+            </p>
+          </>
+        ) : (
+          <form onSubmit={handlePlaceOrder} className="mt-6 space-y-3">
+            <div>
+              <label className="text-xs font-medium text-dark" htmlFor="name">
+                Full name *
+              </label>
+              <input
+                id="name"
+                required
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-gray-3 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-dark" htmlFor="phone">
+                Phone / WhatsApp *
+              </label>
+              <input
+                id="phone"
+                required
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-gray-3 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-dark" htmlFor="address">
+                Address
+              </label>
+              <input
+                id="address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-gray-3 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-dark" htmlFor="notes">
+                Notes
+              </label>
+              <textarea
+                id="notes"
+                rows={2}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-gray-3 px-3 py-2 text-sm"
+              />
+            </div>
+            {error && (
+              <p className="text-xs text-red-600">{error}</p>
+            )}
+            <button
+              type="submit"
+              disabled={submitting}
+              className="btn-primary w-full py-3 disabled:opacity-60"
+            >
+              {submitting ? "Submitting…" : "Submit order"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCheckout(false)}
+              className="w-full text-sm text-muted hover:text-dark"
+            >
+              Cancel
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );
