@@ -28,7 +28,7 @@ export default function ProductCard({ product }: Props) {
           Retail + Bulk
         </span>
 
-        <Link href={`/shop/${product.slug}`}>
+        <Link href={`/shop/${product.slug}`} className="relative block h-full w-full">
           <Image
             src={image}
             alt={product.name}
@@ -60,7 +60,7 @@ export default function ProductCard({ product }: Props) {
           </h3>
         </Link>
 
-        <div className="mt-2 flex items-center gap-2">
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="text-lg font-semibold text-brand">
             {formatPrice(product.retail_price)}
           </span>
@@ -69,14 +69,25 @@ export default function ProductCard({ product }: Props) {
               {formatPrice(product.compare_at_price!)}
             </span>
           )}
+          <span className="text-xs text-muted">per piece</span>
+          {product.bulk_price != null &&
+            (product.sell_mode === "wholesale" || product.sell_mode === "both") && (
+              <>
+                <span className="text-xs text-muted">·</span>
+                <span className="text-sm font-medium text-dark">
+                  {formatPrice(product.bulk_price)} bulk
+                </span>
+                <span className="text-xs text-muted">
+                  ({product.moq_wholesale}+)
+                </span>
+              </>
+            )}
         </div>
 
         <p className="mt-1 text-xs text-muted">
           {inStock
             ? `${product.total_stock} in stock`
             : "Out of stock"}
-          {product.wholesale_tiers?.[0] &&
-            ` · Bulk from ${formatPrice(product.wholesale_tiers[0].unit_price)}`}
         </p>
       </div>
     </article>
