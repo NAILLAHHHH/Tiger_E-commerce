@@ -24,3 +24,10 @@ export const userProductImages = {
 } as const;
 
 export const ALL_USER_PRODUCT_IMAGES = Object.values(userProductImages);
+
+/** Normalize cart/catalog image URLs (handles legacy localStorage unsplash URLs). */
+export function resolveProductImage(url: string | undefined | null): string {
+  if (!url) return "/placeholder-product.svg";
+  if (url.startsWith("/")) return url;
+  return "/placeholder-product.svg";
+}

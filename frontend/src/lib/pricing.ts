@@ -1,5 +1,25 @@
 import type { PricingMode, WholesaleTier } from "@/types/database";
 
+export function getEffectiveWholesaleTiers(
+  tiers: WholesaleTier[],
+  bulkPrice: number | null | undefined,
+  moq: number,
+  productId = "",
+): WholesaleTier[] {
+  if (tiers.length > 0) return tiers;
+  if (bulkPrice != null && bulkPrice > 0 && moq > 0) {
+    return [
+      {
+        id: "bulk",
+        product_id: productId,
+        min_quantity: moq,
+        unit_price: bulkPrice,
+      },
+    ];
+  }
+  return [];
+}
+
 export function getWholesaleUnitPrice(
   quantity: number,
   tiers: WholesaleTier[],
@@ -18,10 +38,19 @@ export function resolveUnitPrice(
   retailPrice: number,
   tiers: WholesaleTier[],
   moq: number,
+  bulkPrice?: number | null,
+  productId = "",
 ): { unitPrice: number; isWholesale: boolean } {
+  const effectiveTiers = getEffectiveWholesaleTiers(
+    tiers,
+    bulkPrice,
+    moq,
+    productId,
+  );
+
   if (mode === "wholesale") {
     return {
-      unitPrice: getWholesaleUnitPrice(quantity, tiers, retailPrice),
+      unitPrice: getWholesaleUnitPrice(quantity, effectiveTiers, retailPrice),
       isWholesale: true,
     };
   }
@@ -30,12 +59,10 @@ export function resolveUnitPrice(
   return { unitPrice: retailPrice, isWholesale: false };
 }
 
+/** Stable RWF formatting — avoids server/client Intl locale mismatch (RF vs RWF). */
 export function formatPrice(amount: number): string {
-  return new Intl.NumberFormat("rw-RW", {
-    style: "currency",
-    currency: "RWF",
-    maximumFractionDigits: 0,
-  }).format(amount);
+  const rounded = Math.round(amount);
+  return `RWF ${rounded.toLocaleString("en-US")}`;
 }
 
 export function stockLabel(total: number): string {

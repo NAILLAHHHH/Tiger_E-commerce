@@ -31,6 +31,7 @@ export type Product = {
   slug: string;
   description: string | null;
   retail_price: number;
+  bulk_price: number | null;
   compare_at_price: number | null;
   category_id: string | null;
   image_url: string | null;

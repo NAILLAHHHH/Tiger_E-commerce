@@ -80,7 +80,7 @@ const wholesaleTiers: WholesaleTier[] = [
 ];
 
 /** 21 products — one per user-provided photo, no extra images */
-const products: Product[] = [
+const products: Omit<Product, "bulk_price">[] = [
   {
     id: "p-1",
     name: "Heather Grey Zip Hoodie",
@@ -398,20 +398,22 @@ const products: Product[] = [
   },
 ];
 
-function attachRelations(items: Product[]): Product[] {
+function attachRelations(items: Omit<Product, "bulk_price">[]): Product[] {
   return items.map((product) => {
     const productVariants = variants.filter((v) => v.product_id === product.id);
     const total_stock = productVariants.reduce(
       (sum, v) => sum + v.stock_quantity,
       0,
     );
+    const productTiers = wholesaleTiers
+      .filter((t) => t.product_id === product.id)
+      .sort((a, b) => a.min_quantity - b.min_quantity);
     return {
       ...product,
+      bulk_price: productTiers[0]?.unit_price ?? null,
       category: categories.find((c) => c.id === product.category_id) ?? null,
       variants: productVariants,
-      wholesale_tiers: wholesaleTiers
-        .filter((t) => t.product_id === product.id)
-        .sort((a, b) => a.min_quantity - b.min_quantity),
+      wholesale_tiers: productTiers,
       total_stock,
     };
   });

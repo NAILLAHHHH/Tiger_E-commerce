@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useMemo, useState } from "react";
 import {
   formatPrice,
+  getEffectiveWholesaleTiers,
   resolveUnitPrice,
   stockLabel,
 } from "@/lib/pricing";
@@ -59,6 +60,15 @@ export default function ProductDetailClient({ product }: Props) {
     product.retail_price,
     tiers,
     product.moq_wholesale,
+    product.bulk_price,
+    product.id,
+  );
+
+  const displayTiers = getEffectiveWholesaleTiers(
+    tiers,
+    product.bulk_price,
+    product.moq_wholesale,
+    product.id,
   );
 
   const addItem = useCartStore((s) => s.addItem);
@@ -173,7 +183,26 @@ export default function ProductDetailClient({ product }: Props) {
           </div>
         )}
 
-        <div className="mt-6 flex items-baseline gap-3">
+        <div className="mt-6 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          <div>
+            <span className="text-xs text-muted">Per piece</span>
+            <p className="text-xl font-bold text-dark">
+              {formatPrice(product.retail_price)}
+            </p>
+          </div>
+          {product.bulk_price != null && canWholesale && (
+            <div>
+              <span className="text-xs text-muted">
+                Bulk ({product.moq_wholesale}+)
+              </span>
+              <p className="text-xl font-bold text-brand">
+                {formatPrice(product.bulk_price)}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4 flex items-baseline gap-3">
           <span className="text-3xl font-bold text-brand">
             {formatPrice(unitPrice)}
           </span>
@@ -300,9 +329,9 @@ export default function ProductDetailClient({ product }: Props) {
           </p>
         )}
 
-        {tiers.length > 0 && (
+        {displayTiers.length > 0 && (
           <div className="mt-8">
-            <WholesaleTable tiers={tiers} currentQty={quantity} />
+            <WholesaleTable tiers={displayTiers} currentQty={quantity} />
           </div>
         )}
       </div>
