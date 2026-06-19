@@ -1,0 +1,81 @@
+{
+  "kind": "collectionType",
+  "collectionName": "products",
+  "info": {
+    "singularName": "product",
+    "pluralName": "products",
+    "displayName": "Product",
+    "description": "Catalog products"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "name",
+      "required": true
+    },
+    "description": {
+      "type": "text"
+    },
+    "retail_price": {
+      "type": "decimal",
+      "required": true,
+      "description": "Per piece price — what one unit costs at retail"
+    },
+    "bulk_price": {
+      "type": "decimal",
+      "description": "Bulk price per piece — applied at or above MOQ (minimum wholesale quantity)"
+    },
+    "compare_at_price": {
+      "type": "decimal"
+    },
+    "sell_mode": {
+      "type": "enumeration",
+      "enum": ["retail", "wholesale", "both"],
+      "default": "both",
+      "required": true
+    },
+    "moq_wholesale": {
+      "type": "integer",
+      "default": 10
+    },
+    "is_featured": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_new": {
+      "type": "boolean",
+      "default": false
+    },
+    "image_url": {
+      "type": "string"
+    },
+    "images": {
+      "type": "json"
+    },
+    "category": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::category.category",
+      "inversedBy": "products"
+    },
+    "variants": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::product-variant.product-variant",
+      "mappedBy": "product"
+    },
+    "wholesale_tiers": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::wholesale-tier.wholesale-tier",
+      "mappedBy": "product"
+    }
+  }
+}
