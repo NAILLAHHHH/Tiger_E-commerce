@@ -4,39 +4,66 @@
   "info": {
     "singularName": "product-variant",
     "pluralName": "product-variants",
-    "displayName": "Product Variant",
-    "description": "Size and color SKU with stock"
+    "displayName": "Size & color",
+    "description": "One row = one size and color with price and how many you have left"
   },
   "options": {
     "draftAndPublish": false
   },
   "attributes": {
-    "sku": {
+    "item_code": {
       "type": "string",
       "required": true,
-      "unique": true
+      "unique": true,
+      "description": "Your own short code to recognise this item, e.g. Grey-Hoodie-M"
     },
     "size": {
       "type": "string",
-      "required": true
+      "required": true,
+      "description": "Size, e.g. M, L, 32"
     },
     "color": {
       "type": "string",
-      "required": true
+      "required": true,
+      "description": "Color name, e.g. Navy, Black"
     },
-    "color_hex": {
-      "type": "string"
+    "color_dot": {
+      "type": "string",
+      "description": "Optional — color on the website (# code, e.g. #1E3A5F)"
     },
-    "stock_quantity": {
+    "photo": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images"],
+      "description": "Picture for this size and color (optional — uses product picture if empty)"
+    },
+    "price_for_one": {
+      "type": "decimal",
+      "required": true,
+      "description": "How much for 1 piece (RWF)"
+    },
+    "price_for_bulk": {
+      "type": "decimal",
+      "description": "How much per piece when buying many (leave empty if no bulk price)"
+    },
+    "min_quantity_for_bulk": {
+      "type": "integer",
+      "default": 10,
+      "min": 1,
+      "description": "How many pieces the customer must buy to get the bulk price"
+    },
+    "how_many_left": {
       "type": "integer",
       "default": 0,
-      "min": 0
+      "min": 0,
+      "description": "How many of this size/color you currently have"
     },
     "product": {
       "type": "relation",
       "relation": "manyToOne",
       "target": "api::product.product",
-      "inversedBy": "variants"
+      "inversedBy": "sizes_and_colors"
     }
   }
 }
