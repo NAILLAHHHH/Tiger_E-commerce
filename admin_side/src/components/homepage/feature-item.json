@@ -1,0 +1,25 @@
+{
+  "collectionName": "components_homepage_feature_items",
+  "info": {
+    "displayName": "Feature",
+    "description": "One item in the homepage features bar"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true,
+      "description": "Feature title, e.g. Bulk Pricing"
+    },
+    "description": {
+      "type": "string",
+      "required": true,
+      "description": "Short supporting text"
+    },
+    "icon": {
+      "type": "string",
+      "required": true,
+      "description": "Emoji or short icon text, e.g. 🚚"
+    }
+  }
+}

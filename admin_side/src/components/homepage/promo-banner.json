@@ -1,0 +1,30 @@
+{
+  "collectionName": "components_homepage_promo_banners",
+  "info": {
+    "displayName": "Promo banner",
+    "description": "Retail or wholesale promo block on the homepage"
+  },
+  "options": {},
+  "attributes": {
+    "label": {
+      "type": "string",
+      "required": true,
+      "description": "Small label, e.g. Retail or Wholesale"
+    },
+    "title": {
+      "type": "string",
+      "required": true,
+      "description": "Banner headline"
+    },
+    "description": {
+      "type": "text",
+      "description": "Supporting copy"
+    },
+    "style": {
+      "type": "enumeration",
+      "enum": ["brand", "dark"],
+      "default": "brand",
+      "description": "Brand = red gradient · Dark = dark background"
+    }
+  }
+}

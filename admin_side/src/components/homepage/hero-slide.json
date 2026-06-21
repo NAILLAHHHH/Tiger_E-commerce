@@ -1,0 +1,41 @@
+{
+  "collectionName": "components_homepage_hero_slides",
+  "info": {
+    "displayName": "Hero slide",
+    "description": "One slide in the homepage hero carousel"
+  },
+  "options": {},
+  "attributes": {
+    "tag": {
+      "type": "string",
+      "required": true,
+      "description": "Small label above the headline, e.g. New Collection"
+    },
+    "title": {
+      "type": "string",
+      "required": true,
+      "description": "Main headline customers see"
+    },
+    "subtitle": {
+      "type": "text",
+      "description": "Supporting text under the headline"
+    },
+    "cta": {
+      "type": "string",
+      "required": true,
+      "description": "Primary button text"
+    },
+    "href": {
+      "type": "string",
+      "required": true,
+      "description": "Where the primary button goes, e.g. /shop"
+    },
+    "image": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images"],
+      "description": "Slide background image"
+    }
+  }
+}
