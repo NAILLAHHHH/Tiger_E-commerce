@@ -1,0 +1,137 @@
+{
+  "plugin_content_manager_configuration_content_types::api::category.category": {
+    "name": { "label": "Name", "description": "What customers see, e.g. T-Shirts" },
+    "link_name": { "label": "Website link", "description": "Filled in automatically", "visible": false },
+    "photo": { "label": "Picture", "description": "Image path, e.g. /products/01-grey-zip-hoodie.png" },
+    "list_position": {
+      "label": "Order on website",
+      "description": "1 = show first, 2 = second, and so on"
+    },
+    "products": { "label": "Products in this section" }
+  },
+  "plugin_content_manager_configuration_content_types::api::product.product": {
+    "name": { "label": "Product name", "description": "Name shown on the website" },
+    "link_name": { "label": "Website link", "description": "Filled in automatically", "visible": false },
+    "description": { "label": "About this product", "description": "A few sentences for customers" },
+    "photo": { "label": "Main picture", "description": "Upload the product photo customers see on the website" },
+    "highlight_on_homepage": {
+      "label": "Show on homepage",
+      "description": "Tick to feature this product on the homepage"
+    },
+    "mark_as_new": { "label": "Show \"New\" badge", "description": "Tick if this is a new arrival" },
+    "category": { "label": "Shop section", "description": "e.g. T-Shirts, Hoodies" },
+    "sizes_and_colors": {
+      "label": "Sizes & colors",
+      "description": "Each row is one size and color with its price and how many you have"
+    }
+  },
+  "plugin_content_manager_configuration_content_types::api::product-variant.product-variant": {
+    "item_code": {
+      "label": "Product code",
+      "description": "Short name to recognise this item, e.g. Grey-Hoodie-M"
+    },
+    "size": { "label": "Size", "description": "e.g. M, L, 32" },
+    "color": { "label": "Color", "description": "e.g. Navy, Black" },
+    "photo": { "label": "Picture", "description": "Upload a photo for this size and color" },
+    "price_for_one": { "label": "Price for 1 piece (RWF)" },
+    "price_for_bulk": {
+      "label": "Price per piece when buying many (RWF)",
+      "description": "Leave empty if there is no discount for large orders"
+    },
+    "min_quantity_for_bulk": {
+      "label": "How many to buy for lower price",
+      "description": "e.g. 10 means the customer must buy at least 10 to get the lower price"
+    },
+    "how_many_left": {
+      "label": "How many we have",
+      "description": "Count how many of this size/color are available to sell"
+    },
+    "product": { "label": "Belongs to product" }
+  },
+  "plugin_content_manager_configuration_content_types::api::order.order": {
+    "order_reference": {
+      "label": "Order number",
+      "description": "Created automatically, e.g. TW-20260619-1234",
+      "editable": false
+    },
+    "customer_name": { "label": "Customer name" },
+    "phone": { "label": "Phone / WhatsApp" },
+    "delivery_address": { "label": "Delivery address" },
+    "customer_notes": { "label": "Notes from customer" },
+    "order_status": {
+      "label": "Status",
+      "description": "Placed / Pending / Completed = stock goes down · Cancelled = stock goes back"
+    },
+    "stock_deducted": {
+      "label": "Stock already removed",
+      "description": "Set automatically — you do not need to change this",
+      "editable": false
+    },
+    "subtotal": { "label": "Items total (RWF)" },
+    "total": { "label": "Final total (RWF)" },
+    "what_they_ordered": { "label": "What they ordered" }
+  },
+  "plugin_content_manager_configuration_content_types::api::homepage.homepage": {
+    "hero_slides": {
+      "label": "Hero carousel",
+      "description": "Slides at the top of the shop homepage — order matters"
+    },
+    "hero_secondary_cta": {
+      "label": "Secondary hero button",
+      "description": "Shown on every slide, e.g. Bulk pricing"
+    },
+    "hero_secondary_href": {
+      "label": "Secondary hero link",
+      "description": "Where the secondary button goes"
+    },
+    "features": {
+      "label": "Features bar",
+      "description": "Icons row below the hero"
+    },
+    "categories_title": { "label": "Categories heading" },
+    "new_arrivals_title": { "label": "New arrivals heading" },
+    "new_arrivals_limit": { "label": "How many new arrivals to show" },
+    "promo_banners": {
+      "label": "Promo banners",
+      "description": "Retail and wholesale blocks"
+    },
+    "featured_title": { "label": "Featured heading" },
+    "featured_limit": { "label": "How many featured products to show" },
+    "newsletter_title": { "label": "Newsletter headline" },
+    "newsletter_subtitle": { "label": "Newsletter text" },
+    "newsletter_placeholder": { "label": "Email placeholder" },
+    "newsletter_button": { "label": "Subscribe button text" }
+  },
+  "plugin_content_manager_configuration_components::homepage.hero-slide": {
+    "tag": { "label": "Label", "description": "Small tag above the headline" },
+    "title": { "label": "Headline" },
+    "subtitle": { "label": "Supporting text" },
+    "cta": { "label": "Button text" },
+    "href": { "label": "Button link", "description": "e.g. /shop or /wholesale" },
+    "image": { "label": "Slide image", "description": "Upload the hero background" }
+  },
+  "plugin_content_manager_configuration_components::homepage.feature-item": {
+    "title": { "label": "Title" },
+    "description": { "label": "Short text" },
+    "icon": { "label": "Icon", "description": "Emoji or short symbol" }
+  },
+  "plugin_content_manager_configuration_components::homepage.promo-banner": {
+    "label": { "label": "Tag", "description": "e.g. Retail or Wholesale" },
+    "title": { "label": "Headline" },
+    "description": { "label": "Supporting text" },
+    "style": {
+      "label": "Look",
+      "description": "Brand = red gradient · Dark = dark card"
+    }
+  },
+  "plugin_content_manager_configuration_components::order.order-item": {
+    "product_name": { "label": "Product" },
+    "size": { "label": "Size" },
+    "color": { "label": "Color" },
+    "item_code": { "label": "Product code" },
+    "how_many": { "label": "How many pieces" },
+    "price_each": { "label": "Price per piece (RWF)" },
+    "bought_as": { "label": "How they bought", "description": "One piece or many at a lower price" },
+    "row_total": { "label": "Line total (RWF)" }
+  }
+}
