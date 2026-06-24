@@ -7,6 +7,8 @@ const strapiPort = new URL(strapiUrl).port || "1337";
 const nextConfig: NextConfig = {
   output: "standalone",
   images: {
+    // Next.js 16 blocks localhost/private IPs (SSRF protection). Required for local Strapi.
+    dangerouslyAllowLocalIP: process.env.NODE_ENV === "development",
     remotePatterns: [
       {
         protocol: "http",

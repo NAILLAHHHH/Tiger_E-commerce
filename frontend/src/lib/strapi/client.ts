@@ -60,4 +60,4 @@ export async function strapiCreate<T extends StrapiEntity>(
 }
 
 export const PRODUCT_POPULATE =
-  "populate[category]=true&populate[variants]=true&populate[wholesale_tiers]=true";
+  "populate[category]=true&populate[photo]=true&populate[sizes_and_colors][populate][photo]=true";

@@ -1,5 +1,3 @@
-export type SellMode = "retail" | "wholesale" | "both";
-
 export type Category = {
   id: string;
   name: string;
@@ -15,14 +13,11 @@ export type ProductVariant = {
   size: string;
   color: string;
   color_hex: string | null;
+  image_url: string | null;
+  per_piece_price: number;
+  bulk_price: number | null;
+  bulk_minimum: number;
   stock_quantity: number;
-};
-
-export type WholesaleTier = {
-  id: string;
-  product_id: string;
-  min_quantity: number;
-  unit_price: number;
 };
 
 export type Product = {
@@ -30,19 +25,12 @@ export type Product = {
   name: string;
   slug: string;
   description: string | null;
-  retail_price: number;
-  bulk_price: number | null;
-  compare_at_price: number | null;
-  category_id: string | null;
   image_url: string | null;
-  images: string[];
-  sell_mode: SellMode;
-  moq_wholesale: number;
   is_featured: boolean;
   is_new: boolean;
+  category_id: string | null;
   category?: Category | null;
   variants?: ProductVariant[];
-  wholesale_tiers?: WholesaleTier[];
   total_stock?: number;
 };
 
