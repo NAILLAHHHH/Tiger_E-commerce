@@ -5,18 +5,49 @@ import {
   mockCategories,
   mockProducts,
 } from "@/data/mock-products";
-import { shouldUseMockData } from "@/lib/config";
+import {
+  shouldUseMockData,
+  shouldUseStrapi,
+} from "@/lib/config";
+import { PRODUCT_POPULATE, strapiList } from "@/lib/strapi/client";
+import { mapStrapiCategory, mapStrapiProduct } from "@/lib/strapi/mappers";
+import { productSupportsBulk } from "@/lib/pricing";
 import { createClient } from "@/lib/supabase/server";
 import type { Category, Product } from "@/types/database";
 
-function mapProduct(row: Record<string, unknown>): Product {
+function mapSupabaseProduct(row: Record<string, unknown>): Product {
   const variants = (row.product_variants as Record<string, unknown>[]) ?? [];
   const tiers =
     (row.wholesale_pricing_tiers as Record<string, unknown>[]) ?? [];
   const category = row.categories as Record<string, unknown> | null;
+  const retailPrice = Number(row.retail_price ?? 0);
+  const bulkFromTier = tiers.length
+    ? Number(
+        [...tiers].sort(
+          (a, b) => Number(a.min_quantity) - Number(b.min_quantity),
+        )[0]?.unit_price,
+      )
+    : null;
 
-  const total_stock = variants.reduce(
-    (sum, v) => sum + Number(v.stock_quantity ?? 0),
+  const mappedVariants = variants.map((v) => ({
+    id: String(v.id),
+    product_id: String(v.product_id),
+    sku: String(v.sku),
+    size: String(v.size),
+    color: String(v.color),
+    color_hex: v.color_hex ? String(v.color_hex) : null,
+    image_url: v.image_url ? String(v.image_url) : row.image_url ? String(row.image_url) : null,
+    per_piece_price: Number(v.per_piece_price ?? retailPrice),
+    bulk_price:
+      v.bulk_price != null
+        ? Number(v.bulk_price)
+        : bulkFromTier,
+    bulk_minimum: Number(v.bulk_minimum ?? row.moq_wholesale ?? 10),
+    stock_quantity: Number(v.stock_quantity),
+  }));
+
+  const total_stock = mappedVariants.reduce(
+    (sum, v) => sum + v.stock_quantity,
     0,
   );
 
@@ -25,15 +56,8 @@ function mapProduct(row: Record<string, unknown>): Product {
     name: String(row.name),
     slug: String(row.slug),
     description: row.description ? String(row.description) : null,
-    retail_price: Number(row.retail_price),
-    compare_at_price: row.compare_at_price
-      ? Number(row.compare_at_price)
-      : null,
     category_id: row.category_id ? String(row.category_id) : null,
     image_url: row.image_url ? String(row.image_url) : null,
-    images: (row.images as string[]) ?? [],
-    sell_mode: row.sell_mode as Product["sell_mode"],
-    moq_wholesale: Number(row.moq_wholesale),
     is_featured: Boolean(row.is_featured),
     is_new: Boolean(row.is_new),
     category: category
@@ -45,23 +69,7 @@ function mapProduct(row: Record<string, unknown>): Product {
           sort_order: Number(category.sort_order ?? 0),
         }
       : null,
-    variants: variants.map((v) => ({
-      id: String(v.id),
-      product_id: String(v.product_id),
-      sku: String(v.sku),
-      size: String(v.size),
-      color: String(v.color),
-      color_hex: v.color_hex ? String(v.color_hex) : null,
-      stock_quantity: Number(v.stock_quantity),
-    })),
-    wholesale_tiers: tiers
-      .map((t) => ({
-        id: String(t.id),
-        product_id: String(t.product_id),
-        min_quantity: Number(t.min_quantity),
-        unit_price: Number(t.unit_price),
-      }))
-      .sort((a, b) => a.min_quantity - b.min_quantity),
+    variants: mappedVariants,
     total_stock,
   };
 }
@@ -73,56 +81,27 @@ const productSelect = `
   wholesale_pricing_tiers (*)
 `;
 
-function isExternalImage(url: string | null | undefined): boolean {
-  if (!url) return false;
-  return url.startsWith("http://") || url.startsWith("https://");
-}
-
-/** Prefer local mock images — Supabase seed may still have old Unsplash URLs */
-function enrichProductFromMock(product: Product): Product {
-  const mock = mockProducts.find((p) => p.slug === product.slug);
-  if (mock) {
-    return {
-      ...product,
-      name: product.name || mock.name,
-      description: product.description ?? mock.description,
-      image_url: mock.image_url,
-      images: mock.images,
-      category:
-        product.category && mock.category
-          ? {
-              ...product.category,
-              image_url: mock.category.image_url,
-            }
-          : product.category,
-    };
+function filterProducts(
+  products: Product[],
+  options?: {
+    featured?: boolean;
+    categorySlug?: string;
+    limit?: number;
+    newOnly?: boolean;
+    wholesaleOnly?: boolean;
+  },
+): Product[] {
+  let items = [...products];
+  if (options?.featured) items = items.filter((p) => p.is_featured);
+  if (options?.newOnly) items = items.filter((p) => p.is_new);
+  if (options?.wholesaleOnly) {
+    items = items.filter(productSupportsBulk);
   }
-
-  if (isExternalImage(product.image_url)) {
-    return { ...product, image_url: "/placeholder-product.svg", images: [] };
+  if (options?.categorySlug) {
+    items = items.filter((p) => p.category?.slug === options.categorySlug);
   }
-
-  return product;
-}
-
-function enrichCategoryFromMock(category: Category): Category {
-  const mock = mockCategories.find((c) => c.slug === category.slug);
-  if (mock) return { ...category, image_url: mock.image_url };
-  if (isExternalImage(category.image_url)) {
-    return { ...category, image_url: "/placeholder-product.svg" };
-  }
-  return category;
-}
-
-function hasLegacyRemoteImages(
-  items: { image_url?: string | null }[],
-): boolean {
-  return items.some(
-    (item) =>
-      item.image_url?.includes("unsplash.com") ||
-      (isExternalImage(item.image_url) &&
-        !item.image_url?.startsWith("/products/")),
-  );
+  if (options?.limit) items = items.slice(0, options.limit);
+  return items;
 }
 
 function filterMockProducts(options?: {
@@ -136,9 +115,7 @@ function filterMockProducts(options?: {
   if (options?.featured) items = items.filter((p) => p.is_featured);
   if (options?.newOnly) items = items.filter((p) => p.is_new);
   if (options?.wholesaleOnly) {
-    items = items.filter(
-      (p) => p.sell_mode === "wholesale" || p.sell_mode === "both",
-    );
+    items = items.filter(productSupportsBulk);
   }
   if (options?.categorySlug) {
     items = getMockProductsByCategory(options.categorySlug);
@@ -147,22 +124,26 @@ function filterMockProducts(options?: {
   return items;
 }
 
-const supabaseUsesLegacyImages = cache(async (): Promise<boolean> => {
-  const supabase = await createClient();
-  const [products, categories] = await Promise.all([
-    supabase.from("products").select("image_url").limit(5),
-    supabase.from("categories").select("image_url").limit(5),
-  ]);
-  return (
-    hasLegacyRemoteImages(products.data ?? []) ||
-    hasLegacyRemoteImages(categories.data ?? [])
-  );
+const fetchStrapiProducts = cache(async (): Promise<Product[]> => {
+  const rows = await strapiList("products", `${PRODUCT_POPULATE}&pagination[pageSize]=100`);
+  return rows.map(mapStrapiProduct);
+});
+
+const fetchStrapiCategories = cache(async (): Promise<Category[]> => {
+  const rows = await strapiList("categories", "sort=list_position:asc&pagination[pageSize]=50");
+  return rows.map(mapStrapiCategory);
 });
 
 export async function getCategories(): Promise<Category[]> {
   if (shouldUseMockData()) return mockCategories;
 
-  if (await supabaseUsesLegacyImages()) return mockCategories;
+  if (shouldUseStrapi()) {
+    try {
+      return await fetchStrapiCategories();
+    } catch {
+      return mockCategories;
+    }
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -171,7 +152,7 @@ export async function getCategories(): Promise<Category[]> {
     .order("sort_order");
 
   if (error || !data) return mockCategories;
-  return (data as Category[]).map(enrichCategoryFromMock);
+  return data as Category[];
 }
 
 export async function getProducts(options?: {
@@ -181,7 +162,14 @@ export async function getProducts(options?: {
 }): Promise<Product[]> {
   if (shouldUseMockData()) return filterMockProducts(options);
 
-  if (await supabaseUsesLegacyImages()) return filterMockProducts(options);
+  if (shouldUseStrapi()) {
+    try {
+      const products = await fetchStrapiProducts();
+      return filterProducts(products, options);
+    } catch {
+      return filterMockProducts(options);
+    }
+  }
 
   const supabase = await createClient();
   let query = supabase.from("products").select(productSelect);
@@ -199,15 +187,24 @@ export async function getProducts(options?: {
 
   const { data, error } = await query.order("created_at", { ascending: false });
   if (error || !data) return mockProducts;
-  return data.map((row) =>
-    enrichProductFromMock(mapProduct(row as Record<string, unknown>)),
-  );
+  return data.map((row) => mapSupabaseProduct(row as Record<string, unknown>));
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   if (shouldUseMockData()) return getMockProductBySlug(slug);
 
-  if (await supabaseUsesLegacyImages()) return getMockProductBySlug(slug);
+  if (shouldUseStrapi()) {
+    try {
+      const rows = await strapiList(
+        "products",
+        `filters[link_name][$eq]=${encodeURIComponent(slug)}&${PRODUCT_POPULATE}`,
+      );
+      const product = rows[0];
+      return product ? mapStrapiProduct(product) : null;
+    } catch {
+      return getMockProductBySlug(slug);
+    }
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -217,7 +214,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
     .single();
 
   if (error || !data) return getMockProductBySlug(slug);
-  return enrichProductFromMock(mapProduct(data as Record<string, unknown>));
+  return mapSupabaseProduct(data as Record<string, unknown>);
 }
 
 export async function getNewArrivals(limit = 8): Promise<Product[]> {
@@ -225,8 +222,13 @@ export async function getNewArrivals(limit = 8): Promise<Product[]> {
     return filterMockProducts({ newOnly: true, limit });
   }
 
-  if (await supabaseUsesLegacyImages()) {
-    return filterMockProducts({ newOnly: true, limit });
+  if (shouldUseStrapi()) {
+    try {
+      const products = await fetchStrapiProducts();
+      return filterProducts(products, { newOnly: true, limit });
+    } catch {
+      return filterMockProducts({ newOnly: true, limit });
+    }
   }
 
   const supabase = await createClient();
@@ -239,16 +241,19 @@ export async function getNewArrivals(limit = 8): Promise<Product[]> {
   if (error || !data) {
     return mockProducts.filter((p) => p.is_new).slice(0, limit);
   }
-  return data.map((row) =>
-    enrichProductFromMock(mapProduct(row as Record<string, unknown>)),
-  );
+  return data.map((row) => mapSupabaseProduct(row as Record<string, unknown>));
 }
 
 export async function getWholesaleProducts(): Promise<Product[]> {
   if (shouldUseMockData()) return filterMockProducts({ wholesaleOnly: true });
 
-  if (await supabaseUsesLegacyImages()) {
-    return filterMockProducts({ wholesaleOnly: true });
+  if (shouldUseStrapi()) {
+    try {
+      const products = await fetchStrapiProducts();
+      return filterProducts(products, { wholesaleOnly: true });
+    } catch {
+      return filterMockProducts({ wholesaleOnly: true });
+    }
   }
 
   const supabase = await createClient();
@@ -258,11 +263,7 @@ export async function getWholesaleProducts(): Promise<Product[]> {
     .in("sell_mode", ["wholesale", "both"]);
 
   if (error || !data) {
-    return mockProducts.filter(
-      (p) => p.sell_mode === "wholesale" || p.sell_mode === "both",
-    );
+    return mockProducts.filter(productSupportsBulk);
   }
-  return data.map((row) =>
-    enrichProductFromMock(mapProduct(row as Record<string, unknown>)),
-  );
+  return data.map((row) => mapSupabaseProduct(row as Record<string, unknown>));
 }

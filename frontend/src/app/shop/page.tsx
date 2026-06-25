@@ -1,54 +1,83 @@
+import type { Metadata } from "next";
+import Link from "next/link";
 import ProductCard from "@/components/shop/ProductCard";
+import ShopCategoryNav from "@/components/shop/ShopCategoryNav";
 import { getCategories, getProducts } from "@/lib/products";
 
 type Props = {
   searchParams: Promise<{ category?: string }>;
 };
 
+export const metadata: Metadata = {
+  title: "Shop",
+  description:
+    "Browse clothing by size and color. Buy one piece or many at a lower price.",
+};
+
 export default async function ShopPage({ searchParams }: Props) {
   const { category } = await searchParams;
+  const categorySlug = category?.trim() || undefined;
   const [products, categories] = await Promise.all([
-    getProducts({ categorySlug: category }),
+    getProducts({ categorySlug }),
     getCategories(),
   ]);
 
+  const activeCategory = categories.find((cat) => cat.slug === categorySlug);
+  const pageTitle = activeCategory ? activeCategory.name : "Shop all";
+  const pageDescription = activeCategory
+    ? `Clothing in ${activeCategory.name} — pick your size, color, and quantity.`
+    : "Every product comes in sizes and colors. Buy one piece or order many at a lower price.";
+
   return (
     <div className="container-custom py-10">
-      <div className="mb-8">
-        <h1 className="section-title">Shop All</h1>
-        <p className="mt-2 text-sm text-muted">
-          Per-piece retail or bulk pricing — inventory shown per product.
-        </p>
+      <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-brand">
+            TygaStyle shop
+          </p>
+          <h1 className="section-title mt-1">{pageTitle}</h1>
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">
+            {pageDescription}
+          </p>
+          <p className="mt-3 text-sm text-body">
+            {products.length}{" "}
+            {products.length === 1 ? "product" : "products"}
+            {activeCategory ? ` in ${activeCategory.name}` : ""}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-gray-3 bg-gray-1 px-5 py-4 lg:max-w-sm">
+          <p className="text-sm font-medium text-dark">Buying for a shop or event?</p>
+          <p className="mt-1 text-xs text-muted">
+            Many items have a lower price when you order more pieces.
+          </p>
+          <Link
+            href="/wholesale"
+            className="mt-3 inline-flex text-sm font-medium text-brand hover:text-brand-dark"
+          >
+            See bulk prices →
+          </Link>
+        </div>
       </div>
 
-      <div className="mb-8 flex flex-wrap gap-2">
-        <a
-          href="/shop"
-          className={`rounded-full px-4 py-1.5 text-sm font-medium ${
-            !category
-              ? "bg-brand text-white"
-              : "bg-gray-1 text-body hover:bg-gray-2"
-          }`}
-        >
-          All
-        </a>
-        {categories.map((cat) => (
-          <a
-            key={cat.id}
-            href={`/shop?category=${cat.slug}`}
-            className={`rounded-full px-4 py-1.5 text-sm font-medium ${
-              category === cat.slug
-                ? "bg-brand text-white"
-                : "bg-gray-1 text-body hover:bg-gray-2"
-            }`}
-          >
-            {cat.name}
-          </a>
-        ))}
+      <div className="mb-8">
+        <ShopCategoryNav categories={categories} activeSlug={categorySlug} />
       </div>
 
       {products.length === 0 ? (
-        <p className="py-16 text-center text-muted">No products in this category.</p>
+        <div className="rounded-2xl border border-dashed border-gray-3 bg-gray-1 px-6 py-16 text-center">
+          <p className="text-lg font-medium text-dark">Nothing here yet</p>
+          <p className="mt-2 text-sm text-muted">
+            {activeCategory
+              ? `No products in ${activeCategory.name} right now.`
+              : "Check back soon — new items are added regularly."}
+          </p>
+          {activeCategory && (
+            <Link href="/shop" className="btn-primary mt-6 inline-flex">
+              View all products
+            </Link>
+          )}
+        </div>
       ) : (
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
           {products.map((product) => (

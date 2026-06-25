@@ -5,55 +5,63 @@
     "singularName": "order",
     "pluralName": "orders",
     "displayName": "Order",
-    "description": "Customer orders — admin updates status after offline payment"
+    "description": "When a customer orders online — update the status as you process it"
   },
   "options": {
     "draftAndPublish": false
   },
   "attributes": {
-    "order_number": {
+    "order_reference": {
       "type": "string",
-      "unique": true
+      "unique": true,
+      "description": "Order number (created automatically, e.g. TW-20260619-1234)"
     },
     "customer_name": {
       "type": "string",
-      "required": true
+      "required": true,
+      "description": "Customer's full name"
     },
     "phone": {
       "type": "string",
-      "required": true
+      "required": true,
+      "description": "Phone or WhatsApp number"
     },
-    "address": {
-      "type": "text"
+    "delivery_address": {
+      "type": "text",
+      "description": "Where to deliver (if they gave an address)"
     },
-    "notes": {
-      "type": "text"
+    "customer_notes": {
+      "type": "text",
+      "description": "Anything the customer wrote in the notes box"
     },
-    "status": {
+    "order_status": {
       "type": "enumeration",
-      "enum": [
-        "pending_contact",
-        "confirmed",
-        "paid",
-        "fulfilled",
-        "cancelled"
-      ],
-      "default": "pending_contact",
-      "required": true
+      "enum": ["placed", "pending", "completed", "cancelled"],
+      "default": "placed",
+      "required": true,
+      "description": "Placed = new order (stock goes down) · Pending / Completed = in progress or done · Cancelled = stock goes back"
+    },
+    "stock_deducted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Filled in automatically — true after stock has been removed for this order"
     },
     "subtotal": {
       "type": "decimal",
-      "required": true
+      "required": true,
+      "description": "Total amount in RWF (before any changes)"
     },
     "total": {
       "type": "decimal",
-      "required": true
+      "required": true,
+      "description": "Final total in RWF"
     },
-    "items": {
+    "what_they_ordered": {
       "type": "component",
       "repeatable": true,
       "component": "order.order-item",
-      "required": true
+      "required": true,
+      "description": "List of products in this order"
     }
   }
 }

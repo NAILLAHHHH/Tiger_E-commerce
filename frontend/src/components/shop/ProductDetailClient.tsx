@@ -4,12 +4,16 @@ import Image from "next/image";
 import { useMemo, useState } from "react";
 import {
   formatPrice,
+  productSupportsBulk,
+  productSupportsRetail,
   resolveUnitPrice,
   stockLabel,
+  variantSupportsBulk,
 } from "@/lib/pricing";
+import { resolveProductImage } from "@/lib/images";
+import { variantDisplayImage } from "@/lib/strapi/mappers";
 import { useCartStore } from "@/store/cart-store";
 import type { PricingMode, Product, ProductVariant } from "@/types/database";
-import WholesaleTable from "./WholesaleTable";
 
 type Props = {
   product: Product;
@@ -17,7 +21,6 @@ type Props = {
 
 export default function ProductDetailClient({ product }: Props) {
   const variants = product.variants ?? [];
-  const tiers = product.wholesale_tiers ?? [];
 
   const colors = useMemo(
     () => [...new Set(variants.map((v) => v.color))],
@@ -28,38 +31,42 @@ export default function ProductDetailClient({ product }: Props) {
     [variants],
   );
 
-  const canRetail = product.sell_mode !== "wholesale";
-  const canWholesale = product.sell_mode !== "retail";
+  const canRetail = productSupportsRetail(product);
+  const canWholesale = productSupportsBulk(product);
 
   const [mode, setMode] = useState<PricingMode>(
     canRetail ? "retail" : "wholesale",
   );
   const [color, setColor] = useState(colors[0] ?? "");
   const [size, setSize] = useState(sizes[0] ?? "");
-  const [quantity, setQuantity] = useState(
-    mode === "wholesale" ? product.moq_wholesale : 1,
-  );
-
-  const gallery = useMemo(
-    () =>
-      [product.image_url, ...(product.images ?? [])].filter(
-        (url): url is string => Boolean(url),
-      ),
-    [product.image_url, product.images],
-  );
-  const [activeImage, setActiveImage] = useState(0);
 
   const selectedVariant: ProductVariant | undefined = variants.find(
     (v) => v.color === color && v.size === size,
   );
 
-  const { unitPrice, isWholesale } = resolveUnitPrice(
-    mode,
-    quantity,
-    product.retail_price,
-    tiers,
-    product.moq_wholesale,
+  const bulkMinimum = selectedVariant?.bulk_minimum ?? 10;
+
+  const [quantity, setQuantity] = useState(
+    mode === "wholesale" ? bulkMinimum : 1,
   );
+
+  const gallery = useMemo(() => {
+    const urls = new Set<string>();
+    if (product.image_url) urls.add(product.image_url);
+    variants.forEach((variant) => {
+      if (variant.image_url) urls.add(variant.image_url);
+    });
+    return [...urls];
+  }, [product.image_url, variants]);
+
+  const displayImage = resolveProductImage(
+    variantDisplayImage(selectedVariant, product),
+  );
+  const [activeImage, setActiveImage] = useState(0);
+
+  const { unitPrice, isWholesale } = selectedVariant
+    ? resolveUnitPrice(mode, selectedVariant)
+    : { unitPrice: 0, isWholesale: false };
 
   const addItem = useCartStore((s) => s.addItem);
 
@@ -71,7 +78,7 @@ export default function ProductDetailClient({ product }: Props) {
       variantId: selectedVariant.id,
       name: product.name,
       slug: product.slug,
-      image: product.image_url ?? "",
+      image: displayImage,
       size: selectedVariant.size,
       color: selectedVariant.color,
       sku: selectedVariant.sku,
@@ -89,7 +96,7 @@ export default function ProductDetailClient({ product }: Props) {
         <div className="relative aspect-square overflow-hidden rounded-2xl bg-gray-1">
           {gallery[activeImage] && (
             <Image
-              src={gallery[activeImage]}
+              src={resolveProductImage(gallery[activeImage])}
               alt={product.name}
               fill
               className="object-cover object-center"
@@ -110,7 +117,7 @@ export default function ProductDetailClient({ product }: Props) {
                 }`}
               >
                 <Image
-                  src={url}
+                  src={resolveProductImage(url)}
                   alt=""
                   fill
                   className="object-cover object-center"
@@ -131,7 +138,7 @@ export default function ProductDetailClient({ product }: Props) {
         <h1 className="mt-1 text-3xl font-bold text-dark">{product.name}</h1>
         <p className="mt-2 text-sm text-muted">
           {stockLabel(product.total_stock ?? 0)}
-          {selectedVariant && ` · SKU: ${selectedVariant.sku}`}
+          {selectedVariant && ` · Code: ${selectedVariant.sku}`}
         </p>
 
         {product.description && (
@@ -140,7 +147,7 @@ export default function ProductDetailClient({ product }: Props) {
           </p>
         )}
 
-        {canRetail && canWholesale && (
+        {canRetail && canWholesale && selectedVariant && (
           <div className="mt-6 inline-flex rounded-lg border border-gray-3 bg-gray-1 p-1">
             <button
               type="button"
@@ -160,7 +167,7 @@ export default function ProductDetailClient({ product }: Props) {
               type="button"
               onClick={() => {
                 setMode("wholesale");
-                setQuantity(product.moq_wholesale);
+                setQuantity(selectedVariant.bulk_minimum);
               }}
               className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
                 mode === "wholesale"
@@ -168,22 +175,38 @@ export default function ProductDetailClient({ product }: Props) {
                   : "text-muted hover:text-dark"
               }`}
             >
-              Bulk ({product.moq_wholesale}+)
+              Buy many ({selectedVariant.bulk_minimum}+)
             </button>
           </div>
         )}
 
-        <div className="mt-6 flex items-baseline gap-3">
+        {selectedVariant && (
+          <div className="mt-6 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+            <div>
+              <span className="text-xs text-muted">Per piece</span>
+              <p className="text-xl font-bold text-dark">
+                {formatPrice(selectedVariant.per_piece_price)}
+              </p>
+            </div>
+            {variantSupportsBulk(selectedVariant) && (
+              <div>
+                <span className="text-xs text-muted">
+                  Buy many ({selectedVariant.bulk_minimum}+)
+                </span>
+                <p className="text-xl font-bold text-brand">
+                  {formatPrice(selectedVariant.bulk_price!)}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="mt-4 flex items-baseline gap-3">
           <span className="text-3xl font-bold text-brand">
             {formatPrice(unitPrice)}
           </span>
-          {mode === "retail" && product.compare_at_price && (
-            <span className="text-lg text-muted line-through">
-              {formatPrice(product.compare_at_price)}
-            </span>
-          )}
           <span className="text-sm text-muted">
-            {isWholesale ? "wholesale unit price" : "per piece"}
+            {isWholesale ? "price when buying many" : "per piece"}
           </span>
         </div>
 
@@ -255,7 +278,7 @@ export default function ProductDetailClient({ product }: Props) {
               type="button"
               onClick={() =>
                 setQuantity((q) =>
-                  Math.max(mode === "wholesale" ? product.moq_wholesale : 1, q - 1),
+                  Math.max(mode === "wholesale" ? bulkMinimum : 1, q - 1),
                 )
               }
               className="flex h-10 w-10 items-center justify-center rounded-md border border-gray-3 text-lg"
@@ -265,9 +288,7 @@ export default function ProductDetailClient({ product }: Props) {
             <span className="w-12 text-center font-medium">{quantity}</span>
             <button
               type="button"
-              onClick={() =>
-                setQuantity((q) => Math.min(maxQty, q + 1))
-              }
+              onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))}
               disabled={quantity >= maxQty}
               className="flex h-10 w-10 items-center justify-center rounded-md border border-gray-3 text-lg disabled:opacity-40"
             >
@@ -287,23 +308,17 @@ export default function ProductDetailClient({ product }: Props) {
           disabled={
             !selectedVariant ||
             selectedVariant.stock_quantity < quantity ||
-            (mode === "wholesale" && quantity < product.moq_wholesale)
+            (mode === "wholesale" && quantity < bulkMinimum)
           }
           className="btn-primary mt-8 w-full py-3 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Add to cart — {formatPrice(unitPrice * quantity)}
         </button>
 
-        {mode === "wholesale" && quantity < product.moq_wholesale && (
+        {mode === "wholesale" && quantity < bulkMinimum && (
           <p className="mt-2 text-xs text-red-600">
-            Minimum wholesale order: {product.moq_wholesale} units
+            Minimum order for lower price: {bulkMinimum} pieces
           </p>
-        )}
-
-        {tiers.length > 0 && (
-          <div className="mt-8">
-            <WholesaleTable tiers={tiers} currentQty={quantity} />
-          </div>
         )}
       </div>
     </div>

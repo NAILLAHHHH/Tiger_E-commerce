@@ -24,3 +24,15 @@ export const userProductImages = {
 } as const;
 
 export const ALL_USER_PRODUCT_IMAGES = Object.values(userProductImages);
+
+/** Normalize cart/catalog image URLs (local paths, Strapi uploads, legacy URLs). */
+export function resolveProductImage(url: string | undefined | null): string {
+  if (!url) return "/placeholder-product.svg";
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  if (url.startsWith("/uploads/")) {
+    const base = process.env.NEXT_PUBLIC_STRAPI_URL ?? "http://localhost:1337";
+    return `${base.replace(/\/$/, "")}${url}`;
+  }
+  if (url.startsWith("/")) return url;
+  return "/placeholder-product.svg";
+}

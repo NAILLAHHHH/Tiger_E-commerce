@@ -5,7 +5,7 @@
     "singularName": "product",
     "pluralName": "products",
     "displayName": "Product",
-    "description": "Catalog products"
+    "description": "A clothing item — add sizes, colors, prices and how many you have below"
   },
   "options": {
     "draftAndPublish": false
@@ -13,69 +13,54 @@
   "attributes": {
     "name": {
       "type": "string",
-      "required": true
+      "required": true,
+      "description": "Product name customers see on the website"
     },
-    "slug": {
+    "link_name": {
       "type": "uid",
       "targetField": "name",
-      "required": true
+      "required": true,
+      "description": "Filled in automatically — used for the product page link",
+      "pluginOptions": {
+        "content-manager": {
+          "visible": false
+        }
+      }
     },
     "description": {
-      "type": "text"
+      "type": "text",
+      "description": "A few sentences about this product"
     },
-    "retail_price": {
-      "type": "decimal",
-      "required": true,
-      "description": "Per piece price — what one unit costs at retail"
+    "photo": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images"],
+      "description": "Main picture customers see for this product"
     },
-    "bulk_price": {
-      "type": "decimal",
-      "description": "Bulk price per piece — applied at or above MOQ (minimum wholesale quantity)"
-    },
-    "compare_at_price": {
-      "type": "decimal"
-    },
-    "sell_mode": {
-      "type": "enumeration",
-      "enum": ["retail", "wholesale", "both"],
-      "default": "both",
-      "required": true
-    },
-    "moq_wholesale": {
-      "type": "integer",
-      "default": 10
-    },
-    "is_featured": {
+    "highlight_on_homepage": {
       "type": "boolean",
-      "default": false
+      "default": false,
+      "description": "Tick to show this product on the homepage"
     },
-    "is_new": {
+    "mark_as_new": {
       "type": "boolean",
-      "default": false
-    },
-    "image_url": {
-      "type": "string"
-    },
-    "images": {
-      "type": "json"
+      "default": false,
+      "description": "Tick to show a \"New\" label on the website"
     },
     "category": {
       "type": "relation",
       "relation": "manyToOne",
       "target": "api::category.category",
-      "inversedBy": "products"
+      "inversedBy": "products",
+      "description": "Which section this product belongs to"
     },
-    "variants": {
+    "sizes_and_colors": {
       "type": "relation",
       "relation": "oneToMany",
       "target": "api::product-variant.product-variant",
-      "mappedBy": "product"
-    },
-    "wholesale_tiers": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::wholesale-tier.wholesale-tier",
-      "mappedBy": "product"
+      "mappedBy": "product",
+      "description": "Each row is one size + color with its own price and how many are left"
     }
   }
 }

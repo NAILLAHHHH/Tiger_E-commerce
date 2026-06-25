@@ -5,7 +5,7 @@
     "singularName": "category",
     "pluralName": "categories",
     "displayName": "Category",
-    "description": "Product categories"
+    "description": "Shop sections — T-Shirts, Hoodies, Pants, etc."
   },
   "options": {
     "draftAndPublish": false
@@ -13,19 +13,28 @@
   "attributes": {
     "name": {
       "type": "string",
-      "required": true
+      "required": true,
+      "description": "Name customers see, e.g. T-Shirts"
     },
-    "slug": {
+    "link_name": {
       "type": "uid",
       "targetField": "name",
-      "required": true
+      "required": true,
+      "description": "Filled in automatically — used for the website link",
+      "pluginOptions": {
+        "content-manager": {
+          "visible": false
+        }
+      }
     },
-    "image_url": {
-      "type": "string"
+    "photo": {
+      "type": "string",
+      "description": "Picture for this category, e.g. /products/01-grey-zip-hoodie.png"
     },
-    "sort_order": {
+    "list_position": {
       "type": "integer",
-      "default": 0
+      "default": 0,
+      "description": "Order on the website (1 = show first, 2 = second, etc.)"
     },
     "products": {
       "type": "relation",

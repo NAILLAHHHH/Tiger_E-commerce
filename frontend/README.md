@@ -5,7 +5,7 @@ Next.js storefront for a clothing seller — **retail (per piece)** and **wholes
 ## Stack
 
 - **Next.js 16** (App Router)
-- **Supabase** (PostgreSQL) — products, variants, stock, wholesale tiers
+- **Strapi 5** (`admin_side/`) — products, variants, stock, orders, admin panel
 - **Zustand** — cart (persisted in localStorage)
 - **Tailwind CSS v4**
 
@@ -13,10 +13,22 @@ Next.js storefront for a clothing seller — **retail (per piece)** and **wholes
 
 ```bash
 npm install
+cp .env.local.example .env.local   # uses Strapi at localhost:1337
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Mock catalog data loads by default (`NEXT_PUBLIC_USE_MOCK_DATA=true`).
+Open [http://localhost:3000](http://localhost:3000).
+
+**Also run Strapi** (in another terminal):
+
+```bash
+cd ../admin_side
+npm run develop
+```
+
+Admin panel: [http://localhost:1337/admin](http://localhost:1337/admin)
+
+Set `NEXT_PUBLIC_USE_MOCK_DATA=true` in `.env.local` to browse without Strapi (local mock catalog).
 
 ## Docker (production)
 

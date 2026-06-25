@@ -1,50 +1,49 @@
 {
   "collectionName": "components_order_order_items",
   "info": {
-    "displayName": "Order Item",
-    "description": "Line item snapshot at checkout"
+    "displayName": "Product in order",
+    "description": "One product the customer ordered"
   },
   "options": {},
   "attributes": {
-    "product_id": {
-      "type": "string"
-    },
-    "variant_id": {
-      "type": "string"
-    },
     "product_name": {
       "type": "string",
-      "required": true
-    },
-    "product_slug": {
-      "type": "string"
-    },
-    "sku": {
-      "type": "string"
+      "required": true,
+      "description": "Product name"
     },
     "size": {
-      "type": "string"
+      "type": "string",
+      "description": "Size"
     },
     "color": {
-      "type": "string"
+      "type": "string",
+      "description": "Color"
     },
-    "quantity": {
+    "item_code": {
+      "type": "string",
+      "description": "Your item code for this size/color"
+    },
+    "how_many": {
       "type": "integer",
       "required": true,
-      "min": 1
+      "min": 1,
+      "description": "How many pieces"
     },
-    "unit_price": {
+    "price_each": {
       "type": "decimal",
-      "required": true
+      "required": true,
+      "description": "Price for one piece (RWF)"
     },
-    "pricing_mode": {
+    "bought_as": {
       "type": "enumeration",
-      "enum": ["retail", "wholesale"],
-      "default": "retail"
+      "enum": ["one_piece", "many_pieces"],
+      "default": "one_piece",
+      "description": "Did they buy one piece, or many at the lower price?"
     },
-    "line_total": {
+    "row_total": {
       "type": "decimal",
-      "required": true
+      "required": true,
+      "description": "How many × price each (RWF)"
     }
   }
 }

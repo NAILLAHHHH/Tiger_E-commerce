@@ -4,6 +4,7 @@ import HeroCarousel from "@/components/home/HeroCarousel";
 import Newsletter from "@/components/home/Newsletter";
 import ProductSection from "@/components/home/ProductSection";
 import PromoBanners from "@/components/home/PromoBanners";
+import { getHomepageContent } from "@/lib/homepage";
 import {
   getCategories,
   getNewArrivals,
@@ -11,29 +12,40 @@ import {
 } from "@/lib/products";
 
 export default async function HomePage() {
+  const homepage = await getHomepageContent();
+
   const [categories, newArrivals, featured] = await Promise.all([
     getCategories(),
-    getNewArrivals(8),
-    getProducts({ featured: true, limit: 4 }),
+    getNewArrivals(homepage.newArrivalsLimit),
+    getProducts({ featured: true, limit: homepage.featuredLimit }),
   ]);
 
   return (
     <>
-      <HeroCarousel />
-      <FeaturesBar />
-      <CategoryGrid categories={categories} />
+      <HeroCarousel
+        slides={homepage.heroSlides}
+        secondaryCta={homepage.heroSecondaryCta}
+        secondaryHref={homepage.heroSecondaryHref}
+      />
+      <FeaturesBar features={homepage.features} />
+      <CategoryGrid categories={categories} title={homepage.categoriesTitle} />
       <ProductSection
-        title="New Arrivals"
+        title={homepage.newArrivalsTitle}
         products={newArrivals}
         viewAllHref="/shop"
       />
-      <PromoBanners />
+      <PromoBanners banners={homepage.promoBanners} />
       <ProductSection
-        title="Featured"
+        title={homepage.featuredTitle}
         products={featured}
         viewAllHref="/shop"
       />
-      <Newsletter />
+      <Newsletter
+        title={homepage.newsletterTitle}
+        subtitle={homepage.newsletterSubtitle}
+        placeholder={homepage.newsletterPlaceholder}
+        buttonText={homepage.newsletterButton}
+      />
     </>
   );
 }

@@ -1,0 +1,92 @@
+{
+  "kind": "singleType",
+  "collectionName": "homepages",
+  "info": {
+    "singularName": "homepage",
+    "pluralName": "homepages",
+    "displayName": "Storefront homepage",
+    "description": "Hero, features, promos, and section titles shown on the shop website"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "hero_slides": {
+      "type": "component",
+      "repeatable": true,
+      "component": "homepage.hero-slide",
+      "description": "Carousel slides at the top of the shop homepage"
+    },
+    "hero_secondary_cta": {
+      "type": "string",
+      "default": "Bulk pricing",
+      "description": "Secondary button text on every hero slide"
+    },
+    "hero_secondary_href": {
+      "type": "string",
+      "default": "/wholesale",
+      "description": "Where the secondary hero button goes"
+    },
+    "features": {
+      "type": "component",
+      "repeatable": true,
+      "component": "homepage.feature-item",
+      "description": "Icons row below the hero"
+    },
+    "categories_title": {
+      "type": "string",
+      "default": "Browse by Category",
+      "description": "Heading above the category grid"
+    },
+    "new_arrivals_title": {
+      "type": "string",
+      "default": "New Arrivals",
+      "description": "Heading for the new products row"
+    },
+    "new_arrivals_limit": {
+      "type": "integer",
+      "default": 8,
+      "min": 1,
+      "max": 24,
+      "description": "How many new-arrival products to show"
+    },
+    "promo_banners": {
+      "type": "component",
+      "repeatable": true,
+      "component": "homepage.promo-banner",
+      "description": "Retail / wholesale promo blocks"
+    },
+    "featured_title": {
+      "type": "string",
+      "default": "Featured",
+      "description": "Heading for the featured products row"
+    },
+    "featured_limit": {
+      "type": "integer",
+      "default": 4,
+      "min": 1,
+      "max": 24,
+      "description": "How many featured products to show"
+    },
+    "newsletter_title": {
+      "type": "string",
+      "default": "Don't Miss Latest Drops & Bulk Deals",
+      "description": "Newsletter section headline"
+    },
+    "newsletter_subtitle": {
+      "type": "text",
+      "default": "Get notified about new arrivals, restocks, and wholesale price updates.",
+      "description": "Newsletter supporting text"
+    },
+    "newsletter_placeholder": {
+      "type": "string",
+      "default": "Enter your email",
+      "description": "Email field placeholder"
+    },
+    "newsletter_button": {
+      "type": "string",
+      "default": "Subscribe",
+      "description": "Newsletter submit button text"
+    }
+  }
+}

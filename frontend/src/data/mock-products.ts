@@ -3,8 +3,14 @@ import type {
   Category,
   Product,
   ProductVariant,
-  WholesaleTier,
 } from "@/types/database";
+
+type WholesaleTier = {
+  id: string;
+  product_id: string;
+  min_quantity: number;
+  unit_price: number;
+};
 
 const categories: Category[] = [
   {
@@ -44,7 +50,9 @@ const categories: Category[] = [
   },
 ];
 
-const variants: ProductVariant[] = [
+const variants: Array<
+  Omit<ProductVariant, "per_piece_price" | "bulk_price" | "bulk_minimum" | "image_url">
+> = [
   { id: "v-1", product_id: "p-1", sku: "GZ-HGY-M", size: "M", color: "Heather Grey", color_hex: "#A8A29E", stock_quantity: 28 },
   { id: "v-2", product_id: "p-2", sku: "WT-WHT-32", size: "32", color: "White", color_hex: "#FAFAFA", stock_quantity: 20 },
   { id: "v-3", product_id: "p-3", sku: "BZ-MIX-M", size: "M", color: "Mixed", color_hex: "#737373", stock_quantity: 200 },
@@ -80,7 +88,16 @@ const wholesaleTiers: WholesaleTier[] = [
 ];
 
 /** 21 products — one per user-provided photo, no extra images */
-const products: Product[] = [
+const products: Array<
+  Omit<Product, "variants" | "total_stock"> & {
+    category_id: string;
+    retail_price: number;
+    compare_at_price?: number | null;
+    sell_mode?: string;
+    moq_wholesale?: number;
+    images?: string[];
+  }
+> = [
   {
     id: "p-1",
     name: "Heather Grey Zip Hoodie",
@@ -398,20 +415,37 @@ const products: Product[] = [
   },
 ];
 
-function attachRelations(items: Product[]): Product[] {
+function attachRelations(items: Omit<Product, "variants" | "total_stock">[]): Product[] {
   return items.map((product) => {
     const productVariants = variants.filter((v) => v.product_id === product.id);
-    const total_stock = productVariants.reduce(
+    const productTiers = wholesaleTiers
+      .filter((t) => t.product_id === product.id)
+      .sort((a, b) => a.min_quantity - b.min_quantity);
+    const bulkPrice = productTiers[0]?.unit_price ?? null;
+    const bulkMin = productTiers[0]?.min_quantity ?? 10;
+
+    const mappedVariants = productVariants.map((v) => ({
+      ...v,
+      image_url: product.image_url,
+      per_piece_price:
+        (v as ProductVariant).per_piece_price ??
+        (product as { retail_price?: number }).retail_price ??
+        0,
+      bulk_price:
+        (v as ProductVariant).bulk_price ?? bulkPrice,
+      bulk_minimum:
+        (v as ProductVariant).bulk_minimum ?? bulkMin,
+    }));
+
+    const total_stock = mappedVariants.reduce(
       (sum, v) => sum + v.stock_quantity,
       0,
     );
+
     return {
       ...product,
       category: categories.find((c) => c.id === product.category_id) ?? null,
-      variants: productVariants,
-      wholesale_tiers: wholesaleTiers
-        .filter((t) => t.product_id === product.id)
-        .sort((a, b) => a.min_quantity - b.min_quantity),
+      variants: mappedVariants,
       total_stock,
     };
   });
