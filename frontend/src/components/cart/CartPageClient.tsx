@@ -119,7 +119,7 @@ export default function CartPageClient() {
                 {item.name}
               </Link>
               <p className="text-xs text-muted">
-                {item.color} · Size {item.size} · {item.sku}
+                {item.color} · Size {item.size} · Code {item.sku}
               </p>
               <p className="text-xs text-muted capitalize">
                 {item.pricingMode} · {formatPrice(item.unitPrice)}/unit

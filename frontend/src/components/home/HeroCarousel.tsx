@@ -3,49 +3,34 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { userProductImages as img } from "@/lib/images";
+import { resolveProductImage } from "@/lib/images";
+import type { HeroSlide } from "@/types/homepage";
 
-const slides = [
-  {
-    tag: "New Collection",
-    title: "TygaStyle Essentials",
-    subtitle:
-      "Tees, hoodies, chinos & suits — retail per piece or bulk from 10+ units.",
-    cta: "Shop New Arrivals",
-    href: "/shop",
-    image: img.tygaStyleTeeSet,
-  },
-  {
-    tag: "Wholesale",
-    title: "Buy in Bulk, Save More",
-    subtitle:
-      "Mixed-color quarter-zip packs with tiered pricing for resellers.",
-    cta: "View Wholesale",
-    href: "/wholesale",
-    image: img.quarterZipBulkPack,
-  },
-  {
-    tag: "Premium Quality",
-    title: "Formal & Tailored",
-    subtitle: "Suits, dress shirts, and chinos built for retail and bulk orders.",
-    cta: "Browse Catalog",
-    href: "/shop?category=formal",
-    image: img.suitCollection,
-  },
-];
+type Props = {
+  slides: HeroSlide[];
+  secondaryCta: string;
+  secondaryHref: string;
+};
 
-export default function HeroCarousel() {
+export default function HeroCarousel({
+  slides,
+  secondaryCta,
+  secondaryHref,
+}: Props) {
   const [active, setActive] = useState(0);
 
   useEffect(() => {
+    if (!slides.length) return;
     const timer = setInterval(
       () => setActive((i) => (i + 1) % slides.length),
       6000,
     );
     return () => clearInterval(timer);
-  }, []);
+  }, [slides.length]);
 
-  const slide = slides[active];
+  if (!slides.length) return null;
+
+  const slide = slides[active] ?? slides[0];
 
   return (
     <section className="container-custom py-6 md:py-8">
@@ -66,10 +51,10 @@ export default function HeroCarousel() {
                 {slide.cta}
               </Link>
               <Link
-                href="/wholesale"
+                href={secondaryHref}
                 className="inline-flex items-center justify-center rounded-[5px] border border-white/25 bg-transparent px-5 py-2.5 text-sm font-medium text-white transition-colors hover:border-brand hover:text-brand"
               >
-                Bulk pricing
+                {secondaryCta}
               </Link>
             </div>
 
@@ -99,7 +84,7 @@ export default function HeroCarousel() {
                 }`}
               >
                 <Image
-                  src={s.image}
+                  src={resolveProductImage(s.image)}
                   alt={s.title}
                   fill
                   priority={i === 0}

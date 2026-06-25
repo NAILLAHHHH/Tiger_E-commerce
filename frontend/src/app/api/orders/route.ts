@@ -40,23 +40,20 @@ export async function POST(request: Request) {
   const orderData = {
     customer_name: customer_name.trim(),
     phone: phone.trim(),
-    address: address?.trim() || null,
-    notes: notes?.trim() || null,
-    status: "pending_contact",
+    delivery_address: address?.trim() || null,
+    customer_notes: notes?.trim() || null,
+    order_status: "placed",
     subtotal,
     total: subtotal,
-    items: items.map((item) => ({
-      product_id: item.productId,
-      variant_id: item.variantId,
+    what_they_ordered: items.map((item) => ({
       product_name: item.name,
-      product_slug: item.slug,
-      sku: item.sku,
+      item_code: item.sku,
       size: item.size,
       color: item.color,
-      quantity: item.quantity,
-      unit_price: item.unitPrice,
-      pricing_mode: item.pricingMode,
-      line_total: item.unitPrice * item.quantity,
+      how_many: item.quantity,
+      price_each: item.unitPrice,
+      bought_as: item.pricingMode === "wholesale" ? "many_pieces" : "one_piece",
+      row_total: item.unitPrice * item.quantity,
     })),
   };
 
@@ -78,7 +75,8 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      order_number: json.data?.order_number,
+      order_number:
+        json.data?.order_reference ?? json.data?.order_number,
       documentId: json.data?.documentId,
     });
   } catch {

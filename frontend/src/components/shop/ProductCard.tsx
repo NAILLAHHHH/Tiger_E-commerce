@@ -2,19 +2,36 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { formatPrice } from "@/lib/pricing";
+import {
+  bulkSavingsPercent,
+  formatPrice,
+  lowestBulkPrice,
+  lowestPerPiecePrice,
+  lowestBulkMinimum,
+  productSupportsBulk,
+  stockLabel,
+} from "@/lib/pricing";
+import { resolveProductImage } from "@/lib/images";
 import type { Product } from "@/types/database";
 
 type Props = {
   product: Product;
+  /** Retail shop vs wholesale catalog — changes which price is highlighted. */
+  emphasis?: "retail" | "wholesale";
 };
 
-export default function ProductCard({ product }: Props) {
-  const image = product.image_url ?? "/placeholder-product.svg";
-  const inStock = (product.total_stock ?? 0) > 0;
-  const discount =
-    product.compare_at_price &&
-    product.compare_at_price > product.retail_price;
+export default function ProductCard({
+  product,
+  emphasis = "retail",
+}: Props) {
+  const image = resolveProductImage(product.image_url);
+  const totalStock = product.total_stock ?? 0;
+  const perPiece = lowestPerPiecePrice(product);
+  const bulkPrice = lowestBulkPrice(product);
+  const bulkMin = lowestBulkMinimum(product);
+  const hasBulk = bulkPrice != null && productSupportsBulk(product);
+  const savings = hasBulk ? bulkSavingsPercent(perPiece, bulkPrice) : null;
+  const isWholesaleView = emphasis === "wholesale" && hasBulk;
 
   return (
     <article className="group relative overflow-hidden rounded-xl bg-surface shadow-[var(--shadow-card)] transition-shadow hover:shadow-lg">
@@ -24,9 +41,16 @@ export default function ProductCard({ product }: Props) {
             New
           </span>
         )}
-        <span className="badge badge-wholesale absolute right-3 top-3 z-10">
-          Retail + Bulk
-        </span>
+        {hasBulk && !isWholesaleView && (
+          <span className="badge badge-wholesale absolute right-3 top-3 z-10">
+            Bulk price
+          </span>
+        )}
+        {isWholesaleView && savings != null && savings > 0 && (
+          <span className="badge badge-sale absolute right-3 top-3 z-10">
+            Save {savings}%
+          </span>
+        )}
 
         <Link href={`/shop/${product.slug}`} className="relative block h-full w-full">
           <Image
@@ -60,35 +84,37 @@ export default function ProductCard({ product }: Props) {
           </h3>
         </Link>
 
-        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="text-lg font-semibold text-brand">
-            {formatPrice(product.retail_price)}
-          </span>
-          {discount && (
-            <span className="text-sm text-muted line-through">
-              {formatPrice(product.compare_at_price!)}
+        {isWholesaleView ? (
+          <div className="mt-2">
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+              <span className="text-lg font-semibold text-brand">
+                {formatPrice(bulkPrice!)}
+              </span>
+              <span className="text-xs text-muted">per piece · {bulkMin}+ pcs</span>
+            </div>
+            <p className="mt-1 text-xs text-muted">
+              Single piece {formatPrice(perPiece)}
+              {savings != null && savings > 0 && ` · ${savings}% less than 1 pc`}
+            </p>
+          </div>
+        ) : (
+          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="text-lg font-semibold text-brand">
+              {formatPrice(perPiece)}
             </span>
-          )}
-          <span className="text-xs text-muted">per piece</span>
-          {product.bulk_price != null &&
-            (product.sell_mode === "wholesale" || product.sell_mode === "both") && (
+            <span className="text-xs text-muted">per piece</span>
+            {hasBulk && (
               <>
                 <span className="text-xs text-muted">·</span>
                 <span className="text-sm font-medium text-dark">
-                  {formatPrice(product.bulk_price)} bulk
-                </span>
-                <span className="text-xs text-muted">
-                  ({product.moq_wholesale}+)
+                  {formatPrice(bulkPrice!)} when buying {bulkMin}+
                 </span>
               </>
             )}
-        </div>
+          </div>
+        )}
 
-        <p className="mt-1 text-xs text-muted">
-          {inStock
-            ? `${product.total_stock} in stock`
-            : "Out of stock"}
-        </p>
+        <p className="mt-1 text-xs text-muted">{stockLabel(totalStock)}</p>
       </div>
     </article>
   );
