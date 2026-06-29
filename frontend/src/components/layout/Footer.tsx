@@ -39,7 +39,7 @@ export default function Footer() {
             Support
           </h4>
           <ul className="space-y-2 text-sm">
-            <li>Bulk orders: MOQ from 10 pcs</li>
+            <li>Bulk orders: Starts from 10 pcs</li>
             <li>Email: hello@tygastyle.com</li>
           </ul>
         </div>
