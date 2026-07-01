@@ -569,7 +569,7 @@ export interface ApiOrderOrder extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     order_reference: Schema.Attribute.String & Schema.Attribute.Unique;
     order_status: Schema.Attribute.Enumeration<
-      ['placed', 'pending', 'completed', 'cancelled']
+      ['placed', 'paid', 'pending', 'completed', 'cancelled']
     > &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'placed'>;
@@ -602,6 +602,7 @@ export interface ApiProductVariantProductVariant
   attributes: {
     color: Schema.Attribute.String & Schema.Attribute.Required;
     color_dot: Schema.Attribute.String;
+    color_photos: Schema.Attribute.Media<'images', true>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -685,6 +686,7 @@ export interface ApiProductProduct extends Struct.CollectionTypeSchema {
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    video: Schema.Attribute.Media<'videos'>;
   };
 }
 

@@ -38,6 +38,13 @@
       "allowedTypes": ["images"],
       "description": "Picture for this size and color (optional — uses product picture if empty)"
     },
+    "color_photos": {
+      "type": "media",
+      "multiple": true,
+      "required": false,
+      "allowedTypes": ["images"],
+      "description": "More photos for this color — detail shots and alternate angles"
+    },
     "price_for_one": {
       "type": "decimal",
       "required": true,

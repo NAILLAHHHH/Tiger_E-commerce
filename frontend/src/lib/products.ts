@@ -58,6 +58,7 @@ function mapSupabaseProduct(row: Record<string, unknown>): Product {
     description: row.description ? String(row.description) : null,
     category_id: row.category_id ? String(row.category_id) : null,
     image_url: row.image_url ? String(row.image_url) : null,
+    video_url: row.video_url ? String(row.video_url) : null,
     is_featured: Boolean(row.is_featured),
     is_new: Boolean(row.is_new),
     category: category
