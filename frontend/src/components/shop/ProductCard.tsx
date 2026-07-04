@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   bulkSavingsPercent,
   formatPrice,
@@ -11,7 +12,12 @@ import {
   productSupportsBulk,
   stockLabel,
 } from "@/lib/pricing";
+import {
+  getCardImages,
+  getProductColors,
+} from "@/lib/product-media";
 import { resolveProductImage } from "@/lib/images";
+import ColorSwatches from "@/components/shop/ColorSwatches";
 import type { Product } from "@/types/database";
 
 type Props = {
@@ -24,7 +30,56 @@ export default function ProductCard({
   product,
   emphasis = "retail",
 }: Props) {
-  const image = resolveProductImage(product.image_url);
+  const variants = product.variants ?? [];
+  const colors = useMemo(
+    () => getProductColors(variants, product.image_url),
+    [variants, product.image_url],
+  );
+  const [activeColor, setActiveColor] = useState(colors[0]?.color ?? "");
+  const [activeImage, setActiveImage] = useState(0);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+
+  const images = useMemo(
+    () => getCardImages(product, activeColor || undefined),
+    [product, activeColor],
+  );
+
+  useEffect(() => {
+    setActiveImage(0);
+  }, [activeColor, images.length]);
+
+  useEffect(() => {
+    if (images.length <= 1) return;
+    const timer = setInterval(() => {
+      setActiveImage((i) => (i + 1) % images.length);
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [activeColor, images]);
+
+  const goTo = useCallback(
+    (index: number) => {
+      if (!images.length) return;
+      setActiveImage(((index % images.length) + images.length) % images.length);
+    },
+    [images.length],
+  );
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touchStart.current = { x: t.clientX, y: t.clientY };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStart.current || images.length <= 1) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStart.current.x;
+    const dy = t.clientY - touchStart.current.y;
+    touchStart.current = null;
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
+    if (dx < 0) goTo(activeImage + 1);
+    else goTo(activeImage - 1);
+  };
+
   const totalStock = product.total_stock ?? 0;
   const perPiece = lowestPerPiecePrice(product);
   const bulkPrice = lowestBulkPrice(product);
@@ -35,7 +90,11 @@ export default function ProductCard({
 
   return (
     <article className="group relative overflow-hidden rounded-xl bg-surface shadow-[var(--shadow-card)] transition-shadow hover:shadow-lg">
-      <div className="relative aspect-[4/5] overflow-hidden bg-gray-1">
+      <div
+        className="relative aspect-[4/5] overflow-hidden bg-gray-1"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         {product.is_new && (
           <span className="badge badge-new absolute left-3 top-3 z-10">
             New
@@ -51,16 +110,34 @@ export default function ProductCard({
             Save {savings}%
           </span>
         )}
-
         <Link href={`/shop/${product.slug}`} className="relative block h-full w-full">
-          <Image
-            src={image}
-            alt={product.name}
-            fill
-            className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
-            sizes="(max-width: 768px) 50vw, 25vw"
-          />
+          {images.map((url, i) => (
+            <Image
+              key={`${url}-${i}`}
+              src={resolveProductImage(url)}
+              alt={product.name}
+              fill
+              className={`object-cover object-center transition-opacity duration-500 ${
+                i === activeImage
+                  ? "opacity-100"
+                  : "pointer-events-none opacity-0"
+              }`}
+              sizes="(max-width: 768px) 50vw, 25vw"
+            />
+          ))}
         </Link>
+
+        {colors.length > 1 && (
+          <div className="absolute right-2 top-1/2 z-10 -translate-y-1/2">
+            <ColorSwatches
+              colors={colors}
+              selected={activeColor}
+              onSelect={setActiveColor}
+              compact
+              vertical
+            />
+          </div>
+        )}
 
         <div className="absolute inset-x-0 bottom-0 translate-y-full bg-gradient-to-t from-dark/80 to-transparent p-4 transition-transform duration-300 group-hover:translate-y-0">
           <Link
