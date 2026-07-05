@@ -4,6 +4,7 @@ import HeroCarousel from "@/components/home/HeroCarousel";
 import Newsletter from "@/components/home/Newsletter";
 import ProductSection from "@/components/home/ProductSection";
 import PromoBanners from "@/components/home/PromoBanners";
+import ContactCta from "@/components/layout/ContactCta";
 import { getHomepageContent } from "@/lib/homepage";
 import {
   getCategories,
@@ -46,6 +47,9 @@ export default async function HomePage() {
         placeholder={homepage.newsletterPlaceholder}
         buttonText={homepage.newsletterButton}
       />
+      <section className="container-custom pb-14">
+        <ContactCta />
+      </section>
     </>
   );
 }
