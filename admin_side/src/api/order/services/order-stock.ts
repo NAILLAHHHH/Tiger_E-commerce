@@ -1,11 +1,16 @@
 import type { Core } from '@strapi/strapi';
 
-export const ORDER_STATUSES = ['placed', 'pending', 'completed', 'cancelled'] as const;
+export const ORDER_STATUSES = ['placed', 'paid', 'pending', 'completed', 'cancelled'] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 /** Statuses that reduce how_many_left on size/color rows. */
 export function statusReservesStock(status: string): boolean {
-  return status === 'placed' || status === 'pending' || status === 'completed';
+  return (
+    status === 'placed' ||
+    status === 'paid' ||
+    status === 'pending' ||
+    status === 'completed'
+  );
 }
 
 type OrderLine = {
