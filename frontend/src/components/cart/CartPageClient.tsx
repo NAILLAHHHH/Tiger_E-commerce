@@ -3,7 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import MomoPayInstructions from "@/components/cart/MomoPayInstructions";
 import { formatPrice } from "@/lib/pricing";
+import { whatsappUrl } from "@/lib/contact";
 import { resolveProductImage } from "@/lib/images";
 import {
   selectCartTotal,
@@ -25,6 +27,8 @@ export default function CartPageClient() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
+  const [orderDocumentId, setOrderDocumentId] = useState<string | null>(null);
+  const [placedOrderTotal, setPlacedOrderTotal] = useState<number | null>(null);
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +55,8 @@ export default function CartPageClient() {
         return;
       }
 
+      setPlacedOrderTotal(total);
+      setOrderDocumentId(data.documentId ?? null);
       setOrderNumber(data.order_number ?? "confirmed");
       clearCart();
       setShowCheckout(false);
@@ -68,8 +74,29 @@ export default function CartPageClient() {
         <p className="mt-2 text-sm text-muted">
           Reference: <span className="font-mono text-brand">{orderNumber}</span>
         </p>
+        {placedOrderTotal != null &&
+          placedOrderTotal > 0 &&
+          orderDocumentId && (
+          <div className="mx-auto mt-6 max-w-md text-left">
+            <MomoPayInstructions
+              amount={placedOrderTotal}
+              documentId={orderDocumentId}
+              orderReference={orderNumber ?? undefined}
+            />
+          </div>
+        )}
         <p className="mx-auto mt-4 max-w-md text-sm text-muted">
-          Our team will contact you to confirm details and arrange payment.
+          After paying, we&apos;ll confirm your order and arrange delivery.
+          Questions?{" "}
+          <a
+            href={whatsappUrl(`Hi, I placed order ${orderNumber}.`)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-brand hover:underline"
+          >
+            Message us on WhatsApp
+          </a>
+          .
         </p>
         <Link href="/shop" className="btn-primary mt-6 inline-flex">
           Continue shopping
@@ -180,7 +207,7 @@ export default function CartPageClient() {
           </div>
           <div className="flex justify-between">
             <span className="text-muted">Payment</span>
-            <span className="text-muted">After admin contact</span>
+            <span className="text-muted">MTN MoMo Pay</span>
           </div>
         </div>
         <div className="mt-4 flex justify-between text-lg font-bold">
@@ -198,7 +225,7 @@ export default function CartPageClient() {
               Place order
             </button>
             <p className="mt-3 text-center text-xs text-muted">
-              We&apos;ll call you to confirm and arrange payment.
+              Pay with MTN MoMo after you submit your order details.
             </p>
           </>
         ) : (
@@ -225,6 +252,7 @@ export default function CartPageClient() {
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+                placeholder="e.g. 078…"
                 className="mt-1 w-full rounded-lg border border-gray-3 px-3 py-2 text-sm"
               />
             </div>
