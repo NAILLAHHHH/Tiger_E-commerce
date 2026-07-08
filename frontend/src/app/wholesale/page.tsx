@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import WholesaleProductCard from "@/components/shop/WholesaleProductCard";
-import { bestBulkDeal, formatPrice } from "@/lib/pricing";
 import { getWholesaleProducts } from "@/lib/products";
 
 export const metadata: Metadata = {
   title: "Wholesale & bulk",
   description:
-    "Order many pieces at a lower price. Pick sizes and colors — we call you to confirm payment.",
+    "Order many pieces at a lower price. Pay instantly with MTN MoMo — we'll call you for further details.",
 };
 
 const steps = [
@@ -16,18 +15,17 @@ const steps = [
     desc: "Choose size, color, and how many pieces you need.",
   },
   {
-    title: "Place your order online",
-    desc: "We save your order — no online payment required.",
+    title: "Place your order & pay",
+    desc: "Checkout and pay instantly with MTN MoMo.",
   },
   {
     title: "We call you",
-    desc: "Our team confirms details and arranges payment & delivery.",
+    desc: "Our team calls for delivery and any other details.",
   },
 ];
 
 export default async function WholesalePage() {
   const products = await getWholesaleProducts();
-  const highlight = bestBulkDeal(products);
 
   return (
     <div className="container-custom py-10">
@@ -42,8 +40,8 @@ export default async function WholesalePage() {
             </h1>
             <p className="mt-4 text-sm leading-relaxed text-gray-4">
               Each product shows how many pieces you need to buy for the lower
-              price. Mix sizes and colors in one order — we will call you to
-              confirm everything before you pay.
+              price. Mix sizes and colors in one order — pay instantly at
+              checkout, then we&apos;ll call you for further details.
             </p>
             <Link href="/shop" className="btn-primary mt-6 inline-flex">
               Browse full shop
@@ -98,34 +96,11 @@ export default async function WholesalePage() {
         </div>
       )}
 
-      {highlight && (
-        <div className="mt-12 rounded-xl border border-brand/20 bg-brand-light p-6 md:p-8">
-          <p className="text-xs font-semibold uppercase tracking-wider text-brand-dark">
-            Example saving
-          </p>
-          <h3 className="mt-2 text-lg font-semibold text-dark">
-            {highlight.product.name}
-          </h3>
-          <p className="mt-2 text-sm leading-relaxed text-body">
-            Buy {highlight.bulkMinimum} or more pieces at{" "}
-            <strong>{formatPrice(highlight.bulkPrice)}</strong> each instead of{" "}
-            <strong>{formatPrice(highlight.perPiece)}</strong> for a single piece
-            — about <strong>{highlight.savingsPercent}% less</strong> per item.
-          </p>
-          <Link
-            href={`/shop/${highlight.product.slug}`}
-            className="mt-4 inline-flex text-sm font-medium text-brand hover:text-brand-dark"
-          >
-            View this product →
-          </Link>
-        </div>
-      )}
-
       <div className="mt-10 rounded-xl border border-gray-3 bg-gray-1 p-6 text-center md:p-8">
         <h3 className="font-semibold text-dark">Questions about a large order?</h3>
         <p className="mx-auto mt-2 max-w-lg text-sm text-muted">
-          Add items to your cart and checkout with your phone number. We will
-          call you to confirm sizes, totals, and payment.
+          Add items to your cart, checkout, and pay with MTN MoMo. We&apos;ll
+          call you after payment for delivery and any other details.
         </p>
         <Link href="/cart" className="btn-outline mt-4 inline-flex">
           Go to cart
