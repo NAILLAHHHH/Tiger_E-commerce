@@ -11,6 +11,7 @@ type SeedVariant = {
   color: string;
   color_dot?: string;
   photo?: string;
+  color_photos?: string[];
   price_for_one: number;
   price_for_bulk?: number;
   min_quantity_for_bulk?: number;
@@ -22,6 +23,7 @@ type SeedProduct = {
   link_name: string;
   description: string;
   photo: string;
+  video?: string;
   category_link_name: string;
   highlight_on_homepage: boolean;
   mark_as_new: boolean;
@@ -46,8 +48,27 @@ export const seedProducts: SeedProduct[] = [
     highlight_on_homepage: true,
     mark_as_new: true,
     variants: [
-      { item_code: "Grey-Hoodie-M", size: "M", color: "Heather Grey", color_dot: "#A8A29E", price_for_one: 64.99, price_for_bulk: 44.99, min_quantity_for_bulk: 10, how_many_left: 28 },
-      { item_code: "Grey-Hoodie-L", size: "L", color: "Heather Grey", color_dot: "#A8A29E", price_for_one: 64.99, price_for_bulk: 44.99, min_quantity_for_bulk: 10, how_many_left: 22 },
+      {
+        item_code: "Grey-Hoodie-M",
+        size: "M",
+        color: "Heather Grey",
+        color_dot: "#A8A29E",
+        color_photos: ["/products/12-black-oversized-hoodie.png"],
+        price_for_one: 64.99,
+        price_for_bulk: 44.99,
+        min_quantity_for_bulk: 10,
+        how_many_left: 28,
+      },
+      {
+        item_code: "Grey-Hoodie-L",
+        size: "L",
+        color: "Heather Grey",
+        color_dot: "#A8A29E",
+        price_for_one: 64.99,
+        price_for_bulk: 44.99,
+        min_quantity_for_bulk: 10,
+        how_many_left: 22,
+      },
     ],
   },
   {
@@ -84,8 +105,52 @@ export const seedProducts: SeedProduct[] = [
     highlight_on_homepage: true,
     mark_as_new: true,
     variants: [
-      { item_code: "Tee-Black-M", size: "M", color: "Black", color_dot: "#0A0A0A", price_for_one: 24.99, price_for_bulk: 18.99, min_quantity_for_bulk: 12, how_many_left: 62 },
-      { item_code: "Tee-Black-L", size: "L", color: "Black", color_dot: "#0A0A0A", price_for_one: 24.99, price_for_bulk: 18.99, min_quantity_for_bulk: 12, how_many_left: 48 },
+      {
+        item_code: "Tee-Black-M",
+        size: "M",
+        color: "Black",
+        color_dot: "#0A0A0A",
+        photo: "/products/10-black-quarter-zip-folded.png",
+        color_photos: ["/products/20-tee-neck-tag.png"],
+        price_for_one: 24.99,
+        price_for_bulk: 18.99,
+        min_quantity_for_bulk: 12,
+        how_many_left: 62,
+      },
+      {
+        item_code: "Tee-Black-L",
+        size: "L",
+        color: "Black",
+        color_dot: "#0A0A0A",
+        photo: "/products/10-black-quarter-zip-folded.png",
+        price_for_one: 24.99,
+        price_for_bulk: 18.99,
+        min_quantity_for_bulk: 12,
+        how_many_left: 48,
+      },
+      {
+        item_code: "Tee-Navy-M",
+        size: "M",
+        color: "Navy",
+        color_dot: "#1E3A5F",
+        photo: "/products/21-tygastyle-tee-set.png",
+        color_photos: ["/products/20-tee-neck-tag.png"],
+        price_for_one: 24.99,
+        price_for_bulk: 18.99,
+        min_quantity_for_bulk: 12,
+        how_many_left: 40,
+      },
+      {
+        item_code: "Tee-Navy-L",
+        size: "L",
+        color: "Navy",
+        color_dot: "#1E3A5F",
+        photo: "/products/21-tygastyle-tee-set.png",
+        price_for_one: 24.99,
+        price_for_bulk: 18.99,
+        min_quantity_for_bulk: 12,
+        how_many_left: 35,
+      },
     ],
   },
   {
