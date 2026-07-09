@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Logo from "@/components/layout/Logo";
+import { whatsappUrl } from "@/lib/contact";
 
 export default function Footer() {
   return (
@@ -36,12 +37,22 @@ export default function Footer() {
 
         <div>
           <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-white">
-            Support
+            Get in touch
           </h4>
-          <ul className="space-y-2 text-sm">
-            <li>Bulk orders: Starts from 10 pcs</li>
-            <li>Email: hello@tygastyle.com</li>
-          </ul>
+          <p className="text-sm leading-relaxed text-meta-4">
+            Need help? Text us on WhatsApp — we&apos;re happy to help with
+            sizes, bulk orders, and delivery.
+          </p>
+          <div className="mt-4 flex flex-col gap-2">
+            <a
+              href={whatsappUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-[5px] bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#1fb855]"
+            >
+              Chat on WhatsApp
+            </a>
+          </div>
         </div>
       </div>
 

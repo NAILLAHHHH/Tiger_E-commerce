@@ -6,6 +6,18 @@ export type Category = {
   sort_order: number;
 };
 
+export type GalleryItem = {
+  type: "image" | "video";
+  url: string;
+};
+
+export type ColorOption = {
+  color: string;
+  color_hex: string | null;
+  /** Product photo for this color — used as the swatch thumbnail */
+  image_url: string | null;
+};
+
 export type ProductVariant = {
   id: string;
   product_id: string;
@@ -14,6 +26,8 @@ export type ProductVariant = {
   color: string;
   color_hex: string | null;
   image_url: string | null;
+  /** More photos for this color (angles, details) */
+  color_images?: string[];
   per_piece_price: number;
   bulk_price: number | null;
   bulk_minimum: number;
@@ -26,6 +40,8 @@ export type Product = {
   slug: string;
   description: string | null;
   image_url: string | null;
+  /** Optional product showcase video (same for all colors) */
+  video_url?: string | null;
   is_featured: boolean;
   is_new: boolean;
   category_id: string | null;

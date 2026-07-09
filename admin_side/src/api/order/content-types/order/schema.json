@@ -36,10 +36,10 @@
     },
     "order_status": {
       "type": "enumeration",
-      "enum": ["placed", "pending", "completed", "cancelled"],
+      "enum": ["placed", "paid", "pending", "completed", "cancelled"],
       "default": "placed",
       "required": true,
-      "description": "Placed = new order (stock goes down) · Pending / Completed = in progress or done · Cancelled = stock goes back"
+      "description": "Placed = new order · Paid = customer started MoMo payment · Pending / Completed = in progress or done · Cancelled = stock goes back"
     },
     "stock_deducted": {
       "type": "boolean",

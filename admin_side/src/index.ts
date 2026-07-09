@@ -25,6 +25,7 @@ const PUBLIC_ACTIONS = [
   'api::product-variant.product-variant.findOne',
   'api::homepage.homepage.find',
   'api::order.order.create',
+  'api::order.order.markPaid',
 ];
 
 const ORDER_STATUS_MAP: Record<string, string> = {
@@ -34,7 +35,7 @@ const ORDER_STATUS_MAP: Record<string, string> = {
   delivered: 'completed',
   pending_contact: 'placed',
   confirmed: 'pending',
-  paid: 'pending',
+  paid: 'paid',
   fulfilled: 'completed',
   cancelled: 'cancelled',
   placed: 'placed',
@@ -108,6 +109,15 @@ async function seedCatalog(strapi: Core.Strapi) {
         strapi,
         variant.photo ?? product.photo,
       );
+      const colorPhotoIds = variant.color_photos
+        ? (
+            await Promise.all(
+              variant.color_photos.map((imagePath) =>
+                uploadCatalogImage(strapi, imagePath),
+              ),
+            )
+          ).filter((id): id is number => id != null)
+        : [];
 
       await strapi.db.query('api::product-variant.product-variant').create({
         data: {
@@ -116,6 +126,7 @@ async function seedCatalog(strapi: Core.Strapi) {
           color: variant.color,
           color_dot: variant.color_dot ?? null,
           photo: variantPhotoId,
+          color_photos: colorPhotoIds.length ? colorPhotoIds : undefined,
           price_for_one: variant.price_for_one,
           price_for_bulk: variant.price_for_bulk ?? null,
           min_quantity_for_bulk: variant.min_quantity_for_bulk ?? 10,

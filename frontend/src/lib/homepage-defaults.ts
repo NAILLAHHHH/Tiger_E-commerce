@@ -63,7 +63,7 @@ export const defaultHomepageContent: HomepageContent = {
     {
       label: "Wholesale",
       title: "Up to 40% Off Bulk",
-      description: "MOQ from 10 units. Perfect for boutiques & print shops.",
+      description: "Starts from 10 units. Perfect for boutiques & print shops.",
       style: "dark",
     },
   ],

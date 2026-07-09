@@ -74,7 +74,47 @@ const variants: Array<
   { id: "v-19", product_id: "p-19", sku: "DS-WHT-L", size: "L", color: "White", color_hex: "#FAFAFA", stock_quantity: 38 },
   { id: "v-20", product_id: "p-20", sku: "TE-WHT-M", size: "M", color: "White", color_hex: "#FAFAFA", stock_quantity: 55 },
   { id: "v-21", product_id: "p-21", sku: "TS-BLK-M", size: "M", color: "Black", color_hex: "#0A0A0A", stock_quantity: 62 },
+  { id: "v-21b", product_id: "p-21", sku: "TS-BLK-L", size: "L", color: "Black", color_hex: "#0A0A0A", stock_quantity: 48 },
+  { id: "v-21c", product_id: "p-21", sku: "TS-NVY-M", size: "M", color: "Navy", color_hex: "#1E3A5F", stock_quantity: 40 },
+  { id: "v-21d", product_id: "p-21", sku: "TS-NVY-L", size: "L", color: "Navy", color_hex: "#1E3A5F", stock_quantity: 35 },
+  { id: "v-8b", product_id: "p-8", sku: "QZ-BLK-L", size: "L", color: "Black", color_hex: "#0A0A0A", stock_quantity: 24 },
+  { id: "v-8c", product_id: "p-8", sku: "QZ-CRM-M", size: "M", color: "Cream", color_hex: "#F5F0E6", stock_quantity: 18 },
+  { id: "v-8d", product_id: "p-8", sku: "QZ-CRM-L", size: "L", color: "Cream", color_hex: "#F5F0E6", stock_quantity: 14 },
 ];
+
+/** Demo product video for gallery (public sample clip) */
+const SAMPLE_VIDEO =
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
+
+/** Per-product, per-color photos (main + more angles for that color) */
+const colorMedia: Record<
+  string,
+  Record<string, { main: string; extras?: string[] }>
+> = {
+  "p-1": {
+    "Heather Grey": {
+      main: img.greyZipHoodie,
+      extras: [img.blackOversizedHoodie],
+    },
+  },
+  "p-8": {
+    Black: {
+      main: img.blackQuarterZipOffice,
+      extras: [img.blackQuarterZipFolded, img.blackQuarterZipSet],
+    },
+    Cream: { main: img.creamQuarterZip },
+  },
+  "p-21": {
+    Black: {
+      main: img.blackQuarterZipFolded,
+      extras: [img.teeNeckTag],
+    },
+    Navy: {
+      main: img.tygaStyleTeeSet,
+      extras: [img.teeNeckTag],
+    },
+  },
+};
 
 const wholesaleTiers: WholesaleTier[] = [
   { id: "w-1", product_id: "p-3", min_quantity: 24, unit_price: 28.99 },
@@ -95,7 +135,7 @@ const products: Array<
     compare_at_price?: number | null;
     sell_mode?: string;
     moq_wholesale?: number;
-    images?: string[];
+    video_url?: string | null;
   }
 > = [
   {
@@ -107,7 +147,7 @@ const products: Array<
     compare_at_price: 79.99,
     category_id: "cat-2",
     image_url: img.greyZipHoodie,
-    images: [],
+    video_url: SAMPLE_VIDEO,
     sell_mode: "both",
     moq_wholesale: 10,
     is_featured: true,
@@ -122,7 +162,6 @@ const products: Array<
     compare_at_price: null,
     category_id: "cat-3",
     image_url: img.whiteTrousersSide,
-    images: [],
     sell_mode: "both",
     moq_wholesale: 10,
     is_featured: false,
@@ -137,7 +176,6 @@ const products: Array<
     compare_at_price: null,
     category_id: "cat-2",
     image_url: img.quarterZipBulkPack,
-    images: [],
     sell_mode: "both",
     moq_wholesale: 24,
     is_featured: true,
@@ -152,7 +190,6 @@ const products: Array<
     compare_at_price: null,
     category_id: "cat-3",
     image_url: img.whiteDressPants,
-    images: [],
     sell_mode: "both",
     moq_wholesale: 12,
     is_featured: false,
@@ -167,7 +204,6 @@ const products: Array<
     compare_at_price: 69.99,
     category_id: "cat-2",
     image_url: img.greenQuarterZip,
-    images: [],
     sell_mode: "both",
     moq_wholesale: 10,
     is_featured: true,
@@ -182,7 +218,6 @@ const products: Array<
     compare_at_price: null,
     category_id: "cat-3",
     image_url: img.tanBootcutPants,
-    images: [],
     sell_mode: "both",
     moq_wholesale: 15,
     is_featured: false,
@@ -197,7 +232,6 @@ const products: Array<
     compare_at_price: null,
     category_id: "cat-3",
     image_url: img.dressPantsBlueTan,
-    images: [],
     sell_mode: "both",
     moq_wholesale: 15,
     is_featured: true,
@@ -212,7 +246,6 @@ const products: Array<
     compare_at_price: 69.99,
     category_id: "cat-2",
     image_url: img.blackQuarterZipOffice,
-    images: [],
     sell_mode: "both",
     moq_wholesale: 10,
     is_featured: true,
@@ -227,7 +260,6 @@ const products: Array<
     compare_at_price: null,
     category_id: "cat-2",
     image_url: img.creamQuarterZip,
-    images: [],
     sell_mode: "both",
     moq_wholesale: 10,
     is_featured: false,
@@ -242,7 +274,6 @@ const products: Array<
     compare_at_price: null,
     category_id: "cat-2",
     image_url: img.blackQuarterZipFolded,
-    images: [],
     sell_mode: "both",
     moq_wholesale: 10,
     is_featured: false,
@@ -257,7 +288,6 @@ const products: Array<
     compare_at_price: null,
     category_id: "cat-2",
     image_url: img.blackQuarterZipSet,
-    images: [],
     sell_mode: "both",
     moq_wholesale: 10,
     is_featured: false,
@@ -272,7 +302,6 @@ const products: Array<
     compare_at_price: 85,
     category_id: "cat-2",
     image_url: img.blackOversizedHoodie,
-    images: [],
     sell_mode: "both",
     moq_wholesale: 10,
     is_featured: true,
@@ -287,7 +316,6 @@ const products: Array<
     compare_at_price: 399.99,
     category_id: "cat-4",
     image_url: img.suitCollection,
-    images: [],
     sell_mode: "both",
     moq_wholesale: 5,
     is_featured: true,
@@ -302,7 +330,6 @@ const products: Array<
     compare_at_price: 74.99,
     category_id: "cat-3",
     image_url: img.blackJeans,
-    images: [],
     sell_mode: "both",
     moq_wholesale: 12,
     is_featured: true,
@@ -317,7 +344,6 @@ const products: Array<
     compare_at_price: null,
     category_id: "cat-3",
     image_url: img.creamCargoPants,
-    images: [],
     sell_mode: "both",
     moq_wholesale: 12,
     is_featured: false,
@@ -332,7 +358,6 @@ const products: Array<
     compare_at_price: null,
     category_id: "cat-3",
     image_url: img.navyChinoPants,
-    images: [],
     sell_mode: "both",
     moq_wholesale: 15,
     is_featured: false,
@@ -347,7 +372,6 @@ const products: Array<
     compare_at_price: null,
     category_id: "cat-4",
     image_url: img.dressShirtCollar,
-    images: [],
     sell_mode: "both",
     moq_wholesale: 10,
     is_featured: false,
@@ -362,7 +386,6 @@ const products: Array<
     compare_at_price: 110,
     category_id: "cat-5",
     image_url: img.bomberJacket,
-    images: [],
     sell_mode: "both",
     moq_wholesale: 10,
     is_featured: true,
@@ -377,7 +400,6 @@ const products: Array<
     compare_at_price: 55,
     category_id: "cat-4",
     image_url: img.whiteDressShirt,
-    images: [],
     sell_mode: "both",
     moq_wholesale: 10,
     is_featured: true,
@@ -392,7 +414,6 @@ const products: Array<
     compare_at_price: 32,
     category_id: "cat-1",
     image_url: img.teeNeckTag,
-    images: [],
     sell_mode: "both",
     moq_wholesale: 12,
     is_featured: false,
@@ -407,7 +428,7 @@ const products: Array<
     compare_at_price: 39.99,
     category_id: "cat-1",
     image_url: img.tygaStyleTeeSet,
-    images: [],
+    video_url: SAMPLE_VIDEO,
     sell_mode: "both",
     moq_wholesale: 12,
     is_featured: true,
@@ -424,10 +445,14 @@ function attachRelations(items: Omit<Product, "variants" | "total_stock">[]): Pr
     const bulkPrice = productTiers[0]?.unit_price ?? null;
     const bulkMin = productTiers[0]?.min_quantity ?? 10;
 
-    const mappedVariants = productVariants.map((v) => ({
-      ...v,
-      image_url: product.image_url,
-      per_piece_price:
+    const productMedia = colorMedia[product.id];
+    const mappedVariants = productVariants.map((v) => {
+      const media = productMedia?.[v.color];
+      return {
+        ...v,
+        image_url: media?.main ?? product.image_url,
+        color_images: media?.extras?.length ? media.extras : undefined,
+        per_piece_price:
         (v as ProductVariant).per_piece_price ??
         (product as { retail_price?: number }).retail_price ??
         0,
@@ -435,7 +460,8 @@ function attachRelations(items: Omit<Product, "variants" | "total_stock">[]): Pr
         (v as ProductVariant).bulk_price ?? bulkPrice,
       bulk_minimum:
         (v as ProductVariant).bulk_minimum ?? bulkMin,
-    }));
+      };
+    });
 
     const total_stock = mappedVariants.reduce(
       (sum, v) => sum + v.stock_quantity,
@@ -447,6 +473,7 @@ function attachRelations(items: Omit<Product, "variants" | "total_stock">[]): Pr
       category: categories.find((c) => c.id === product.category_id) ?? null,
       variants: mappedVariants,
       total_stock,
+      video_url: product.video_url ?? null,
     };
   });
 }

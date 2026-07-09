@@ -50,6 +50,18 @@ export function resolveStrapiImage(value: unknown): string | null {
   return null;
 }
 
+/** Strapi media list → URL array. */
+export function resolveStrapiMediaList(value: unknown): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => resolveStrapiImage(item))
+      .filter((url): url is string => Boolean(url));
+  }
+  const single = resolveStrapiImage(value);
+  return single ? [single] : [];
+}
+
 function mapCategory(entity: StrapiEntity): Category {
   const slug = readSlug(entity);
   const image =
@@ -85,6 +97,9 @@ function mapVariant(entity: StrapiEntity, productId: string): ProductVariant {
     null;
   const itemCode = entity.item_code ?? entity.sku ?? "";
   const image = resolveStrapiImage(entity.photo ?? entity.image_url ?? null);
+  const colorImages = resolveStrapiMediaList(
+    entity.color_photos ?? entity.extra_photos ?? null,
+  );
 
   return {
     id: entityId(entity),
@@ -94,6 +109,7 @@ function mapVariant(entity: StrapiEntity, productId: string): ProductVariant {
     color: String(entity.color ?? ""),
     color_hex: colorHex ? String(colorHex) : null,
     image_url: image,
+    color_images: colorImages.length ? colorImages : undefined,
     per_piece_price: Number(perPiece),
     bulk_price: bulkPrice != null ? Number(bulkPrice) : null,
     bulk_minimum: Number(
@@ -123,12 +139,15 @@ export function mapStrapiProduct(entity: StrapiEntity): Product {
       entity.photo ?? entity.main_image ?? entity.image_url ?? null,
     ) ?? fallbackProductImage(readSlug(entity));
 
+  const videoUrl = resolveStrapiImage(entity.video ?? entity.video_url ?? null);
+
   return {
     id: productId,
     name: String(entity.name ?? ""),
     slug: readSlug(entity),
     description: entity.description ? String(entity.description) : null,
     image_url: mainImage,
+    video_url: videoUrl,
     is_featured: Boolean(
       entity.highlight_on_homepage ??
         entity.show_on_homepage ??

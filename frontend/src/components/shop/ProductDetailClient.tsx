@@ -1,7 +1,6 @@
 "use client";
 
-import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   formatPrice,
   productSupportsBulk,
@@ -11,7 +10,13 @@ import {
   variantSupportsBulk,
 } from "@/lib/pricing";
 import { resolveProductImage } from "@/lib/images";
+import {
+  buildColorGallery,
+  getProductColors,
+} from "@/lib/product-media";
 import { variantDisplayImage } from "@/lib/strapi/mappers";
+import ColorSwatches from "@/components/shop/ColorSwatches";
+import ProductGallery from "@/components/shop/ProductGallery";
 import { useCartStore } from "@/store/cart-store";
 import type { PricingMode, Product, ProductVariant } from "@/types/database";
 
@@ -23,8 +28,8 @@ export default function ProductDetailClient({ product }: Props) {
   const variants = product.variants ?? [];
 
   const colors = useMemo(
-    () => [...new Set(variants.map((v) => v.color))],
-    [variants],
+    () => getProductColors(variants, product.image_url),
+    [variants, product.image_url],
   );
   const sizes = useMemo(
     () => [...new Set(variants.map((v) => v.size))],
@@ -37,8 +42,13 @@ export default function ProductDetailClient({ product }: Props) {
   const [mode, setMode] = useState<PricingMode>(
     canRetail ? "retail" : "wholesale",
   );
-  const [color, setColor] = useState(colors[0] ?? "");
+  const [color, setColor] = useState(colors[0]?.color ?? "");
   const [size, setSize] = useState(sizes[0] ?? "");
+
+  const gallery = useMemo(
+    () => buildColorGallery(product, color),
+    [product, color],
+  );
 
   const selectedVariant: ProductVariant | undefined = variants.find(
     (v) => v.color === color && v.size === size,
@@ -50,25 +60,23 @@ export default function ProductDetailClient({ product }: Props) {
     mode === "wholesale" ? bulkMinimum : 1,
   );
 
-  const gallery = useMemo(() => {
-    const urls = new Set<string>();
-    if (product.image_url) urls.add(product.image_url);
-    variants.forEach((variant) => {
-      if (variant.image_url) urls.add(variant.image_url);
-    });
-    return [...urls];
-  }, [product.image_url, variants]);
-
   const displayImage = resolveProductImage(
     variantDisplayImage(selectedVariant, product),
   );
-  const [activeImage, setActiveImage] = useState(0);
 
   const { unitPrice, isWholesale } = selectedVariant
     ? resolveUnitPrice(mode, selectedVariant)
     : { unitPrice: 0, isWholesale: false };
 
   const addItem = useCartStore((s) => s.addItem);
+
+  useEffect(() => {
+    const available = sizes.find((s) => {
+      const v = variants.find((v) => v.size === s && v.color === color);
+      return v && v.stock_quantity > 0;
+    });
+    if (available) setSize(available);
+  }, [color, sizes, variants]);
 
   const handleAddToCart = () => {
     if (!selectedVariant || selectedVariant.stock_quantity < quantity) return;
@@ -92,42 +100,11 @@ export default function ProductDetailClient({ product }: Props) {
 
   return (
     <div className="grid gap-10 lg:grid-cols-2">
-      <div>
-        <div className="relative aspect-square overflow-hidden rounded-2xl bg-gray-1">
-          {gallery[activeImage] && (
-            <Image
-              src={resolveProductImage(gallery[activeImage])}
-              alt={product.name}
-              fill
-              className="object-cover object-center"
-              priority
-              sizes="(max-width: 1024px) 100vw, 50vw"
-            />
-          )}
-        </div>
-        {gallery.length > 1 && (
-          <div className="mt-3 flex gap-2 overflow-x-auto">
-            {gallery.map((url, i) => (
-              <button
-                key={url}
-                type="button"
-                onClick={() => setActiveImage(i)}
-                className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 ${
-                  i === activeImage ? "border-brand" : "border-gray-3"
-                }`}
-              >
-                <Image
-                  src={resolveProductImage(url)}
-                  alt=""
-                  fill
-                  className="object-cover object-center"
-                  sizes="64px"
-                />
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      <ProductGallery
+        items={gallery}
+        alt={product.name}
+        resetKey={color}
+      />
 
       <div>
         {product.category && (
@@ -210,35 +187,12 @@ export default function ProductDetailClient({ product }: Props) {
           </span>
         </div>
 
-        {colors.length > 1 && (
-          <div className="mt-6">
-            <p className="mb-2 text-sm font-medium text-dark">Color</p>
-            <div className="flex flex-wrap gap-2">
-              {colors.map((c) => {
-                const hex =
-                  variants.find((v) => v.color === c)?.color_hex ?? "#ccc";
-                return (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setColor(c)}
-                    className={`flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm ${
-                      color === c
-                        ? "border-brand bg-brand/5 text-brand"
-                        : "border-gray-3 text-body"
-                    }`}
-                  >
-                    <span
-                      className="h-4 w-4 rounded-full border border-gray-3"
-                      style={{ backgroundColor: hex }}
-                    />
-                    {c}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        <ColorSwatches
+          colors={colors}
+          selected={color}
+          onSelect={setColor}
+          className="mt-6"
+        />
 
         {sizes.length > 0 && (
           <div className="mt-4">

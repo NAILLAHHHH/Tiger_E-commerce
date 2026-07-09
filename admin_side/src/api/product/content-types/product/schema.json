@@ -38,6 +38,13 @@
       "allowedTypes": ["images"],
       "description": "Main picture customers see for this product"
     },
+    "video": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["videos"],
+      "description": "Optional product video shown in the gallery"
+    },
     "highlight_on_homepage": {
       "type": "boolean",
       "default": false,

@@ -15,7 +15,13 @@ type LifecycleEvent = {
   };
 };
 
-const ORDER_STATUS_VALUES = new Set(['placed', 'pending', 'completed', 'cancelled']);
+const ORDER_STATUS_VALUES = new Set([
+  'placed',
+  'paid',
+  'pending',
+  'completed',
+  'cancelled',
+]);
 
 /** `status` is reserved in Strapi 5 — map legacy/admin payloads to order_status. */
 export function sanitizeOrderData(data: Record<string, unknown>) {

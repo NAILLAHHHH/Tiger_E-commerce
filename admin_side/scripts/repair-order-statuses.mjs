@@ -16,7 +16,7 @@ const map = {
   delivered: 'completed',
   pending_contact: 'placed',
   confirmed: 'pending',
-  paid: 'pending',
+  paid: 'paid',
   fulfilled: 'completed',
   cancelled: 'cancelled',
 };
