@@ -19,7 +19,7 @@
     "link_name": {
       "type": "uid",
       "targetField": "name",
-      "required": true,
+      "required": false,
       "description": "Filled in automatically — used for the product page link",
       "pluginOptions": {
         "content-manager": {
@@ -60,14 +60,14 @@
       "relation": "manyToOne",
       "target": "api::category.category",
       "inversedBy": "products",
-      "description": "Which section this product belongs to"
+      "description": "Pick an existing shop section from the list"
     },
     "sizes_and_colors": {
       "type": "relation",
       "relation": "oneToMany",
       "target": "api::product-variant.product-variant",
       "mappedBy": "product",
-      "description": "Each row is one size + color with its own price and how many are left"
+      "description": "Pick existing sizes & colors from the list (create them under Size & color first)"
     }
   }
 }

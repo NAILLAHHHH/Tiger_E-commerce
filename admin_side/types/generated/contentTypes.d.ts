@@ -456,7 +456,6 @@ export interface ApiCategoryCategory extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     link_name: Schema.Attribute.UID<'name'> &
-      Schema.Attribute.Required &
       Schema.Attribute.SetPluginOptions<{
         'content-manager': {
           visible: false;
@@ -470,8 +469,13 @@ export interface ApiCategoryCategory extends Struct.CollectionTypeSchema {
     > &
       Schema.Attribute.Private;
     name: Schema.Attribute.String & Schema.Attribute.Required;
-    photo: Schema.Attribute.String;
-    products: Schema.Attribute.Relation<'oneToMany', 'api::product.product'>;
+    photo: Schema.Attribute.Media<'images'>;
+    products: Schema.Attribute.Relation<'oneToMany', 'api::product.product'> &
+      Schema.Attribute.SetPluginOptions<{
+        'content-manager': {
+          visible: false;
+        };
+      }>;
     publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -634,7 +638,8 @@ export interface ApiProductVariantProductVariant
     photo: Schema.Attribute.Media<'images'>;
     price_for_bulk: Schema.Attribute.Decimal;
     price_for_one: Schema.Attribute.Decimal & Schema.Attribute.Required;
-    product: Schema.Attribute.Relation<'manyToOne', 'api::product.product'>;
+    product: Schema.Attribute.Relation<'manyToOne', 'api::product.product'> &
+      Schema.Attribute.Required;
     publishedAt: Schema.Attribute.DateTime;
     size: Schema.Attribute.String & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
@@ -663,7 +668,6 @@ export interface ApiProductProduct extends Struct.CollectionTypeSchema {
     highlight_on_homepage: Schema.Attribute.Boolean &
       Schema.Attribute.DefaultTo<false>;
     link_name: Schema.Attribute.UID<'name'> &
-      Schema.Attribute.Required &
       Schema.Attribute.SetPluginOptions<{
         'content-manager': {
           visible: false;

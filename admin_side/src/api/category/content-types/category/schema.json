@@ -19,7 +19,7 @@
     "link_name": {
       "type": "uid",
       "targetField": "name",
-      "required": true,
+      "required": false,
       "description": "Filled in automatically — used for the website link",
       "pluginOptions": {
         "content-manager": {
@@ -28,8 +28,11 @@
       }
     },
     "photo": {
-      "type": "string",
-      "description": "Picture for this category, e.g. /products/01-grey-zip-hoodie.png"
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images"],
+      "description": "Picture for this category — upload like product photos"
     },
     "list_position": {
       "type": "integer",
@@ -40,7 +43,13 @@
       "type": "relation",
       "relation": "oneToMany",
       "target": "api::product.product",
-      "mappedBy": "category"
+      "mappedBy": "category",
+      "description": "Products that use this category (managed on the Product form)",
+      "pluginOptions": {
+        "content-manager": {
+          "visible": false
+        }
+      }
     }
   }
 }
