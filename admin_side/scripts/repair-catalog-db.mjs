@@ -26,8 +26,8 @@ const products = [
     mark_as_new: 1,
     category_link: 'hoodies',
     variants: [
-      { size: 'M', color: 'Heather Grey', item_code: 'Grey-Hoodie-M', color_dot: '#A8A29E', price_for_one: 64.99, price_for_bulk: 44.99, min_quantity_for_bulk: 10, how_many_left: 28 },
-      { size: 'L', color: 'Heather Grey', item_code: 'Grey-Hoodie-L', color_dot: '#A8A29E', price_for_one: 64.99, price_for_bulk: 44.99, min_quantity_for_bulk: 10, how_many_left: 22 },
+      { size: 'M', color: 'Heather Grey', item_code: 'Grey-Hoodie-M', color_dot: '#A8A29E', price_for_one: 65, price_for_bulk: 45, min_quantity_for_bulk: 10, how_many_left: 28 },
+      { size: 'L', color: 'Heather Grey', item_code: 'Grey-Hoodie-L', color_dot: '#A8A29E', price_for_one: 65, price_for_bulk: 45, min_quantity_for_bulk: 10, how_many_left: 22 },
     ],
   },
   {
@@ -38,7 +38,7 @@ const products = [
     mark_as_new: 0,
     category_link: 'hoodies',
     variants: [
-      { size: 'M', color: 'Mixed', item_code: 'Zip-Pack-M', color_dot: '#737373', price_for_one: 699.99, price_for_bulk: 28.99, min_quantity_for_bulk: 24, how_many_left: 200 },
+      { size: 'M', color: 'Mixed', item_code: 'Zip-Pack-M', color_dot: '#737373', price_for_one: 700, price_for_bulk: 29, min_quantity_for_bulk: 24, how_many_left: 200 },
     ],
   },
   {
@@ -49,8 +49,8 @@ const products = [
     mark_as_new: 0,
     category_link: 'pants',
     variants: [
-      { size: '32', color: 'Navy', item_code: 'Navy-Pants-32', color_dot: '#1E3A5F', price_for_one: 54.99, price_for_bulk: 36.99, min_quantity_for_bulk: 15, how_many_left: 30 },
-      { size: '34', color: 'Navy', item_code: 'Navy-Pants-34', color_dot: '#1E3A5F', price_for_one: 54.99, price_for_bulk: 36.99, min_quantity_for_bulk: 15, how_many_left: 25 },
+      { size: '32', color: 'Navy', item_code: 'Navy-Pants-32', color_dot: '#1E3A5F', price_for_one: 55, price_for_bulk: 37, min_quantity_for_bulk: 15, how_many_left: 30 },
+      { size: '34', color: 'Navy', item_code: 'Navy-Pants-34', color_dot: '#1E3A5F', price_for_one: 55, price_for_bulk: 37, min_quantity_for_bulk: 15, how_many_left: 25 },
     ],
   },
   {
@@ -61,8 +61,8 @@ const products = [
     mark_as_new: 1,
     category_link: 't-shirts',
     variants: [
-      { size: 'M', color: 'Black', item_code: 'Tee-Black-M', color_dot: '#0A0A0A', price_for_one: 24.99, price_for_bulk: 18.99, min_quantity_for_bulk: 12, how_many_left: 62 },
-      { size: 'L', color: 'Black', item_code: 'Tee-Black-L', color_dot: '#0A0A0A', price_for_one: 24.99, price_for_bulk: 18.99, min_quantity_for_bulk: 12, how_many_left: 48 },
+      { size: 'M', color: 'Black', item_code: 'Tee-Black-M', color_dot: '#0A0A0A', price_for_one: 25, price_for_bulk: 19, min_quantity_for_bulk: 12, how_many_left: 62 },
+      { size: 'L', color: 'Black', item_code: 'Tee-Black-L', color_dot: '#0A0A0A', price_for_one: 25, price_for_bulk: 19, min_quantity_for_bulk: 12, how_many_left: 48 },
     ],
   },
   {
@@ -73,7 +73,7 @@ const products = [
     mark_as_new: 0,
     category_link: 'formal',
     variants: [
-      { size: '40R', color: 'Tan', item_code: 'Tan-Suit-40R', color_dot: '#C4A574', price_for_one: 349.99, price_for_bulk: 249.99, min_quantity_for_bulk: 5, how_many_left: 8 },
+      { size: '40R', color: 'Tan', item_code: 'Tan-Suit-40R', color_dot: '#C4A574', price_for_one: 350, price_for_bulk: 250, min_quantity_for_bulk: 5, how_many_left: 8 },
     ],
   },
   {
@@ -84,7 +84,7 @@ const products = [
     mark_as_new: 1,
     category_link: 'jackets',
     variants: [
-      { size: 'M', color: 'Black', item_code: 'Bomber-Black-M', color_dot: '#0A0A0A', price_for_one: 89.99, price_for_bulk: null, min_quantity_for_bulk: 10, how_many_left: 15 },
+      { size: 'M', color: 'Black', item_code: 'Bomber-Black-M', color_dot: '#0A0A0A', price_for_one: 90, price_for_bulk: null, min_quantity_for_bulk: 10, how_many_left: 15 },
     ],
   },
 ];
