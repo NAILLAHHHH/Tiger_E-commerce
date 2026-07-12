@@ -1,5 +1,18 @@
 import type { PricingMode, Product, ProductVariant } from "@/types/database";
 
+/**
+ * RWF is shown and charged in whole francs.
+ * Round once here so UI (e.g. 65) and Strapi (was storing 64.99) always match.
+ */
+export function roundMoney(amount: number): number {
+  if (!Number.isFinite(amount)) return 0;
+  return Math.round(amount);
+}
+
+export function lineTotal(unitPrice: number, quantity: number): number {
+  return roundMoney(roundMoney(unitPrice) * quantity);
+}
+
 export function variantSupportsBulk(variant: ProductVariant): boolean {
   return variant.bulk_price != null && variant.bulk_price > 0;
 }
@@ -13,13 +26,15 @@ export function productSupportsBulk(product: Product): boolean {
 }
 
 export function lowestPerPiecePrice(product: Product): number {
-  const prices = (product.variants ?? []).map((v) => v.per_piece_price);
+  const prices = (product.variants ?? []).map((v) =>
+    roundMoney(v.per_piece_price),
+  );
   return prices.length ? Math.min(...prices) : 0;
 }
 
 export function lowestBulkPrice(product: Product): number | null {
   const prices = (product.variants ?? [])
-    .map((v) => v.bulk_price)
+    .map((v) => (v.bulk_price != null ? roundMoney(v.bulk_price) : null))
     .filter((p): p is number => p != null && p > 0);
   return prices.length ? Math.min(...prices) : null;
 }
@@ -36,15 +51,14 @@ export function resolveUnitPrice(
   variant: ProductVariant,
 ): { unitPrice: number; isWholesale: boolean } {
   if (mode === "wholesale" && variantSupportsBulk(variant)) {
-    return { unitPrice: variant.bulk_price!, isWholesale: true };
+    return { unitPrice: roundMoney(variant.bulk_price!), isWholesale: true };
   }
-  return { unitPrice: variant.per_piece_price, isWholesale: false };
+  return { unitPrice: roundMoney(variant.per_piece_price), isWholesale: false };
 }
 
-/** Stable RWF formatting — avoids server/client Intl locale mismatch. */
+/** Stable RWF formatting — whole francs only, same as cart / Strapi totals. */
 export function formatPrice(amount: number): string {
-  const rounded = Math.round(amount);
-  return `RWF ${rounded.toLocaleString("en-US")}`;
+  return `RWF ${roundMoney(amount).toLocaleString("en-US")}`;
 }
 
 export function stockLabel(total: number): string {

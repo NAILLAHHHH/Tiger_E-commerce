@@ -11,7 +11,7 @@ import {
 } from "@/lib/config";
 import { PRODUCT_POPULATE, strapiList } from "@/lib/strapi/client";
 import { mapStrapiCategory, mapStrapiProduct } from "@/lib/strapi/mappers";
-import { productSupportsBulk } from "@/lib/pricing";
+import { productSupportsBulk, roundMoney } from "@/lib/pricing";
 import { createClient } from "@/lib/supabase/server";
 import type { Category, Product } from "@/types/database";
 
@@ -37,11 +37,13 @@ function mapSupabaseProduct(row: Record<string, unknown>): Product {
     color: String(v.color),
     color_hex: v.color_hex ? String(v.color_hex) : null,
     image_url: v.image_url ? String(v.image_url) : row.image_url ? String(row.image_url) : null,
-    per_piece_price: Number(v.per_piece_price ?? retailPrice),
+    per_piece_price: roundMoney(Number(v.per_piece_price ?? retailPrice)),
     bulk_price:
       v.bulk_price != null
-        ? Number(v.bulk_price)
-        : bulkFromTier,
+        ? roundMoney(Number(v.bulk_price))
+        : bulkFromTier != null
+          ? roundMoney(bulkFromTier)
+          : null,
     bulk_minimum: Number(v.bulk_minimum ?? row.moq_wholesale ?? 10),
     stock_quantity: Number(v.stock_quantity),
   }));
@@ -131,7 +133,10 @@ const fetchStrapiProducts = cache(async (): Promise<Product[]> => {
 });
 
 const fetchStrapiCategories = cache(async (): Promise<Category[]> => {
-  const rows = await strapiList("categories", "sort=list_position:asc&pagination[pageSize]=50");
+  const rows = await strapiList(
+    "categories",
+    "populate[photo]=true&sort=list_position:asc&pagination[pageSize]=50",
+  );
   return rows.map(mapStrapiCategory);
 });
 
