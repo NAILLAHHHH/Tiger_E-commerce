@@ -9,6 +9,7 @@ import {
 import { applyStaffAdminLabels } from './config/apply-staff-labels';
 import { repairCatalogFromSeed } from './config/repair-catalog';
 import { uploadCatalogImage } from './utils/seed-images';
+import { ensureLinkName } from './utils/link-name';
 import { syncOrderStock } from './api/order/services/order-stock';
 import {
   isStockRelevantUpdate,
@@ -26,6 +27,7 @@ const PUBLIC_ACTIONS = [
   'api::homepage.homepage.find',
   'api::order.order.create',
   'api::order.order.markPaid',
+  'api::order.order.findByReference',
 ];
 
 const ORDER_STATUS_MAP: Record<string, string> = {
@@ -77,11 +79,12 @@ async function seedCatalog(strapi: Core.Strapi) {
   const categoryMap = new Map<string, number>();
 
   for (const cat of seedCategories) {
+    const categoryPhotoId = await uploadCatalogImage(strapi, cat.photo);
     const created = await strapi.db.query('api::category.category').create({
       data: {
         name: cat.name,
         link_name: cat.link_name,
-        photo: cat.photo,
+        photo: categoryPhotoId,
         list_position: cat.list_position,
       },
     });
@@ -175,8 +178,6 @@ async function migrateToHumanFields(strapi: Core.Strapi) {
   for (const category of categories) {
     const updates: Record<string, unknown> = {};
     if (category.link_name == null && category.slug != null) updates.link_name = category.slug;
-    if (category.photo == null && category.image != null) updates.photo = category.image;
-    if (category.photo == null && category.image_url != null) updates.photo = category.image_url;
     if (category.list_position == null && category.sort_order != null) {
       updates.list_position = category.sort_order;
     }
@@ -192,8 +193,6 @@ async function migrateToHumanFields(strapi: Core.Strapi) {
   for (const product of products) {
     const updates: Record<string, unknown> = {};
     if (product.link_name == null && product.slug != null) updates.link_name = product.slug;
-    if (product.photo == null && product.main_image != null) updates.photo = product.main_image;
-    if (product.photo == null && product.image_url != null) updates.photo = product.image_url;
     if (product.highlight_on_homepage == null && product.show_on_homepage != null) {
       updates.highlight_on_homepage = product.show_on_homepage;
     }
@@ -324,8 +323,128 @@ async function migrateOrderStatuses(strapi: Core.Strapi) {
   }
 }
 
-/** Upload pictures for products/variants that only have legacy path fields. */
+/** If products only had embedded size/color components, copy them into Size & color entries. */
+async function migrateEmbeddedSizeColorsToCollection(strapi: Core.Strapi) {
+  const mediaId = (value: unknown): number | null => {
+    if (value == null) return null;
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string' && /^\d+$/.test(value)) return Number(value);
+    if (typeof value === 'object' && value !== null && 'id' in value) {
+      return mediaId((value as { id: unknown }).id);
+    }
+    return null;
+  };
+
+  let componentCount = 0;
+  try {
+    componentCount = await strapi.db.query('product.size-and-color').count();
+  } catch {
+    return;
+  }
+  if (componentCount === 0) return;
+
+  const hasJoinTable = await strapi.db.connection.schema.hasTable('products_cmps');
+  if (!hasJoinTable) return;
+
+  let links: Array<{ cmp_id: number; entity_id: number }> = [];
+  try {
+    links = await strapi.db.connection('products_cmps').where({
+      component_type: 'product.size-and-color',
+      field: 'sizes_and_colors',
+    });
+  } catch {
+    return;
+  }
+
+  if (!links?.length) return;
+
+  let migrated = 0;
+
+  for (const link of links) {
+    try {
+      const component = await strapi.db.query('product.size-and-color').findOne({
+        where: { id: link.cmp_id },
+        populate: { photo: true, color_photos: true },
+      });
+      if (!component?.item_code) continue;
+
+      const existing = await strapi.db
+        .query('api::product-variant.product-variant')
+        .findOne({ where: { item_code: component.item_code } });
+      if (existing) continue;
+
+      const photo = mediaId(component.photo);
+      const colorPhotos = Array.isArray(component.color_photos)
+        ? component.color_photos
+            .map((file: unknown) => mediaId(file))
+            .filter((id): id is number => id != null)
+        : [];
+
+      await strapi.db.query('api::product-variant.product-variant').create({
+        data: {
+          item_code: component.item_code,
+          size: component.size,
+          color: component.color,
+          color_dot: component.color_dot ?? null,
+          photo: photo ?? undefined,
+          color_photos: colorPhotos.length ? colorPhotos : undefined,
+          price_for_one: component.price_for_one,
+          price_for_bulk: component.price_for_bulk ?? null,
+          min_quantity_for_bulk: component.min_quantity_for_bulk ?? 10,
+          how_many_left: component.how_many_left ?? 0,
+          product: link.entity_id,
+        },
+      });
+      migrated += 1;
+    } catch (error) {
+      strapi.log.warn(
+        `Could not migrate component size/color ${link.cmp_id}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  if (migrated > 0) {
+    strapi.log.info(
+      `Migrated ${migrated} embedded size/color row(s) into Size & color entries`,
+    );
+  }
+}
+
+function hasMediaPhoto(value: unknown): boolean {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/** Upload pictures for categories/products/variants that only have legacy path fields. */
 async function attachMissingPhotos(strapi: Core.Strapi) {
+  const categories = await strapi.db.query('api::category.category').findMany({
+    populate: { photo: true },
+    limit: 100,
+  });
+
+  for (const category of categories) {
+    if (hasMediaPhoto(category.photo)) continue;
+
+    const seed = seedCategories.find((c) => c.name === category.name);
+    const legacyPath =
+      (typeof category.photo === 'string' ? category.photo : null) ??
+      (typeof category.image === 'string' ? category.image : null) ??
+      (typeof category.image_url === 'string' ? category.image_url : null) ??
+      seed?.photo ??
+      null;
+
+    if (legacyPath) {
+      const fileId = await uploadCatalogImage(strapi, legacyPath);
+      if (fileId) {
+        await strapi.db.query('api::category.category').update({
+          where: { id: category.id },
+          data: { photo: fileId },
+        });
+      }
+    }
+  }
+
   const products = await strapi.db.query('api::product.product').findMany({
     populate: { photo: true, sizes_and_colors: { populate: { photo: true } } },
     limit: 500,
@@ -338,7 +457,7 @@ async function attachMissingPhotos(strapi: Core.Strapi) {
       product.image_url ??
       null;
 
-    if (!product.photo && legacyPath && typeof legacyPath === 'string') {
+    if (!hasMediaPhoto(product.photo) && legacyPath && typeof legacyPath === 'string') {
       const fileId = await uploadCatalogImage(strapi, legacyPath);
       if (fileId) {
         await strapi.db.query('api::product.product').update({
@@ -352,12 +471,7 @@ async function attachMissingPhotos(strapi: Core.Strapi) {
       (product.sizes_and_colors as Record<string, unknown>[] | undefined) ?? [];
 
     for (const variant of variants) {
-      const hasMedia =
-        variant.photo &&
-        typeof variant.photo === 'object' &&
-        !Array.isArray(variant.photo);
-
-      if (hasMedia) continue;
+      if (hasMediaPhoto(variant.photo) || !variant.id) continue;
 
       const variantPath =
         (typeof variant.photo === 'string' ? variant.photo : null) ?? legacyPath;
@@ -373,6 +487,20 @@ async function attachMissingPhotos(strapi: Core.Strapi) {
       }
     }
   }
+}
+
+/** Auto-fill hidden website links so staff create does not fail validation. */
+function registerCatalogDocumentMiddleware(strapi: Core.Strapi) {
+  strapi.documents.use(async (ctx, next) => {
+    if (
+      (ctx.uid === 'api::category.category' || ctx.uid === 'api::product.product') &&
+      (ctx.action === 'create' || ctx.action === 'update')
+    ) {
+      const params = ctx.params as { data?: Record<string, unknown> };
+      ensureLinkName(params.data);
+    }
+    return next();
+  });
 }
 
 /** Strip reserved `status` and sync stock after order create/update. */
@@ -433,6 +561,7 @@ function registerOrderDocumentMiddleware(strapi: Core.Strapi) {
 
 export default {
   register({ strapi }: { strapi: Core.Strapi }) {
+    registerCatalogDocumentMiddleware(strapi);
     registerOrderDocumentMiddleware(strapi);
   },
 
@@ -446,6 +575,7 @@ export default {
 
     await migrateToHumanFields(strapi);
     await migrateOrderStatuses(strapi);
+    await migrateEmbeddedSizeColorsToCollection(strapi);
     await repairCatalogFromSeed(strapi);
     await attachMissingPhotos(strapi);
     await applyStaffAdminLabels(strapi);

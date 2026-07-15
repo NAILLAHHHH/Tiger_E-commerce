@@ -3,6 +3,7 @@ import {
   fallbackCategoryImage,
   fallbackProductImage,
 } from "@/lib/catalog-fallbacks";
+import { roundMoney } from "@/lib/pricing";
 import type { StrapiEntity } from "@/lib/strapi/client";
 import type { Category, Product, ProductVariant } from "@/types/database";
 
@@ -110,8 +111,8 @@ function mapVariant(entity: StrapiEntity, productId: string): ProductVariant {
     color_hex: colorHex ? String(colorHex) : null,
     image_url: image,
     color_images: colorImages.length ? colorImages : undefined,
-    per_piece_price: Number(perPiece),
-    bulk_price: bulkPrice != null ? Number(bulkPrice) : null,
+    per_piece_price: roundMoney(Number(perPiece)),
+    bulk_price: bulkPrice != null ? roundMoney(Number(bulkPrice)) : null,
     bulk_minimum: Number(
       entity.min_quantity_for_bulk ??
         entity.bulk_minimum ??

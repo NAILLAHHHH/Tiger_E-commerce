@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getStrapiUrl } from "@/lib/config";
+import { resolveProductImage } from "@/lib/images";
+import { lineTotal, roundMoney } from "@/lib/pricing";
 import type { CartItem } from "@/types/database";
 
 type CheckoutBody = {
@@ -32,9 +34,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
   }
 
-  const subtotal = items.reduce(
-    (sum, item) => sum + item.unitPrice * item.quantity,
-    0,
+  const normalizedItems = items.map((item) => {
+    const unitPrice = roundMoney(item.unitPrice);
+    const quantity = Math.max(1, Math.round(Number(item.quantity) || 0));
+    return {
+      ...item,
+      unitPrice,
+      quantity,
+      rowTotal: lineTotal(unitPrice, quantity),
+    };
+  });
+
+  const subtotal = roundMoney(
+    normalizedItems.reduce((sum, item) => sum + item.rowTotal, 0),
   );
 
   const orderData = {
@@ -45,7 +57,7 @@ export async function POST(request: Request) {
     order_status: "placed",
     subtotal,
     total: subtotal,
-    what_they_ordered: items.map((item) => ({
+    what_they_ordered: normalizedItems.map((item) => ({
       product_name: item.name,
       item_code: item.sku,
       size: item.size,
@@ -53,7 +65,8 @@ export async function POST(request: Request) {
       how_many: item.quantity,
       price_each: item.unitPrice,
       bought_as: item.pricingMode === "wholesale" ? "many_pieces" : "one_piece",
-      row_total: item.unitPrice * item.quantity,
+      row_total: item.rowTotal,
+      image_url: resolveProductImage(item.image),
     })),
   };
 

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   formatPrice,
+  lineTotal,
   productSupportsBulk,
   productSupportsRetail,
   resolveUnitPrice,
@@ -266,7 +267,7 @@ export default function ProductDetailClient({ product }: Props) {
           }
           className="btn-primary mt-8 w-full py-3 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Add to cart — {formatPrice(unitPrice * quantity)}
+          Add to cart — {formatPrice(lineTotal(unitPrice, quantity))}
         </button>
 
         {mode === "wholesale" && quantity < bulkMinimum && (

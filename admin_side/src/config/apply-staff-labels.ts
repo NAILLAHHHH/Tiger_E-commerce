@@ -8,11 +8,19 @@ type CmMetadata = {
 
 type CmConfig = {
   metadatas: Record<string, CmMetadata>;
-  layouts?: unknown;
-  settings?: unknown;
+  layouts?: {
+    edit?: Array<Array<{ name?: string; size?: number } | string>>;
+    list?: unknown;
+  };
+  settings?: Record<string, unknown>;
   uid?: string;
   isComponent?: boolean;
 };
+
+const RELATION_MODAL_SETTINGS_KEYS = new Set([
+  'plugin_content_manager_configuration_content_types::api::product.product',
+  'plugin_content_manager_configuration_content_types::api::product-variant.product-variant',
+]);
 
 function applyFieldLabels(config: CmConfig, fields: Record<string, Record<string, unknown>>) {
   for (const [field, updates] of Object.entries(fields)) {
@@ -28,6 +36,27 @@ function applyFieldLabels(config: CmConfig, fields: Record<string, Record<string
       if (updates.editable != null) slot.editable = updates.editable;
     }
   }
+}
+
+/** Remove hidden fields from edit layout so staff never see create-product on Category. */
+function stripHiddenFieldsFromLayout(config: CmConfig, fields: Record<string, Record<string, unknown>>) {
+  if (!config.layouts?.edit) return;
+
+  const hidden = new Set(
+    Object.entries(fields)
+      .filter(([, updates]) => updates.visible === false)
+      .map(([field]) => field),
+  );
+  if (hidden.size === 0) return;
+
+  config.layouts.edit = config.layouts.edit
+    .map((row) =>
+      row.filter((cell) => {
+        const name = typeof cell === 'string' ? cell : cell?.name;
+        return !name || !hidden.has(name);
+      }),
+    )
+    .filter((row) => row.length > 0);
 }
 
 /** Apply plain-language field labels in the Content Manager for shop staff. */
@@ -51,6 +80,14 @@ export async function applyStaffAdminLabels(strapi: Core.Strapi) {
     }
 
     applyFieldLabels(config, fieldLabels);
+    stripHiddenFieldsFromLayout(config, fieldLabels);
+
+    if (RELATION_MODAL_SETTINGS_KEYS.has(storeKey)) {
+      config.settings = {
+        ...(config.settings ?? {}),
+        relationOpenMode: 'modal',
+      };
+    }
 
     await strapi.db.connection(table).where({ key: storeKey }).update({
       value: JSON.stringify(config),

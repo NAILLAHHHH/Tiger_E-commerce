@@ -1,20 +1,14 @@
 {
-  "kind": "collectionType",
-  "collectionName": "product_variants",
+  "collectionName": "components_product_size_and_colors",
   "info": {
-    "singularName": "product-variant",
-    "pluralName": "product-variants",
     "displayName": "Size & color",
-    "description": "One row = one size and color with price and how many you have left"
+    "description": "One size and color with price and how many you have left"
   },
-  "options": {
-    "draftAndPublish": false
-  },
+  "options": {},
   "attributes": {
     "item_code": {
       "type": "string",
       "required": true,
-      "unique": true,
       "description": "Your own short code to recognise this item, e.g. Grey-Hoodie-M"
     },
     "size": {
@@ -65,14 +59,6 @@
       "default": 0,
       "min": 0,
       "description": "How many of this size/color you currently have"
-    },
-    "product": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::product.product",
-      "inversedBy": "sizes_and_colors",
-      "required": true,
-      "description": "Which product this size/color belongs to — pick an existing saved product"
     }
   }
 }

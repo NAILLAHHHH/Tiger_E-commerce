@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { lineTotal, roundMoney } from "@/lib/pricing";
 import type { CartItem } from "@/types/database";
 
 type CartState = {
@@ -22,18 +23,24 @@ export const useCartStore = create<CartState>()(
       items: [],
       isOpen: false,
       addItem: (item) => {
-        const existing = get().items.find((i) => i.variantId === item.variantId);
+        const normalized: CartItem = {
+          ...item,
+          unitPrice: roundMoney(item.unitPrice),
+        };
+        const existing = get().items.find(
+          (i) => i.variantId === normalized.variantId,
+        );
         if (existing) {
           set({
             items: get().items.map((i) =>
-              i.variantId === item.variantId
-                ? { ...i, quantity: i.quantity + item.quantity }
+              i.variantId === normalized.variantId
+                ? { ...i, quantity: i.quantity + normalized.quantity }
                 : i,
             ),
             isOpen: true,
           });
         } else {
-          set({ items: [...get().items, item], isOpen: true });
+          set({ items: [...get().items, normalized], isOpen: true });
         }
       },
       removeItem: (variantId) =>
@@ -59,7 +66,10 @@ export const useCartStore = create<CartState>()(
 );
 
 export function selectCartTotal(items: CartItem[]): number {
-  return items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+  return items.reduce(
+    (sum, item) => sum + lineTotal(item.unitPrice, item.quantity),
+    0,
+  );
 }
 
 export function selectCartCount(items: CartItem[]): number {

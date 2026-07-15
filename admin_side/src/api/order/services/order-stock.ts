@@ -1,4 +1,8 @@
 import type { Core } from '@strapi/strapi';
+import {
+  findSizeColorRow,
+  updateSizeColorStock,
+} from '../../../utils/size-color';
 
 export const ORDER_STATUSES = ['placed', 'paid', 'pending', 'completed', 'cancelled'] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
@@ -27,23 +31,6 @@ type OrderRecord = {
   what_they_ordered?: OrderLine[] | null;
 };
 
-async function findVariant(strapi: Core.Strapi, line: OrderLine) {
-  if (line.item_code) {
-    const byCode = await strapi.db.query('api::product-variant.product-variant').findOne({
-      where: { item_code: line.item_code },
-    });
-    if (byCode) return byCode;
-  }
-
-  if (line.size && line.color) {
-    return strapi.db.query('api::product-variant.product-variant').findOne({
-      where: { size: line.size, color: line.color },
-    });
-  }
-
-  return null;
-}
-
 async function applyStockDelta(
   strapi: Core.Strapi,
   lines: OrderLine[],
@@ -53,7 +40,7 @@ async function applyStockDelta(
     const qty = Number(line.how_many ?? 0);
     if (qty <= 0) continue;
 
-    const variant = await findVariant(strapi, line);
+    const variant = await findSizeColorRow(strapi, line);
     if (!variant) {
       strapi.log.warn(
         `Order stock: no variant for ${line.item_code ?? `${line.size}/${line.color}`}`,
@@ -67,10 +54,7 @@ async function applyStockDelta(
         ? Math.max(0, current - qty)
         : current + qty;
 
-    await strapi.db.query('api::product-variant.product-variant').update({
-      where: { id: variant.id },
-      data: { how_many_left: next },
-    });
+    await updateSizeColorStock(strapi, variant, next);
 
     strapi.log.info(
       `Stock ${direction}: ${variant.item_code ?? variant.id} ${current} -> ${next}`,

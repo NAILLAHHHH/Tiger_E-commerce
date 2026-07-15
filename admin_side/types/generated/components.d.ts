@@ -62,11 +62,46 @@ export interface OrderOrderItem extends Struct.ComponentSchema {
         },
         number
       >;
+    image_url: Schema.Attribute.Text;
     item_code: Schema.Attribute.String;
     price_each: Schema.Attribute.Decimal & Schema.Attribute.Required;
     product_name: Schema.Attribute.String & Schema.Attribute.Required;
     row_total: Schema.Attribute.Decimal & Schema.Attribute.Required;
     size: Schema.Attribute.String;
+  };
+}
+
+export interface ProductSizeAndColor extends Struct.ComponentSchema {
+  collectionName: 'components_product_size_and_colors';
+  info: {
+    description: 'One size and color with price and how many you have left';
+    displayName: 'Size & color';
+  };
+  attributes: {
+    color: Schema.Attribute.String & Schema.Attribute.Required;
+    color_dot: Schema.Attribute.String;
+    color_photos: Schema.Attribute.Media<'images', true>;
+    how_many_left: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<0>;
+    item_code: Schema.Attribute.String & Schema.Attribute.Required;
+    min_quantity_for_bulk: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 1;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<10>;
+    photo: Schema.Attribute.Media<'images'>;
+    price_for_bulk: Schema.Attribute.Decimal;
+    price_for_one: Schema.Attribute.Decimal & Schema.Attribute.Required;
+    size: Schema.Attribute.String & Schema.Attribute.Required;
   };
 }
 
@@ -77,6 +112,7 @@ declare module '@strapi/strapi' {
       'homepage.hero-slide': HomepageHeroSlide;
       'homepage.promo-banner': HomepagePromoBanner;
       'order.order-item': OrderOrderItem;
+      'product.size-and-color': ProductSizeAndColor;
     }
   }
 }

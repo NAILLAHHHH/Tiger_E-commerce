@@ -6,6 +6,10 @@ function isBlank(value: unknown): boolean {
   return value == null || value === '';
 }
 
+function hasMediaPhoto(value: unknown): boolean {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
 /** Fill missing prices, slugs, and pictures on an existing catalog (after schema renames). */
 export async function repairCatalogFromSeed(strapi: Core.Strapi) {
   const categoryMap = new Map<string, number>();
@@ -22,7 +26,11 @@ export async function repairCatalogFromSeed(strapi: Core.Strapi) {
     const updates: Record<string, unknown> = {};
     if (isBlank(row.link_name)) updates.link_name = cat.link_name;
     if (row.list_position == null) updates.list_position = cat.list_position;
-    if (isBlank(row.photo)) updates.photo = cat.photo;
+
+    if (!hasMediaPhoto(row.photo)) {
+      const photoId = await uploadCatalogImage(strapi, cat.photo);
+      if (photoId) updates.photo = photoId;
+    }
 
     if (Object.keys(updates).length > 0) {
       await strapi.db.query('api::category.category').update({
@@ -36,7 +44,11 @@ export async function repairCatalogFromSeed(strapi: Core.Strapi) {
   for (const seed of seedProducts) {
     const row = await strapi.db.query('api::product.product').findOne({
       where: { name: seed.name },
-      populate: { sizes_and_colors: true, category: true, photo: true },
+      populate: {
+        sizes_and_colors: { populate: { photo: true } },
+        category: true,
+        photo: true,
+      },
     });
     if (!row) continue;
 
@@ -51,12 +63,7 @@ export async function repairCatalogFromSeed(strapi: Core.Strapi) {
     const categoryId = categoryMap.get(seed.category_link_name);
     if (categoryId && row.category == null) updates.category = categoryId;
 
-    const hasPhoto =
-      row.photo != null &&
-      typeof row.photo === 'object' &&
-      !Array.isArray(row.photo);
-
-    if (!hasPhoto) {
+    if (!hasMediaPhoto(row.photo)) {
       const photoId = await uploadCatalogImage(strapi, seed.photo);
       if (photoId) updates.photo = photoId;
     }
@@ -75,15 +82,22 @@ export async function repairCatalogFromSeed(strapi: Core.Strapi) {
       const variant = variants.find(
         (v) => v.size === seedVariant.size && v.color === seedVariant.color,
       );
-      if (!variant) continue;
+      if (!variant?.id) continue;
 
       const variantUpdates: Record<string, unknown> = {};
       if (isBlank(variant.item_code)) variantUpdates.item_code = seedVariant.item_code;
-      if (variant.price_for_one == null) {
-        variantUpdates.price_for_one = seedVariant.price_for_one;
+
+      // Keep Strapi prices in whole RWF so admin matches storefront (no 64.99 vs 65).
+      const seedOne = Math.round(Number(seedVariant.price_for_one));
+      const seedBulk =
+        seedVariant.price_for_bulk != null
+          ? Math.round(Number(seedVariant.price_for_bulk))
+          : null;
+      if (Number(variant.price_for_one) !== seedOne) {
+        variantUpdates.price_for_one = seedOne;
       }
-      if (variant.price_for_bulk == null && seedVariant.price_for_bulk != null) {
-        variantUpdates.price_for_bulk = seedVariant.price_for_bulk;
+      if (seedBulk != null && Number(variant.price_for_bulk) !== seedBulk) {
+        variantUpdates.price_for_bulk = seedBulk;
       }
       if (variant.min_quantity_for_bulk == null) {
         variantUpdates.min_quantity_for_bulk = seedVariant.min_quantity_for_bulk ?? 10;
@@ -95,12 +109,7 @@ export async function repairCatalogFromSeed(strapi: Core.Strapi) {
         variantUpdates.color_dot = seedVariant.color_dot;
       }
 
-      const hasVariantPhoto =
-        variant.photo != null &&
-        typeof variant.photo === 'object' &&
-        !Array.isArray(variant.photo);
-
-      if (!hasVariantPhoto) {
+      if (!hasMediaPhoto(variant.photo)) {
         const photoId = await uploadCatalogImage(
           strapi,
           seedVariant.photo ?? seed.photo,

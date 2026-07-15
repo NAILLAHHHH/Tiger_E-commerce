@@ -44,6 +44,10 @@
       "type": "decimal",
       "required": true,
       "description": "How many × price each (RWF)"
+    },
+    "image_url": {
+      "type": "text",
+      "description": "Product image URL at the time of order (optional)"
     }
   }
 }
