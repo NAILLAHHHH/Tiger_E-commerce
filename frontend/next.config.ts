@@ -1,8 +1,14 @@
 import type { NextConfig } from "next";
 
 const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL ?? "http://localhost:1337";
-const strapiHost = new URL(strapiUrl).hostname;
-const strapiPort = new URL(strapiUrl).port || "1337";
+const strapi = new URL(strapiUrl);
+const strapiHost = strapi.hostname;
+const strapiPort = strapi.port || "1337";
+
+/** Strapi Cloud stores uploads on a separate media CDN, not /uploads on the API host. */
+const strapiMediaHost = strapiHost.endsWith(".strapiapp.com")
+  ? strapiHost.replace(".strapiapp.com", ".media.strapiapp.com")
+  : null;
 
 const nextConfig: NextConfig = {
   output: "standalone",
@@ -21,6 +27,15 @@ const nextConfig: NextConfig = {
         hostname: strapiHost,
         pathname: "/uploads/**",
       },
+      ...(strapiMediaHost
+        ? [
+            {
+              protocol: "https" as const,
+              hostname: strapiMediaHost,
+              pathname: "/**",
+            },
+          ]
+        : []),
       {
         protocol: "https",
         hostname: "images.unsplash.com",
