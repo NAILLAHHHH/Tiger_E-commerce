@@ -3,9 +3,10 @@ import Link from "next/link";
 import ProductCard from "@/components/shop/ProductCard";
 import ShopCategoryNav from "@/components/shop/ShopCategoryNav";
 import { getCategories, getProducts } from "@/lib/products";
+import { getRatingSummaries } from "@/lib/reviews";
 
 type Props = {
-  searchParams: Promise<{ category?: string }>;
+  searchParams: Promise<{ category?: string; q?: string }>;
 };
 
 export const metadata: Metadata = {
@@ -15,18 +16,27 @@ export const metadata: Metadata = {
 };
 
 export default async function ShopPage({ searchParams }: Props) {
-  const { category } = await searchParams;
-  const categorySlug = category?.trim() || undefined;
-  const [products, categories] = await Promise.all([
-    getProducts({ categorySlug }),
+  const params = await searchParams;
+  const categorySlug = params.category?.trim() || undefined;
+  const query = params.q?.trim() || undefined;
+
+  const [products, categories, ratings] = await Promise.all([
+    getProducts({ categorySlug, query }),
     getCategories(),
+    getRatingSummaries(),
   ]);
 
   const activeCategory = categories.find((cat) => cat.slug === categorySlug);
-  const pageTitle = activeCategory ? activeCategory.name : "Shop all";
-  const pageDescription = activeCategory
-    ? `Clothing in ${activeCategory.name} — pick your size, color, and quantity.`
-    : "Every product comes in sizes and colors. Buy one piece or order many at a lower price.";
+  const pageTitle = query
+    ? `Results for “${query}”`
+    : activeCategory
+      ? activeCategory.name
+      : "Shop all";
+  const pageDescription = query
+    ? `Products matching “${query}”.`
+    : activeCategory
+      ? `Clothing in ${activeCategory.name} — pick your size, color, and quantity.`
+      : "Every product comes in sizes and colors. Buy one piece or order many at a lower price.";
 
   return (
     <div className="container-custom py-10">
@@ -42,8 +52,16 @@ export default async function ShopPage({ searchParams }: Props) {
           <p className="mt-3 text-sm text-body">
             {products.length}{" "}
             {products.length === 1 ? "product" : "products"}
-            {activeCategory ? ` in ${activeCategory.name}` : ""}
+            {activeCategory && !query ? ` in ${activeCategory.name}` : ""}
           </p>
+          {query && (
+            <Link
+              href={categorySlug ? `/shop?category=${categorySlug}` : "/shop"}
+              className="mt-2 inline-flex text-sm font-medium text-brand hover:text-brand-dark"
+            >
+              Clear search
+            </Link>
+          )}
         </div>
 
         <div className="rounded-xl border border-gray-3 bg-gray-1 px-5 py-4 lg:max-w-sm">
@@ -61,18 +79,26 @@ export default async function ShopPage({ searchParams }: Props) {
       </div>
 
       <div className="mb-8">
-        <ShopCategoryNav categories={categories} activeSlug={categorySlug} />
+        <ShopCategoryNav
+          categories={categories}
+          activeSlug={categorySlug}
+          searchQuery={query}
+        />
       </div>
 
       {products.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-gray-3 bg-gray-1 px-6 py-16 text-center">
-          <p className="text-lg font-medium text-dark">Nothing here yet</p>
-          <p className="mt-2 text-sm text-muted">
-            {activeCategory
-              ? `No products in ${activeCategory.name} right now.`
-              : "Check back soon — new items are added regularly."}
+          <p className="text-lg font-medium text-dark">
+            {query ? "No matches" : "Nothing here yet"}
           </p>
-          {activeCategory && (
+          <p className="mt-2 text-sm text-muted">
+            {query
+              ? `Nothing matched “${query}”. Try another word or browse categories.`
+              : activeCategory
+                ? `No products in ${activeCategory.name} right now.`
+                : "Check back soon — new items are added regularly."}
+          </p>
+          {(activeCategory || query) && (
             <Link href="/shop" className="btn-primary mt-6 inline-flex">
               View all products
             </Link>
@@ -81,7 +107,11 @@ export default async function ShopPage({ searchParams }: Props) {
       ) : (
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
           {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard
+              key={product.id}
+              product={product}
+              rating={ratings[product.id]}
+            />
           ))}
         </div>
       )}

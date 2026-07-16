@@ -92,6 +92,7 @@ function filterProducts(
     limit?: number;
     newOnly?: boolean;
     wholesaleOnly?: boolean;
+    query?: string;
   },
 ): Product[] {
   let items = [...products];
@@ -103,6 +104,22 @@ function filterProducts(
   if (options?.categorySlug) {
     items = items.filter((p) => p.category?.slug === options.categorySlug);
   }
+  if (options?.query) {
+    const q = options.query.trim().toLowerCase();
+    if (q) {
+      items = items.filter((p) => {
+        const haystack = [
+          p.name,
+          p.description ?? "",
+          p.category?.name ?? "",
+          ...(p.variants?.map((v) => `${v.color} ${v.size} ${v.sku}`) ?? []),
+        ]
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(q);
+      });
+    }
+  }
   if (options?.limit) items = items.slice(0, options.limit);
   return items;
 }
@@ -113,6 +130,7 @@ function filterMockProducts(options?: {
   limit?: number;
   newOnly?: boolean;
   wholesaleOnly?: boolean;
+  query?: string;
 }): Product[] {
   let items = [...mockProducts];
   if (options?.featured) items = items.filter((p) => p.is_featured);
@@ -122,6 +140,22 @@ function filterMockProducts(options?: {
   }
   if (options?.categorySlug) {
     items = getMockProductsByCategory(options.categorySlug);
+  }
+  if (options?.query) {
+    const q = options.query.trim().toLowerCase();
+    if (q) {
+      items = items.filter((p) => {
+        const haystack = [
+          p.name,
+          p.description ?? "",
+          p.category?.name ?? "",
+          ...(p.variants?.map((v) => `${v.color} ${v.size} ${v.sku}`) ?? []),
+        ]
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(q);
+      });
+    }
   }
   if (options?.limit) items = items.slice(0, options.limit);
   return items;
@@ -165,6 +199,7 @@ export async function getProducts(options?: {
   featured?: boolean;
   categorySlug?: string;
   limit?: number;
+  query?: string;
 }): Promise<Product[]> {
   if (shouldUseMockData()) return filterMockProducts(options);
 
@@ -193,7 +228,10 @@ export async function getProducts(options?: {
 
   const { data, error } = await query.order("created_at", { ascending: false });
   if (error || !data) return mockProducts;
-  return data.map((row) => mapSupabaseProduct(row as Record<string, unknown>));
+  const products = data.map((row) =>
+    mapSupabaseProduct(row as Record<string, unknown>),
+  );
+  return filterProducts(products, { query: options?.query });
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {

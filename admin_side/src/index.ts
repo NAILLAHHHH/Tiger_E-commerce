@@ -28,6 +28,9 @@ const PUBLIC_ACTIONS = [
   'api::order.order.create',
   'api::order.order.markPaid',
   'api::order.order.findByReference',
+  'api::review.review.find',
+  'api::review.review.findOne',
+  'api::review.review.create',
 ];
 
 const ORDER_STATUS_MAP: Record<string, string> = {

@@ -18,14 +18,19 @@ import {
 import { variantDisplayImage } from "@/lib/strapi/mappers";
 import ColorSwatches from "@/components/shop/ColorSwatches";
 import ProductGallery from "@/components/shop/ProductGallery";
+import StarRating from "@/components/shop/StarRating";
 import { useCartStore } from "@/store/cart-store";
-import type { PricingMode, Product, ProductVariant } from "@/types/database";
+import type { PricingMode, Product, ProductVariant, RatingSummary } from "@/types/database";
 
 type Props = {
   product: Product;
+  ratingSummary?: RatingSummary;
 };
 
-export default function ProductDetailClient({ product }: Props) {
+export default function ProductDetailClient({
+  product,
+  ratingSummary,
+}: Props) {
   const variants = product.variants ?? [];
 
   const colors = useMemo(
@@ -114,6 +119,21 @@ export default function ProductDetailClient({ product }: Props) {
           </p>
         )}
         <h1 className="mt-1 text-3xl font-bold text-dark">{product.name}</h1>
+        {ratingSummary && ratingSummary.count > 0 && (
+          <a
+            href="#reviews"
+            className="mt-2 inline-flex items-center gap-2 text-sm text-body hover:text-brand"
+          >
+            <StarRating rating={ratingSummary.average} size="sm" />
+            <span className="font-medium text-dark">
+              {ratingSummary.average.toFixed(1)}
+            </span>
+            <span className="text-muted">
+              ({ratingSummary.count}{" "}
+              {ratingSummary.count === 1 ? "review" : "reviews"})
+            </span>
+          </a>
+        )}
         <p className="mt-2 text-sm text-muted">
           {stockLabel(product.total_stock ?? 0)}
           {selectedVariant && ` · Code: ${selectedVariant.sku}`}

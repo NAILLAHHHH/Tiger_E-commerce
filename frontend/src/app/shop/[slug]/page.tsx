@@ -1,5 +1,10 @@
 import ProductDetailClient from "@/components/shop/ProductDetailClient";
+import ProductReviews from "@/components/shop/ProductReviews";
 import { getProductBySlug } from "@/lib/products";
+import {
+  getRatingSummaryForProduct,
+  getReviewsForProduct,
+} from "@/lib/reviews";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -12,6 +17,11 @@ export default async function ProductPage({ params }: Props) {
   const product = await getProductBySlug(slug);
 
   if (!product) notFound();
+
+  const [reviews, summary] = await Promise.all([
+    getReviewsForProduct(product.id),
+    getRatingSummaryForProduct(product.id),
+  ]);
 
   return (
     <div className="container-custom py-10">
@@ -27,7 +37,16 @@ export default async function ProductPage({ params }: Props) {
         <span className="text-dark">{product.name}</span>
       </nav>
 
-      <ProductDetailClient product={product} />
+      <ProductDetailClient product={product} ratingSummary={summary} />
+
+      <div className="mt-14">
+        <ProductReviews
+          productId={product.id}
+          productName={product.name}
+          initialReviews={reviews}
+          initialSummary={summary}
+        />
+      </div>
     </div>
   );
 }
