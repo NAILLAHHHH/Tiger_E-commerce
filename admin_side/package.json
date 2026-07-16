@@ -19,6 +19,8 @@
     "@strapi/plugin-users-permissions": "5.48.0",
     "@strapi/strapi": "5.48.0",
     "better-sqlite3": "12.8.0",
+    "exceljs": "^4.4.0",
+    "pdfkit": "^0.19.1",
     "pg": "^8.21.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
@@ -27,6 +29,7 @@
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/pdfkit": "^0.17.6",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "typescript": "^5"

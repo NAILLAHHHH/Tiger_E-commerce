@@ -1,0 +1,11 @@
+{
+  "name": "data-transfer",
+  "version": "1.0.0",
+  "private": true,
+  "strapi": {
+    "kind": "plugin",
+    "name": "data-transfer",
+    "displayName": "Export & Import",
+    "description": "Export and import store data as CSV with downloadable templates"
+  }
+}
