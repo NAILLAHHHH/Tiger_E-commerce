@@ -48,6 +48,26 @@ export type Product = {
   category?: Category | null;
   variants?: ProductVariant[];
   total_stock?: number;
+  /** Average star rating (1–5) when reviews exist */
+  rating_average?: number | null;
+  rating_count?: number;
+};
+
+export type ProductReview = {
+  id: string;
+  product_id: string;
+  customer_name: string;
+  stars: number;
+  title: string | null;
+  comment: string;
+  created_at: string;
+};
+
+export type RatingSummary = {
+  average: number;
+  count: number;
+  /** Counts for stars 1 through 5 */
+  distribution: [number, number, number, number, number];
 };
 
 export type CartItem = {

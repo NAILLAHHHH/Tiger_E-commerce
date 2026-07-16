@@ -11,14 +11,16 @@ import {
   getNewArrivals,
   getProducts,
 } from "@/lib/products";
+import { getRatingSummaries } from "@/lib/reviews";
 
 export default async function HomePage() {
   const homepage = await getHomepageContent();
 
-  const [categories, newArrivals, featured] = await Promise.all([
+  const [categories, newArrivals, featured, ratings] = await Promise.all([
     getCategories(),
     getNewArrivals(homepage.newArrivalsLimit),
     getProducts({ featured: true, limit: homepage.featuredLimit }),
+    getRatingSummaries(),
   ]);
 
   return (
@@ -34,12 +36,14 @@ export default async function HomePage() {
         title={homepage.newArrivalsTitle}
         products={newArrivals}
         viewAllHref="/shop"
+        ratings={ratings}
       />
       <PromoBanners banners={homepage.promoBanners} />
       <ProductSection
         title={homepage.featuredTitle}
         products={featured}
         viewAllHref="/shop"
+        ratings={ratings}
       />
       <Newsletter
         title={homepage.newsletterTitle}

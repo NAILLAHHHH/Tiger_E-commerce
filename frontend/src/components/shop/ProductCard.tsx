@@ -18,17 +18,20 @@ import {
 } from "@/lib/product-media";
 import { resolveProductImage } from "@/lib/images";
 import ColorSwatches from "@/components/shop/ColorSwatches";
-import type { Product } from "@/types/database";
+import StarRating from "@/components/shop/StarRating";
+import type { Product, RatingSummary } from "@/types/database";
 
 type Props = {
   product: Product;
   /** Retail shop vs wholesale catalog — changes which price is highlighted. */
   emphasis?: "retail" | "wholesale";
+  rating?: RatingSummary;
 };
 
 export default function ProductCard({
   product,
   emphasis = "retail",
+  rating,
 }: Props) {
   const variants = product.variants ?? [];
   const colors = useMemo(
@@ -160,6 +163,15 @@ export default function ProductCard({
             {product.name}
           </h3>
         </Link>
+
+        {rating && rating.count > 0 && (
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <StarRating rating={rating.average} size="sm" />
+            <span className="text-xs text-muted">
+              {rating.average.toFixed(1)} ({rating.count})
+            </span>
+          </div>
+        )}
 
         {isWholesaleView ? (
           <div className="mt-2">
