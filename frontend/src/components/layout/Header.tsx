@@ -2,6 +2,8 @@
 
 import clsx from "clsx";
 import Link from "next/link";
+import { Suspense } from "react";
+import HeaderSearch from "@/components/layout/HeaderSearch";
 import Logo from "@/components/layout/Logo";
 import { whatsappUrl } from "@/lib/contact";
 import { selectCartCount, useCartStore } from "@/store/cart-store";
@@ -39,7 +41,7 @@ export default function Header() {
       </div>
 
       <div className="container-custom py-4 md:py-5">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-3 md:gap-6">
           <Logo />
 
           <nav className="hidden items-center gap-8 md:flex">
@@ -54,17 +56,17 @@ export default function Header() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-3">
-            <Link
-              href="/shop"
-              className="hidden rounded-[5px] border border-gray-3 bg-gray-1 px-4 py-2 text-sm text-body sm:block"
-            >
-              I am shopping for…
-            </Link>
+          <div className="flex flex-1 items-center justify-end gap-2 sm:gap-3 md:max-w-md md:flex-initial lg:max-w-lg">
+            <Suspense fallback={<SearchSkeleton className="hidden min-w-0 flex-1 sm:block" />}>
+              <HeaderSearch
+                className="hidden min-w-0 flex-1 sm:block"
+                inputId="site-search-desktop"
+              />
+            </Suspense>
             <Link
               href="/cart"
               className={clsx(
-                "relative flex items-center gap-2 rounded-[5px] border border-gray-3 bg-surface px-3 py-2",
+                "relative flex shrink-0 items-center gap-2 rounded-[5px] border border-gray-3 bg-surface px-3 py-2",
                 "text-sm font-medium text-dark transition-colors hover:border-brand hover:text-brand",
               )}
             >
@@ -90,8 +92,21 @@ export default function Header() {
             </Link>
           </div>
         </div>
+
+        <Suspense fallback={<SearchSkeleton className="mt-3 sm:hidden" />}>
+          <HeaderSearch className="mt-3 sm:hidden" inputId="site-search-mobile" />
+        </Suspense>
       </div>
     </header>
+  );
+}
+
+function SearchSkeleton({ className }: { className?: string }) {
+  return (
+    <div
+      className={`h-10 rounded-[5px] border border-gray-3 bg-gray-1 ${className ?? ""}`}
+      aria-hidden
+    />
   );
 }
 
