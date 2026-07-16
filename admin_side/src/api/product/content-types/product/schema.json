@@ -68,6 +68,18 @@
       "target": "api::product-variant.product-variant",
       "mappedBy": "product",
       "description": "Pick existing sizes & colors from the list (create them under Size & color first)"
+    },
+    "reviews": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::review.review",
+      "mappedBy": "product",
+      "description": "Customer reviews for this product",
+      "pluginOptions": {
+        "content-manager": {
+          "visible": false
+        }
+      }
     }
   }
 }
