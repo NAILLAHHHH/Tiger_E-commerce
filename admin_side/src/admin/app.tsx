@@ -5,6 +5,8 @@ import MenuLogo from "./extensions/tigerwear-logo.png";
 import Favicon from "./extensions/favicon.ico";
 import { tigerWearDarkColors, tigerWearLightColors } from "./theme";
 import { installSelectOnlyProductRelations } from "./select-only-relations";
+import { DataTransferListActions } from "./data-transfer-actions";
+import { TrackListSelection } from "./order-selection-store";
 
 export default {
   config: {
@@ -45,11 +47,22 @@ export default {
       releases: false,
     },
   },
-  bootstrap() {
+  bootstrap(app: StrapiApp) {
     if (!localStorage.getItem("STRAPI_THEME")) {
       localStorage.setItem("STRAPI_THEME", "light");
     }
     installSelectOnlyProductRelations();
+
+    // Export / Import (+ order totals on Orders) on each content table
+    app.getPlugin("content-manager")?.injectComponent("listView", "actions", {
+      name: "tigerwear-data-transfer",
+      Component: DataTransferListActions,
+    });
+
+    // Sync checkbox selection → export scope / order totals
+    app.getPlugin("content-manager")?.apis?.addBulkAction?.([
+      TrackListSelection as never,
+    ]);
   },
   register(app: StrapiApp) {
     const indexRoute = app.router.routes.find(({ index }) => index);
