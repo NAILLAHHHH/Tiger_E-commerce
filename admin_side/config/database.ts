@@ -1,8 +1,11 @@
 import path from 'path';
 import type { Core } from '@strapi/strapi';
 
+type DatabaseClient = 'mysql' | 'postgres' | 'sqlite';
+
 const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Database => {
-  const client = env('DATABASE_CLIENT', 'sqlite');
+  const client = env('DATABASE_CLIENT', 'postgres') as DatabaseClient;
+  const databaseUrl = env('DATABASE_URL', '');
 
   const connections = {
     mysql: {
@@ -25,7 +28,7 @@ const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Database 
     },
     postgres: {
       connection: {
-        connectionString: env('DATABASE_URL'),
+        ...(databaseUrl ? { connectionString: databaseUrl } : {}),
         host: env('DATABASE_HOST', 'localhost'),
         port: env.int('DATABASE_PORT', 5432),
         database: env('DATABASE_NAME', 'strapi'),
@@ -51,13 +54,14 @@ const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Database 
     },
   };
 
+  // Strapi's Database type is generic per client; indexing the map widens the union.
   return {
     connection: {
       client,
       ...connections[client],
       acquireConnectionTimeout: env.int('DATABASE_CONNECTION_TIMEOUT', 60000),
     },
-  };
+  } as Core.Config.Database;
 };
 
 export default config;
