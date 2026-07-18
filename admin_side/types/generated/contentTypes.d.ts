@@ -595,7 +595,7 @@ export interface ApiProductVariantProductVariant
   extends Struct.CollectionTypeSchema {
   collectionName: 'product_variants';
   info: {
-    description: 'One row = one size and color with price and how many you have left';
+    description: 'One row = one size and color with price and stock \u2014 create these here (not on the Product form)';
     displayName: 'Size & color';
     pluralName: 'product-variants';
     singularName: 'product-variant';
