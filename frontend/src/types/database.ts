@@ -9,6 +9,8 @@ export type Category = {
 export type GalleryItem = {
   type: "image" | "video";
   url: string;
+  /** Color this media belongs to — used to sync variant selection from the gallery */
+  color?: string;
 };
 
 export type ColorOption = {
