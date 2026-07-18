@@ -85,11 +85,51 @@ export function buildColorGallery(
   const items: GalleryItem[] = imageUrls.map((url) => ({
     type: "image",
     url,
+    color,
   }));
 
   if (product.video_url) {
     const insertAt = Math.min(1, items.length);
-    items.splice(insertAt, 0, { type: "video", url: product.video_url });
+    items.splice(insertAt, 0, { type: "video", url: product.video_url, color });
+  }
+
+  return items;
+}
+
+/**
+ * Full PDP gallery — every unique photo across colors (Instagram-style),
+ * plus optional product video once after the first image.
+ */
+export function buildProductGallery(product: Product): GalleryItem[] {
+  const variants = product.variants ?? [];
+  const colors = getProductColors(variants, product.image_url);
+  const seen = new Set<string>();
+  const items: GalleryItem[] = [];
+
+  for (const option of colors) {
+    const urls = getColorImages(variants, option.color, product.image_url);
+    for (const url of urls) {
+      if (seen.has(url)) continue;
+      seen.add(url);
+      items.push({ type: "image", url, color: option.color });
+    }
+  }
+
+  if (!items.length && product.image_url) {
+    items.push({ type: "image", url: product.image_url });
+  }
+
+  if (!items.length) {
+    items.push({ type: "image", url: "/placeholder-product.svg" });
+  }
+
+  if (product.video_url) {
+    const insertAt = Math.min(1, items.length);
+    items.splice(insertAt, 0, {
+      type: "video",
+      url: product.video_url,
+      color: items[0]?.color,
+    });
   }
 
   return items;

@@ -8,11 +8,26 @@ import type { GalleryItem } from "@/types/database";
 type Props = {
   items: GalleryItem[];
   alt: string;
-  /** Reset active slide when color changes */
+  /** Reset active slide when key changes */
   resetKey?: string;
+  /** Auto-advance image slides (disabled for full product galleries) */
+  autoplay?: boolean;
+  /** Jump to this slide when the token changes (e.g. color swatch selected) */
+  seekIndex?: number;
+  seekToken?: number;
+  /** Fired when the active slide changes (e.g. to sync selected color) */
+  onActiveChange?: (item: GalleryItem, index: number) => void;
 };
 
-export default function ProductGallery({ items, alt, resetKey }: Props) {
+export default function ProductGallery({
+  items,
+  alt,
+  resetKey,
+  autoplay = true,
+  seekIndex,
+  seekToken,
+  onActiveChange,
+}: Props) {
   const HOVER_ZOOM_PERCENT = 280;
   const HOVER_LENS_SIZE_PX = 120;
   const [active, setActive] = useState(0);
@@ -26,6 +41,8 @@ export default function ProductGallery({ items, alt, resetKey }: Props) {
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const onActiveChangeRef = useRef(onActiveChange);
+  onActiveChangeRef.current = onActiveChange;
 
   useEffect(() => {
     setActive(0);
@@ -37,6 +54,18 @@ export default function ProductGallery({ items, alt, resetKey }: Props) {
     setHoverX(50);
     setHoverY(50);
   }, [resetKey]);
+
+  useEffect(() => {
+    if (!seekToken || seekIndex == null) return;
+    if (seekIndex < 0 || seekIndex >= items.length) return;
+    setActive(seekIndex);
+  }, [seekToken, seekIndex, items.length]);
+
+  useEffect(() => {
+    const item = items[active];
+    if (!item) return;
+    onActiveChangeRef.current?.(item, active);
+  }, [active, items]);
 
   const goTo = useCallback(
     (index: number) => {
@@ -51,9 +80,9 @@ export default function ProductGallery({ items, alt, resetKey }: Props) {
     goTo(active + 1);
   }, [active, goTo, items.length, zoomOpen]);
 
-  // Images: advance every 2 seconds
+  // Images: advance every 2 seconds when autoplay is on
   useEffect(() => {
-    if (zoomOpen || items.length <= 1) return;
+    if (!autoplay || zoomOpen || items.length <= 1) return;
     const currentItem = items[active];
     if (!currentItem || currentItem.type === "video") return;
 
@@ -61,7 +90,7 @@ export default function ProductGallery({ items, alt, resetKey }: Props) {
       setActive((i) => (i + 1) % items.length);
     }, 2000);
     return () => clearInterval(timer);
-  }, [active, items, zoomOpen, resetKey]);
+  }, [active, autoplay, items, zoomOpen, resetKey]);
 
   // Videos: autoplay, then advance when playback ends
   useEffect(() => {
@@ -274,14 +303,22 @@ export default function ProductGallery({ items, alt, resetKey }: Props) {
         </div>
 
         {items.length > 1 && (
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {items.map((item, i) => (
               <button
                 key={`thumb-${item.type}-${item.url}-${i}`}
                 type="button"
                 onClick={() => setActive(i)}
-                className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 ${
-                  i === active ? "border-brand" : "border-gray-3"
+                aria-label={
+                  item.type === "video"
+                    ? "Product video"
+                    : item.color
+                      ? `${item.color} photo`
+                      : `Photo ${i + 1}`
+                }
+                aria-pressed={i === active}
+                className={`relative aspect-square w-[22%] min-w-[4.5rem] max-w-[5.5rem] shrink-0 overflow-hidden rounded-md border-2 ${
+                  i === active ? "border-brand" : "border-transparent opacity-80 hover:opacity-100"
                 }`}
               >
                 {item.type === "video" ? (
@@ -293,8 +330,8 @@ export default function ProductGallery({ items, alt, resetKey }: Props) {
                     src={resolveProductImage(item.url)}
                     alt=""
                     fill
-                    className="object-contain object-center bg-gray-1"
-                    sizes="64px"
+                    className="object-cover object-center bg-gray-1"
+                    sizes="88px"
                   />
                 )}
               </button>
