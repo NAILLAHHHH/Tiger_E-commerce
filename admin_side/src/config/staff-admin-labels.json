@@ -29,7 +29,8 @@
     },
     "sizes_and_colors": {
       "label": "Sizes & colors",
-      "description": "Pick existing sizes & colors from the list (create them under Size & color first)"
+      "description": "Add these under Content → Size & color (pick this product there)",
+      "visible": false
     }
   },
   "plugin_content_manager_configuration_components::product.size-and-color": {

@@ -651,7 +651,7 @@ export interface ApiProductVariantProductVariant
 export interface ApiProductProduct extends Struct.CollectionTypeSchema {
   collectionName: 'products';
   info: {
-    description: 'A clothing item \u2014 add sizes, colors, prices and how many you have below';
+    description: 'A clothing item \u2014 sizes, colors, prices and stock are added under Size & color';
     displayName: 'Product';
     pluralName: 'products';
     singularName: 'product';
@@ -692,7 +692,12 @@ export interface ApiProductProduct extends Struct.CollectionTypeSchema {
     sizes_and_colors: Schema.Attribute.Relation<
       'oneToMany',
       'api::product-variant.product-variant'
-    >;
+    > &
+      Schema.Attribute.SetPluginOptions<{
+        'content-manager': {
+          visible: false;
+        };
+      }>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

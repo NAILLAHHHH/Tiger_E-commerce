@@ -15,7 +15,8 @@ const CONTENT_TYPES = {
   products: {
     key: 'products',
     label: 'Products',
-    description: 'Catalog items with optional category name',
+    description:
+      'Catalog items only (name, category, flags). Add sizes & colors via the Size & color template.',
     exportHeaders: [
       'name',
       'link_name',
@@ -42,7 +43,8 @@ const CONTENT_TYPES = {
   'product-variants': {
     key: 'product-variants',
     label: 'Size & color',
-    description: 'Variant rows linked to a product name',
+    description:
+      'One row per size/color — set product_name to an existing product (create products first)',
     exportHeaders: [
       'item_code',
       'size',

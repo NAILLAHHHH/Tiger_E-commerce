@@ -1,5 +1,16 @@
 # 🚀 Getting started with Strapi
 
+This project uses **PostgreSQL** (not SQLite). Start the local database before Strapi:
+
+```
+npm run db:up
+npm run develop
+```
+
+Default local credentials match `docker-compose.yml` (`strapi` / `strapi`, host port `5433`). Copy `.env.example` to `.env` if needed. On first boot with an empty DB, catalog/homepage seed runs unless `SEED_DATA=false`.
+
+Your previous SQLite file (`.tmp/data.db`) is left untouched; it is not imported automatically.
+
 Strapi comes with a full featured [Command Line Interface](https://docs.strapi.io/dev-docs/cli) (CLI) which lets you scaffold and manage your project in seconds.
 
 ### `develop`

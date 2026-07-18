@@ -5,7 +5,7 @@
     "singularName": "product-variant",
     "pluralName": "product-variants",
     "displayName": "Size & color",
-    "description": "One row = one size and color with price and how many you have left"
+    "description": "One row = one size and color with price and stock — create these here (not on the Product form)"
   },
   "options": {
     "draftAndPublish": false

@@ -57,9 +57,15 @@ const shortcuts = [
   },
   {
     title: "Products",
-    subtitle: "Catalog, pricing, stock, and homepage flags",
+    subtitle: "Catalog names, photos, and homepage flags",
     to: "/content-manager/collection-types/api::product.product",
     icon: Shirt,
+  },
+  {
+    title: "Size & color",
+    subtitle: "Prices, stock, and link each row to a product",
+    to: "/content-manager/collection-types/api::product-variant.product-variant",
+    icon: Pencil,
   },
   {
     title: "Categories",
