@@ -12,7 +12,7 @@ import {
 } from "@/lib/pricing";
 import { resolveProductImage } from "@/lib/images";
 import {
-  buildColorGallery,
+  buildProductGallery,
   getProductColors,
 } from "@/lib/product-media";
 import { variantDisplayImage } from "@/lib/strapi/mappers";
@@ -20,7 +20,7 @@ import ColorSwatches from "@/components/shop/ColorSwatches";
 import ProductGallery from "@/components/shop/ProductGallery";
 import StarRating from "@/components/shop/StarRating";
 import { useCartStore } from "@/store/cart-store";
-import type { PricingMode, Product, ProductVariant, RatingSummary } from "@/types/database";
+import type { GalleryItem, PricingMode, Product, ProductVariant, RatingSummary } from "@/types/database";
 
 type Props = {
   product: Product;
@@ -50,11 +50,21 @@ export default function ProductDetailClient({
   );
   const [color, setColor] = useState(colors[0]?.color ?? "");
   const [size, setSize] = useState(sizes[0] ?? "");
+  const [gallerySeek, setGallerySeek] = useState({ index: 0, token: 0 });
 
-  const gallery = useMemo(
-    () => buildColorGallery(product, color),
-    [product, color],
-  );
+  const gallery = useMemo(() => buildProductGallery(product), [product]);
+
+  const handleGalleryActiveChange = (item: GalleryItem) => {
+    if (item.color) setColor(item.color);
+  };
+
+  const handleColorSelect = (next: string) => {
+    setColor(next);
+    const index = gallery.findIndex((item) => item.color === next);
+    if (index >= 0) {
+      setGallerySeek((prev) => ({ index, token: prev.token + 1 }));
+    }
+  };
 
   const selectedVariant: ProductVariant | undefined = variants.find(
     (v) => v.color === color && v.size === size,
@@ -109,7 +119,10 @@ export default function ProductDetailClient({
       <ProductGallery
         items={gallery}
         alt={product.name}
-        resetKey={color}
+        autoplay={false}
+        seekIndex={gallerySeek.index}
+        seekToken={gallerySeek.token}
+        onActiveChange={handleGalleryActiveChange}
       />
 
       <div>
@@ -211,7 +224,7 @@ export default function ProductDetailClient({
         <ColorSwatches
           colors={colors}
           selected={color}
-          onSelect={setColor}
+          onSelect={handleColorSelect}
           className="mt-6"
         />
 
