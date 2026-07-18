@@ -1,4 +1,6 @@
-/** Hide “Create a relation” on Product edit so staff only pick existing entries. */
+/** Hide “Create a relation” on Product edit so staff only pick an existing Category.
+ *  Size & color is not on the Product form — create those under Content → Size & color.
+ */
 
 const PRODUCT_EDIT_PATH = "api::product.product";
 
@@ -8,6 +10,7 @@ function isProductEditView(): boolean {
 
 const CREATE_LABELS = new Set([
   "Create a relation",
+  "Create under Category",
   "Create under Category / Size & color",
 ]);
 

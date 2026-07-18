@@ -35,7 +35,7 @@ export default {
         "content-manager.containers.Home.pluginHeaderDescription":
           "Manage products, categories, orders, and your homepage.",
         "content-manager.relation.add": "Pick from the list",
-        "content-manager.relation.create": "Create under Category / Size & color",
+        "content-manager.relation.create": "Create under Category",
       },
     },
     theme: {

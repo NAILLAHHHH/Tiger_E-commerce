@@ -5,7 +5,7 @@
     "singularName": "product",
     "pluralName": "products",
     "displayName": "Product",
-    "description": "A clothing item — add sizes, colors, prices and how many you have below"
+    "description": "A clothing item — sizes, colors, prices and stock are added under Size & color"
   },
   "options": {
     "draftAndPublish": false
@@ -67,7 +67,12 @@
       "relation": "oneToMany",
       "target": "api::product-variant.product-variant",
       "mappedBy": "product",
-      "description": "Pick existing sizes & colors from the list (create them under Size & color first)"
+      "description": "Managed under Size & color — not edited on this form",
+      "pluginOptions": {
+        "content-manager": {
+          "visible": false
+        }
+      }
     },
     "reviews": {
       "type": "relation",
