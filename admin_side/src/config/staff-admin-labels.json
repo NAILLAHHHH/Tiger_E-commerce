@@ -31,6 +31,11 @@
       "label": "Sizes & colors",
       "description": "Add these under Content → Size & color (pick this product there)",
       "visible": false
+    },
+    "reviews": {
+      "label": "Customer reviews",
+      "description": "Managed under Content → Customer review",
+      "visible": false
     }
   },
   "plugin_content_manager_configuration_components::product.size-and-color": {

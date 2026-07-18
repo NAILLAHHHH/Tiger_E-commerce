@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getStrapiUrl } from "@/lib/config";
 import { resolveProductImage } from "@/lib/images";
+import { isValidE164Phone } from "@/lib/phone";
 import { lineTotal, roundMoney } from "@/lib/pricing";
 import type { CartItem } from "@/types/database";
 
@@ -30,6 +31,14 @@ export async function POST(request: Request) {
     );
   }
 
+  const trimmedPhone = phone.trim();
+  if (!isValidE164Phone(trimmedPhone)) {
+    return NextResponse.json(
+      { error: "Enter a valid phone number with country code" },
+      { status: 400 },
+    );
+  }
+
   if (!items?.length) {
     return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
   }
@@ -51,7 +60,7 @@ export async function POST(request: Request) {
 
   const orderData = {
     customer_name: customer_name.trim(),
-    phone: phone.trim(),
+    phone: trimmedPhone,
     delivery_address: address?.trim() || null,
     customer_notes: notes?.trim() || null,
     order_status: "placed",

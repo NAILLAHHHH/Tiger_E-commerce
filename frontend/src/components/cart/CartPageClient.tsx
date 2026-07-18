@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import MomoPayInstructions from "@/components/cart/MomoPayInstructions";
-import { buildMomoPayUssd, momoPayTelUrl, MOMO_MERCHANT_CODE } from "@/lib/payment";
+import PhoneInput from "@/components/cart/PhoneInput";
 import { formatPrice, lineTotal } from "@/lib/pricing";
 import {
   buildOrderWhatsAppMessage,
@@ -12,6 +12,12 @@ import {
 } from "@/lib/contact";
 import { resolveProductImage } from "@/lib/images";
 import { orderSummaryUrl } from "@/lib/orders";
+import {
+  DEFAULT_COUNTRY,
+  formatInternationalPhone,
+  isValidPhoneForCountry,
+  type CountryDial,
+} from "@/lib/phone";
 import {
   selectCartTotal,
   useCartStore,
@@ -26,7 +32,10 @@ export default function CartPageClient() {
 
   const [showCheckout, setShowCheckout] = useState(false);
   const [customerName, setCustomerName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phoneCountry, setPhoneCountry] =
+    useState<CountryDial>(DEFAULT_COUNTRY);
+  const [phoneNational, setPhoneNational] = useState("");
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -40,8 +49,26 @@ export default function CartPageClient() {
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
     setError(null);
+    setPhoneError(null);
+
+    if (!isValidPhoneForCountry(phoneCountry.code, phoneNational)) {
+      setPhoneError(
+        `Enter a valid ${phoneCountry.name} phone number`,
+      );
+      return;
+    }
+
+    const fullPhone = formatInternationalPhone(
+      phoneCountry.code,
+      phoneNational,
+    );
+    if (!fullPhone) {
+      setPhoneError("Enter a valid phone number");
+      return;
+    }
+
+    setSubmitting(true);
 
     try {
       const res = await fetch("/api/orders", {
@@ -49,7 +76,7 @@ export default function CartPageClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customer_name: customerName,
-          phone,
+          phone: fullPhone,
           address,
           notes,
           items,
@@ -67,7 +94,7 @@ export default function CartPageClient() {
       const message = buildOrderWhatsAppMessage({
         orderNumber: ref,
         customerName,
-        phone,
+        phone: fullPhone,
         address,
         notes,
         items,
@@ -282,15 +309,24 @@ export default function CartPageClient() {
               <label className="text-xs font-medium text-dark" htmlFor="phone">
                 Phone / WhatsApp *
               </label>
-              <input
+              <PhoneInput
                 id="phone"
                 required
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="e.g. 078…"
-                className="mt-1 w-full rounded-lg border border-gray-3 px-3 py-2 text-sm"
+                invalid={!!phoneError}
+                country={phoneCountry}
+                nationalNumber={phoneNational}
+                onCountryChange={(c) => {
+                  setPhoneCountry(c);
+                  setPhoneError(null);
+                }}
+                onNationalNumberChange={(v) => {
+                  setPhoneNational(v);
+                  setPhoneError(null);
+                }}
               />
+              {phoneError && (
+                <p className="mt-1 text-xs text-red-600">{phoneError}</p>
+              )}
             </div>
             <div>
               <label className="text-xs font-medium text-dark" htmlFor="address">
