@@ -9,7 +9,12 @@ import {
   shouldUseMockData,
   shouldUseStrapi,
 } from "@/lib/config";
-import { PRODUCT_POPULATE, strapiList } from "@/lib/strapi/client";
+import {
+  PRODUCT_POPULATE,
+  PUBLISHED_CATEGORIES,
+  PUBLISHED_PRODUCTS,
+  strapiList,
+} from "@/lib/strapi/client";
 import { mapStrapiCategory, mapStrapiProduct } from "@/lib/strapi/mappers";
 import { productSupportsBulk, roundMoney } from "@/lib/pricing";
 import { createClient } from "@/lib/supabase/server";
@@ -162,14 +167,17 @@ function filterMockProducts(options?: {
 }
 
 const fetchStrapiProducts = cache(async (): Promise<Product[]> => {
-  const rows = await strapiList("products", `${PRODUCT_POPULATE}&pagination[pageSize]=100`);
+  const rows = await strapiList(
+    "products",
+    `${PUBLISHED_PRODUCTS}&${PRODUCT_POPULATE}&pagination[pageSize]=100`,
+  );
   return rows.map(mapStrapiProduct);
 });
 
 const fetchStrapiCategories = cache(async (): Promise<Category[]> => {
   const rows = await strapiList(
     "categories",
-    "populate[photo]=true&sort=list_position:asc&pagination[pageSize]=50",
+    `${PUBLISHED_CATEGORIES}&populate[photo]=true&sort=list_position:asc&pagination[pageSize]=50`,
   );
   return rows.map(mapStrapiCategory);
 });
@@ -241,7 +249,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
     try {
       const rows = await strapiList(
         "products",
-        `filters[link_name][$eq]=${encodeURIComponent(slug)}&${PRODUCT_POPULATE}`,
+        `${PUBLISHED_PRODUCTS}&filters[link_name][$eq]=${encodeURIComponent(slug)}&${PRODUCT_POPULATE}`,
       );
       const product = rows[0];
       return product ? mapStrapiProduct(product) : null;

@@ -8,7 +8,7 @@
     "description": "A clothing item — sizes, colors, prices and stock are added under Size & color"
   },
   "options": {
-    "draftAndPublish": false
+    "draftAndPublish": true
   },
   "attributes": {
     "name": {
