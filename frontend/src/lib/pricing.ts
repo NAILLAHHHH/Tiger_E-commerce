@@ -46,6 +46,60 @@ export function lowestBulkMinimum(product: Product): number {
   return mins.length ? Math.min(...mins) : 10;
 }
 
+function variantsForColor(
+  variants: ProductVariant[],
+  color: string,
+): ProductVariant[] {
+  return variants.filter((v) => v.color === color);
+}
+
+export function colorStockTotal(
+  variants: ProductVariant[],
+  color: string,
+): number {
+  return variantsForColor(variants, color).reduce(
+    (sum, v) => sum + v.stock_quantity,
+    0,
+  );
+}
+
+export function lowestPerPiecePriceForColor(
+  variants: ProductVariant[],
+  color: string,
+): number {
+  const prices = variantsForColor(variants, color).map((v) =>
+    roundMoney(v.per_piece_price),
+  );
+  return prices.length ? Math.min(...prices) : 0;
+}
+
+export function lowestBulkPriceForColor(
+  variants: ProductVariant[],
+  color: string,
+): number | null {
+  const prices = variantsForColor(variants, color)
+    .map((v) => (v.bulk_price != null ? roundMoney(v.bulk_price) : null))
+    .filter((p): p is number => p != null && p > 0);
+  return prices.length ? Math.min(...prices) : null;
+}
+
+export function lowestBulkMinimumForColor(
+  variants: ProductVariant[],
+  color: string,
+): number {
+  const mins = variantsForColor(variants, color)
+    .filter(variantSupportsBulk)
+    .map((v) => v.bulk_minimum);
+  return mins.length ? Math.min(...mins) : 10;
+}
+
+export function colorSupportsBulk(
+  variants: ProductVariant[],
+  color: string,
+): boolean {
+  return variantsForColor(variants, color).some(variantSupportsBulk);
+}
+
 export function resolveUnitPrice(
   mode: PricingMode,
   variant: ProductVariant,

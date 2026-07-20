@@ -5,11 +5,12 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   bulkSavingsPercent,
+  colorStockTotal,
+  colorSupportsBulk,
   formatPrice,
-  lowestBulkPrice,
-  lowestPerPiecePrice,
-  lowestBulkMinimum,
-  productSupportsBulk,
+  lowestBulkMinimumForColor,
+  lowestBulkPriceForColor,
+  lowestPerPiecePriceForColor,
   stockLabel,
 } from "@/lib/pricing";
 import {
@@ -42,10 +43,37 @@ export default function ProductCard({
   const [activeImage, setActiveImage] = useState(0);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
+  useEffect(() => {
+    if (colors.some((c) => c.color === activeColor)) return;
+    setActiveColor(colors[0]?.color ?? "");
+  }, [colors, activeColor]);
+
   const images = useMemo(
     () => getCardImages(product, activeColor || undefined),
     [product, activeColor],
   );
+
+  const totalStock = useMemo(
+    () => colorStockTotal(variants, activeColor),
+    [variants, activeColor],
+  );
+  const perPiece = useMemo(
+    () => lowestPerPiecePriceForColor(variants, activeColor),
+    [variants, activeColor],
+  );
+  const bulkPrice = useMemo(
+    () => lowestBulkPriceForColor(variants, activeColor),
+    [variants, activeColor],
+  );
+  const bulkMin = useMemo(
+    () => lowestBulkMinimumForColor(variants, activeColor),
+    [variants, activeColor],
+  );
+  const hasBulk = colorSupportsBulk(variants, activeColor);
+  const savings = hasBulk && bulkPrice != null
+    ? bulkSavingsPercent(perPiece, bulkPrice)
+    : null;
+  const isWholesaleView = emphasis === "wholesale" && hasBulk;
 
   useEffect(() => {
     setActiveImage(0);
@@ -82,14 +110,6 @@ export default function ProductCard({
     if (dx < 0) goTo(activeImage + 1);
     else goTo(activeImage - 1);
   };
-
-  const totalStock = product.total_stock ?? 0;
-  const perPiece = lowestPerPiecePrice(product);
-  const bulkPrice = lowestBulkPrice(product);
-  const bulkMin = lowestBulkMinimum(product);
-  const hasBulk = bulkPrice != null && productSupportsBulk(product);
-  const savings = hasBulk ? bulkSavingsPercent(perPiece, bulkPrice) : null;
-  const isWholesaleView = emphasis === "wholesale" && hasBulk;
 
   return (
     <article className="group relative overflow-hidden rounded-xl bg-surface shadow-[var(--shadow-card)] transition-shadow hover:shadow-lg">
