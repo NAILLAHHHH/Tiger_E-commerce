@@ -83,6 +83,14 @@ async function publishProduct(strapi: Core.Strapi, documentId: string) {
   }
 }
 
+async function publishCategory(strapi: Core.Strapi, documentId: string) {
+  try {
+    await strapi.documents('api::category.category').publish({ documentId });
+  } catch {
+    // Already published or nothing to publish.
+  }
+}
+
 /** When D&P is first enabled, legacy rows may all be drafts — publish once. */
 async function publishLegacyDraftProducts(strapi: Core.Strapi) {
   const all = await strapi.documents('api::product.product').findMany({
@@ -105,6 +113,27 @@ async function publishLegacyDraftProducts(strapi: Core.Strapi) {
   strapi.log.info(`Published ${drafts.length} legacy draft product(s)`);
 }
 
+async function publishLegacyDraftCategories(strapi: Core.Strapi) {
+  const all = await strapi.documents('api::category.category').findMany({
+    limit: 1000,
+  });
+  if (!all.length) return;
+
+  const drafts = await strapi.documents('api::category.category').findMany({
+    status: 'draft',
+    limit: 1000,
+  });
+  if (drafts.length !== all.length) return;
+
+  for (const category of drafts) {
+    if (category.documentId) {
+      await publishCategory(strapi, category.documentId);
+    }
+  }
+
+  strapi.log.info(`Published ${drafts.length} legacy draft categor(ies)`);
+}
+
 async function seedCatalog(strapi: Core.Strapi) {
   const categoryCount = await strapi.db.query('api::category.category').count();
   if (categoryCount > 0) return;
@@ -121,6 +150,9 @@ async function seedCatalog(strapi: Core.Strapi) {
         list_position: cat.list_position,
       },
     });
+    if (created.documentId) {
+      await publishCategory(strapi, created.documentId);
+    }
     categoryMap.set(cat.link_name, created.id);
   }
 
@@ -614,6 +646,7 @@ export default {
     await migrateOrderStatuses(strapi);
     await migrateEmbeddedSizeColorsToCollection(strapi);
     await repairCatalogFromSeed(strapi);
+    await publishLegacyDraftCategories(strapi);
     await publishLegacyDraftProducts(strapi);
     await attachMissingPhotos(strapi);
     await applyStaffAdminLabels(strapi);

@@ -64,3 +64,6 @@ export const PRODUCT_POPULATE =
 
 /** Only return published products — drafts stay hidden from the storefront. */
 export const PUBLISHED_PRODUCTS = "status=published";
+
+/** Only return published categories — drafts stay hidden from the storefront. */
+export const PUBLISHED_CATEGORIES = "status=published";

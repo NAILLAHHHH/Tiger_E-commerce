@@ -8,7 +8,7 @@
     "description": "Shop sections — T-Shirts, Hoodies, Pants, etc."
   },
   "options": {
-    "draftAndPublish": false
+    "draftAndPublish": true
   },
   "attributes": {
     "name": {

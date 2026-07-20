@@ -11,6 +11,7 @@ import {
 } from "@/lib/config";
 import {
   PRODUCT_POPULATE,
+  PUBLISHED_CATEGORIES,
   PUBLISHED_PRODUCTS,
   strapiList,
 } from "@/lib/strapi/client";
@@ -176,7 +177,7 @@ const fetchStrapiProducts = cache(async (): Promise<Product[]> => {
 const fetchStrapiCategories = cache(async (): Promise<Category[]> => {
   const rows = await strapiList(
     "categories",
-    "populate[photo]=true&sort=list_position:asc&pagination[pageSize]=50",
+    `${PUBLISHED_CATEGORIES}&populate[photo]=true&sort=list_position:asc&pagination[pageSize]=50`,
   );
   return rows.map(mapStrapiCategory);
 });
