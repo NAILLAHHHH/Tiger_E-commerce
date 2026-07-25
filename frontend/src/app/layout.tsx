@@ -26,7 +26,7 @@ export default function RootLayout({
     <html lang="en" className={`${dmSans.variable} h-full`}>
       <body className="flex min-h-full flex-col antialiased">
         <Header />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 pb-24 sm:pb-28">{children}</main>
         <Footer />
         <FloatingContact />
       </body>
