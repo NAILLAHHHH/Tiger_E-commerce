@@ -23,11 +23,11 @@ export default function ShopCategoryNav({
   return (
     <nav
       aria-label="Shop categories"
-      className="flex flex-wrap gap-2"
+      className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden"
     >
       <Link
         href={shopHref(undefined, searchQuery)}
-        className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+        className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
           !activeSlug
             ? "bg-brand text-white"
             : "bg-gray-1 text-body hover:bg-gray-2"
@@ -39,7 +39,7 @@ export default function ShopCategoryNav({
         <Link
           key={cat.id}
           href={shopHref(cat.slug, searchQuery)}
-          className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+          className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
             activeSlug === cat.slug
               ? "bg-brand text-white"
               : "bg-gray-1 text-body hover:bg-gray-2"
