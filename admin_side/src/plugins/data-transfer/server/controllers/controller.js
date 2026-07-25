@@ -87,4 +87,10 @@ module.exports = ({ strapi }) => ({
       data: await getService(strapi).orderSummary(options),
     };
   },
+
+  async inventoryDashboard(ctx) {
+    ctx.body = {
+      data: await strapi.plugin(PLUGIN).service('inventoryDashboard').getDashboard(),
+    };
+  },
 });

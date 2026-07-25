@@ -57,4 +57,12 @@ module.exports = [
       policies: [],
     },
   },
+  {
+    method: 'GET',
+    path: '/dashboard/inventory',
+    handler: 'controller.inventoryDashboard',
+    config: {
+      policies: [],
+    },
+  },
 ];
