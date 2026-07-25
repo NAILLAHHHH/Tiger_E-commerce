@@ -257,7 +257,7 @@ export default function ProductGallery({
                     }}
                   />
                 )}
-                <span className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-dark/50 px-2.5 py-1 text-xs text-white opacity-0 transition-opacity group-hover/gallery:opacity-100">
+                <span className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-dark/50 px-2.5 py-1 text-xs text-white opacity-80 transition-opacity md:opacity-0 md:group-hover/gallery:opacity-100">
                   Tap to zoom
                 </span>
               </button>
@@ -268,7 +268,7 @@ export default function ProductGallery({
                 <button
                   type="button"
                   onClick={() => goTo(active - 1)}
-                  className="absolute left-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-surface/90 text-dark shadow-sm opacity-0 transition-opacity hover:bg-surface group-hover/gallery:opacity-100 md:opacity-100"
+                  className="absolute left-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-surface/90 text-dark shadow-sm transition-opacity hover:bg-surface"
                   aria-label="Previous image"
                 >
                   ‹
@@ -276,7 +276,7 @@ export default function ProductGallery({
                 <button
                   type="button"
                   onClick={() => goTo(active + 1)}
-                  className="absolute right-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-surface/90 text-dark shadow-sm opacity-0 transition-opacity hover:bg-surface group-hover/gallery:opacity-100 md:opacity-100"
+                  className="absolute right-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-surface/90 text-dark shadow-sm transition-opacity hover:bg-surface"
                   aria-label="Next image"
                 >
                   ›

@@ -201,10 +201,10 @@ export default function CartPageClient() {
                 />
               )}
             </div>
-            <div className="flex flex-1 flex-col">
+            <div className="flex min-w-0 flex-1 flex-col">
               <Link
                 href={`/shop/${item.slug}`}
-                className="font-medium text-dark hover:text-brand"
+                className="break-words font-medium text-dark hover:text-brand"
               >
                 {item.name}
               </Link>
@@ -214,7 +214,7 @@ export default function CartPageClient() {
               <p className="text-xs text-muted capitalize">
                 {item.pricingMode} · {formatPrice(item.unitPrice)}/unit
               </p>
-              <div className="mt-auto flex items-center justify-between pt-2">
+              <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-2">
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -236,7 +236,7 @@ export default function CartPageClient() {
                     +
                   </button>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 sm:gap-4">
                   <span className="font-semibold text-brand">
                     {formatPrice(lineTotal(item.unitPrice, item.quantity))}
                   </span>

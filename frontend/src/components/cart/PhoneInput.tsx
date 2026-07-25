@@ -104,7 +104,7 @@ export default function PhoneInput({
             className="fixed inset-0 z-10 cursor-default"
             onClick={() => setOpen(false)}
           />
-          <div className="absolute left-0 top-full z-20 mt-1 w-72 overflow-hidden rounded-lg border border-gray-3 bg-surface shadow-[var(--shadow-card)]">
+          <div className="absolute left-0 right-0 top-full z-20 mt-1 w-full min-w-0 overflow-hidden rounded-lg border border-gray-3 bg-surface shadow-[var(--shadow-card)] sm:right-auto sm:w-72">
             <div className="border-b border-gray-2 p-2">
               <label htmlFor={searchId} className="sr-only">
                 Search countries
