@@ -162,7 +162,7 @@ export default function ProductCard({
           </div>
         )}
 
-        <div className="absolute inset-x-0 bottom-0 translate-y-full bg-gradient-to-t from-dark/80 to-transparent p-4 transition-transform duration-300 group-hover:translate-y-0">
+        <div className="absolute inset-x-0 bottom-0 translate-y-0 bg-gradient-to-t from-dark/80 to-transparent p-3 transition-transform duration-300 md:translate-y-full md:p-4 md:group-hover:translate-y-0">
           <Link
             href={`/shop/${product.slug}`}
             className="btn-primary w-full text-center text-xs"
