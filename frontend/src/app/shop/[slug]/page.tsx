@@ -25,16 +25,16 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <div className="container-custom py-10">
-      <nav className="mb-6 text-sm text-muted">
+      <nav className="mb-6 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
         <Link href="/" className="hover:text-brand">
           Home
         </Link>
-        <span className="mx-2">/</span>
+        <span>/</span>
         <Link href="/shop" className="hover:text-brand">
           Shop
         </Link>
-        <span className="mx-2">/</span>
-        <span className="text-dark">{product.name}</span>
+        <span>/</span>
+        <span className="min-w-0 break-words text-dark">{product.name}</span>
       </nav>
 
       <ProductDetailClient product={product} ratingSummary={summary} />

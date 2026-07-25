@@ -68,7 +68,7 @@ export default async function OrderSummaryPage({ params }: Props) {
               {order.delivery_address && (
                 <div className="flex justify-between gap-4">
                   <dt className="shrink-0 text-muted">Address</dt>
-                  <dd className="text-right text-dark">
+                  <dd className="min-w-0 break-words text-right text-dark">
                     {order.delivery_address}
                   </dd>
                 </div>
@@ -76,7 +76,9 @@ export default async function OrderSummaryPage({ params }: Props) {
               {order.customer_notes && (
                 <div className="flex justify-between gap-4">
                   <dt className="shrink-0 text-muted">Notes</dt>
-                  <dd className="text-right text-dark">{order.customer_notes}</dd>
+                  <dd className="min-w-0 break-words text-right text-dark">
+                    {order.customer_notes}
+                  </dd>
                 </div>
               )}
             </dl>
