@@ -2,7 +2,8 @@
 
 import clsx from "clsx";
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, useEffect, useId, useState } from "react";
+import { usePathname } from "next/navigation";
 import HeaderSearch from "@/components/layout/HeaderSearch";
 import Logo from "@/components/layout/Logo";
 import { whatsappUrl } from "@/lib/contact";
@@ -16,6 +17,27 @@ const links = [
 
 export default function Header() {
   const count = useCartStore((s) => selectCartCount(s.items));
+  const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuId = useId();
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [menuOpen]);
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-3 bg-surface/95 backdrop-blur-md">
@@ -42,7 +64,19 @@ export default function Header() {
 
       <div className="container-custom py-4 md:py-5">
         <div className="flex items-center justify-between gap-3 md:gap-6">
-          <Logo />
+          <div className="flex min-w-0 items-center gap-2">
+            <button
+              type="button"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[5px] border border-gray-3 text-dark transition-colors hover:border-brand hover:text-brand md:hidden"
+              aria-expanded={menuOpen}
+              aria-controls={menuId}
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              {menuOpen ? <CloseIcon /> : <MenuIcon />}
+            </button>
+            <Logo />
+          </div>
 
           <nav className="hidden items-center gap-8 md:flex">
             {links.map((link) => (
@@ -97,6 +131,49 @@ export default function Header() {
           <HeaderSearch className="mt-3 sm:hidden" inputId="site-search-mobile" />
         </Suspense>
       </div>
+
+      {menuOpen && (
+        <div className="md:hidden">
+          <button
+            type="button"
+            aria-label="Close menu"
+            className="fixed inset-0 z-40 bg-dark/40"
+            onClick={() => setMenuOpen(false)}
+          />
+          <nav
+            id={menuId}
+            className="relative z-50 border-t border-gray-3 bg-surface px-4 py-3 shadow-[var(--shadow-card)]"
+          >
+            <ul className="flex flex-col">
+              {links.map((link) => {
+                const active =
+                  link.href === "/"
+                    ? pathname === "/"
+                    : pathname.startsWith(link.href);
+                return (
+                  <li key={link.href}>
+                    <Link
+                      href={link.href}
+                      onClick={() => setMenuOpen(false)}
+                      className={clsx(
+                        "flex items-center justify-between rounded-[5px] px-3 py-3 text-base font-medium transition-colors",
+                        active
+                          ? "bg-brand/10 text-brand"
+                          : "text-dark hover:bg-gray-1 hover:text-brand",
+                      )}
+                    >
+                      {link.label}
+                      <span aria-hidden className="text-muted">
+                        ›
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+        </div>
+      )}
     </header>
   );
 }
@@ -107,6 +184,22 @@ function SearchSkeleton({ className }: { className?: string }) {
       className={`h-10 rounded-[5px] border border-gray-3 bg-gray-1 ${className ?? ""}`}
       aria-hidden
     />
+  );
+}
+
+function MenuIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
   );
 }
 
