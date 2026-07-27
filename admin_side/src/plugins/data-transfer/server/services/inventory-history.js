@@ -144,6 +144,8 @@ function summarizeMovements(movements) {
     importedIn: 0,
     importedOut: 0,
     initial: 0,
+    added: 0,
+    removed: 0,
     netChange: 0,
     movementCount: movements.length,
   };
@@ -179,6 +181,10 @@ function summarizeMovements(movements) {
     }
   }
 
+  summary.added =
+    summary.restocked + summary.adjustedIn + summary.importedIn + summary.initial;
+  summary.removed = summary.adjustedOut + summary.importedOut;
+
   return summary;
 }
 
@@ -198,6 +204,8 @@ function groupByMonth(movements) {
     bucket.sales += merged.sales;
     bucket.restocked += merged.restocked;
     bucket.restored += merged.restored;
+    bucket.added += merged.added;
+    bucket.removed += merged.removed;
     bucket.adjustedIn += merged.adjustedIn;
     bucket.adjustedOut += merged.adjustedOut;
     bucket.importedIn += merged.importedIn;
@@ -211,30 +219,42 @@ function groupByMonth(movements) {
   return [...buckets.values()].sort((a, b) => a.key.localeCompare(b.key));
 }
 
-async function openingBalances(strapi, { before, itemCode } = {}) {
-  const movements = await strapi.documents('api::inventory-movement.inventory-movement').findMany({
-    filters: buildMovementWhere({
-      before,
-      item_code: itemCode,
-    }),
-    sort: ['createdAt:desc'],
-    pagination: { pageSize: 5000, page: 1 },
-  }).then((result) => (Array.isArray(result) ? result : result?.results ?? []));
-
-  const byItem = new Map();
-  for (const row of movements) {
-    const key = row.item_code || `id:${row.id}`;
-    if (!byItem.has(key)) {
-      byItem.set(key, Number(row.quantity_after ?? 0));
-    }
+async function currentStockTotal(strapi, { itemCode } = {}) {
+  const where = {};
+  if (typeof itemCode === 'string' && itemCode.trim()) {
+    where.item_code = { $containsi: itemCode.trim() };
   }
+
+  const variants = await strapi.db
+    .query('api::product-variant.product-variant')
+    .findMany({
+      where,
+      select: ['how_many_left'],
+    });
 
   let total = 0;
-  for (const value of byItem.values()) {
-    total += value;
+  for (const variant of variants) {
+    total += Math.max(0, Number(variant.how_many_left ?? 0));
   }
+  return total;
+}
 
-  return { total, byItem: Object.fromEntries(byItem) };
+async function netChangeAfterRange(strapi, { range, itemCode } = {}) {
+  if (!range?.to) return 0;
+
+  const movements = await strapi
+    .documents('api::inventory-movement.inventory-movement')
+    .findMany({
+      filters: buildMovementWhere({
+        from: range.to,
+        item_code: itemCode,
+      }),
+      sort: ['createdAt:asc'],
+      pagination: { pageSize: 5000, page: 1 },
+    })
+    .then((result) => (Array.isArray(result) ? result : result?.results ?? []));
+
+  return summarizeMovements(movements.map(mapMovement)).netChange;
 }
 
 module.exports = ({ strapi }) => ({
@@ -247,7 +267,7 @@ module.exports = ({ strapi }) => ({
         ? options.movement_type.trim()
         : '';
 
-    const [movements, priceChanges, opening] = await Promise.all([
+    const [movements, priceChanges] = await Promise.all([
       strapi.documents('api::inventory-movement.inventory-movement').findMany({
         filters: buildMovementWhere({
           from: range.from,
@@ -267,12 +287,17 @@ module.exports = ({ strapi }) => ({
         sort: ['createdAt:asc'],
         pagination: { pageSize: 2000, page: 1 },
       }).then((result) => (Array.isArray(result) ? result : result?.results ?? [])),
-      openingBalances(strapi, { before: range.from, itemCode }),
     ]);
 
     const mappedMovements = movements.map(mapMovement);
     const summary = summarizeMovements(mappedMovements);
-    const closingBalance = opening.total + summary.netChange;
+    const currentTotal = await currentStockTotal(strapi, { itemCode });
+    const afterRangeDelta = await netChangeAfterRange(strapi, {
+      range,
+      itemCode,
+    });
+    const closingBalance = currentTotal - afterRangeDelta;
+    const openingBalance = closingBalance - summary.netChange;
 
     return {
       range: {
@@ -282,10 +307,17 @@ module.exports = ({ strapi }) => ({
         label: rangeLabel(range),
       },
       summary,
-      openingBalance: opening.total,
+      openingBalance,
       closingBalance,
-      movements: mappedMovements,
-      priceChanges: priceChanges.map(mapPriceChange),
+      currentStock: currentTotal,
+      movements: mappedMovements.sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      ),
+      priceChanges: priceChanges
+        .map(mapPriceChange)
+        .sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        ),
       monthlyBreakdown:
         range.period === 'year' ? groupByMonth(mappedMovements) : [],
     };
