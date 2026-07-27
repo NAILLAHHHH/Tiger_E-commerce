@@ -22,6 +22,12 @@ import {
   logVariantPriceChanges,
 } from './utils/inventory-log';
 import {
+  CHANGE_REASON_FIELD,
+  normalizeChangeReason,
+  variantStockOrPriceChanging,
+} from './utils/variant-change-reason';
+import { errors } from '@strapi/utils';
+import {
   isStockRelevantUpdate,
   loadOrderByDocumentId,
   sanitizeOrderData,
@@ -654,6 +660,25 @@ function registerVariantDocumentMiddleware(strapi: Core.Strapi) {
       documentId?: string;
     };
 
+    let changeReason = '';
+    if (params.data && typeof params.data === 'object') {
+      changeReason = normalizeChangeReason(params.data[CHANGE_REASON_FIELD]);
+      delete params.data[CHANGE_REASON_FIELD];
+    }
+
+    // Admin UI also sends X-Change-Reason (unknown body fields may be stripped).
+    if (!changeReason) {
+      try {
+        const req = strapi.requestContext.get();
+        const headerValue =
+          req?.request?.header?.['x-change-reason'] ??
+          req?.request?.headers?.['x-change-reason'];
+        changeReason = normalizeChangeReason(headerValue);
+      } catch {
+        // No active request context (e.g. bootstrap / scripts).
+      }
+    }
+
     let previous: Record<string, unknown> | null = null;
     if (ctx.action === 'update' && params.documentId) {
       previous = (await strapi.db
@@ -662,6 +687,21 @@ function registerVariantDocumentMiddleware(strapi: Core.Strapi) {
           where: { documentId: params.documentId },
           populate: ['product'],
         })) as Record<string, unknown> | null;
+    }
+
+    const skipReasonCheck =
+      isInventoryLoggingSuppressed() || isBulkImportActive();
+
+    if (
+      !skipReasonCheck &&
+      ctx.action === 'update' &&
+      previous &&
+      variantStockOrPriceChanging(previous, params.data ?? {}) &&
+      !changeReason
+    ) {
+      throw new errors.ValidationError(
+        'Please enter a reason when changing stock or price.',
+      );
     }
 
     const result = await next();
@@ -702,14 +742,18 @@ function registerVariantDocumentMiddleware(strapi: Core.Strapi) {
           quantityAfter: after,
           reason: isBulkImportActive()
             ? 'Updated via CSV import'
-            : after > before
-              ? 'Stock added in admin'
-              : 'Stock removed in admin',
+            : changeReason ||
+              (after > before
+                ? 'Stock added in admin'
+                : 'Stock removed in admin'),
           source: isBulkImportActive() ? 'import' : 'admin',
         });
       }
 
-      await logVariantPriceChanges(strapi, previous, fresh);
+      await logVariantPriceChanges(strapi, previous, fresh, {
+        source: isBulkImportActive() ? 'import' : 'admin',
+        reason: changeReason || null,
+      });
     } else if (ctx.action === 'create') {
       const initial = Number(fresh.how_many_left ?? 0);
       if (initial > 0) {

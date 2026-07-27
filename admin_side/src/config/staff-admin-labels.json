@@ -80,10 +80,13 @@
       "label": "More photos",
       "description": "Extra angles for this color"
     },
-    "price_for_one": { "label": "Price for 1 piece (RWF)" },
+    "price_for_one": {
+      "label": "Price for 1 piece (RWF)",
+      "description": "Changing this requires a reason when you save"
+    },
     "price_for_bulk": {
       "label": "Price per piece when buying many (RWF)",
-      "description": "Leave empty if there is no discount for large orders"
+      "description": "Leave empty if there is no discount for large orders. Changing this requires a reason when you save"
     },
     "min_quantity_for_bulk": {
       "label": "How many to buy for lower price",
@@ -91,7 +94,7 @@
     },
     "how_many_left": {
       "label": "How many we have",
-      "description": "Count how many of this size/color are available to sell"
+      "description": "Count how many of this size/color are available to sell. Changing this requires a reason when you save"
     },
     "product": {
       "label": "Belongs to product",
@@ -199,11 +202,14 @@
     "quantity_after": { "label": "After", "editable": false },
     "item_code": { "label": "Product code", "editable": false },
     "product_name": { "label": "Product", "editable": false },
-    "order_reference": { "label": "Order number", "editable": false },
+    "order_reference": {
+      "label": "Order ref",
+      "description": "Order number only — full order stays under Orders",
+      "editable": false
+    },
     "reason": { "label": "Note", "editable": false },
     "source": { "label": "Source", "editable": false },
-    "product_variant": { "label": "Size & color row", "editable": false },
-    "order": { "label": "Order", "editable": false }
+    "product_variant": { "label": "Size & color row", "editable": false }
   },
   "plugin_content_manager_configuration_content_types::api::price-history.price-history": {
     "price_field": { "label": "Which price", "editable": false },

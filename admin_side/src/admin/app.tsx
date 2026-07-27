@@ -6,6 +6,7 @@ import Favicon from "./extensions/favicon.ico";
 import { tigerWearDarkColors, tigerWearLightColors } from "./theme";
 import { installSelectOnlyProductRelations } from "./select-only-relations";
 import { installReadOnlyAuditUi } from "./read-only-audit-ui";
+import { installRequireChangeReason } from "./require-change-reason";
 import { Calendar } from "@strapi/icons";
 import { DataTransferListActions } from "./data-transfer-actions";
 import { TrackListSelection } from "./order-selection-store";
@@ -55,7 +56,7 @@ export default {
     }
     installSelectOnlyProductRelations();
     installReadOnlyAuditUi();
-
+    installRequireChangeReason();
     // Export / Import (+ order totals on Orders) on each content table
     app.getPlugin("content-manager")?.injectComponent("listView", "actions", {
       name: "tigerwear-data-transfer",
@@ -63,9 +64,10 @@ export default {
     });
 
     // Sync checkbox selection → export scope / order totals
-    app.getPlugin("content-manager")?.apis?.addBulkAction?.([
-      TrackListSelection as never,
-    ]);
+    const contentManagerApis = app.getPlugin("content-manager")?.apis as
+      | { addBulkAction?: (actions: unknown[]) => void }
+      | undefined;
+    contentManagerApis?.addBulkAction?.([TrackListSelection]);
   },
   register(app: StrapiApp) {
     const indexRoute = app.router.routes.find(({ index }) => index);
@@ -85,7 +87,7 @@ export default {
       },
       Component: async () => {
         const { InventoryHistory } = await import("./InventoryHistory");
-        return InventoryHistory;
+        return { default: InventoryHistory };
       },
       permissions: [],
     });
@@ -99,7 +101,7 @@ export default {
       },
       Component: async () => {
         const { AuditRecordView } = await import("./AuditRecordView");
-        return AuditRecordView;
+        return { default: AuditRecordView };
       },
       permissions: [],
     });

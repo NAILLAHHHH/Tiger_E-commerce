@@ -135,7 +135,30 @@ const PERIODS: { value: Period; label: string }[] = [
 
 const LIST_PREVIEW = 15;
 
-const TABLE_COLUMN_WIDTHS = ["11%", "14%", "11%", "7%", "8%", "11%", "8%", "10%", "20%"];
+const MOVEMENT_COLUMN_WIDTHS = [
+  "10%",
+  "13%",
+  "10%",
+  "7%",
+  "8%",
+  "10%",
+  "7%",
+  "10%",
+  "12%",
+  "13%",
+];
+
+const PRICE_COLUMN_WIDTHS = [
+  "11%",
+  "14%",
+  "11%",
+  "7%",
+  "8%",
+  "11%",
+  "10%",
+  "10%",
+  "18%",
+];
 
 const TONES: Record<Tone, { bg: string; fg: string }> = {
   primary: { bg: "primary100", fg: "primary600" },
@@ -209,10 +232,10 @@ const EmptyTableCell = styled(Td)`
   border-bottom: none;
 `;
 
-function TableColGroup() {
+function TableColGroup({ widths }: { widths: string[] }) {
   return (
     <colgroup>
-      {TABLE_COLUMN_WIDTHS.map((width, index) => (
+      {widths.map((width, index) => (
         <col key={index} style={{ width }} />
       ))}
     </colgroup>
@@ -505,7 +528,7 @@ function ActivityLogTable({
     return (
       <TableWrap>
         <DataTable>
-          <TableColGroup />
+          <TableColGroup widths={MOVEMENT_COLUMN_WIDTHS} />
           <thead>
             <tr>
               <Th>When</Th>
@@ -516,21 +539,22 @@ function ActivityLogTable({
               <Th>Type</Th>
               <Th>Change</Th>
               <Th>Stock</Th>
-              <Th>Details</Th>
+              <Th>Order ref</Th>
+              <Th>Note</Th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <>
                 <tr aria-hidden="true" style={{ height: 0, lineHeight: 0 }}>
-                  {TABLE_COLUMN_WIDTHS.map((_, index) => (
+                  {MOVEMENT_COLUMN_WIDTHS.map((_, index) => (
                     <Td key={index} style={{ padding: 0, border: "none", fontSize: 0 }}>
                       &nbsp;
                     </Td>
                   ))}
                 </tr>
                 <tr>
-                  <EmptyTableCell colSpan={9}>
+                  <EmptyTableCell colSpan={10}>
                     <Typography variant="pi" textColor="neutral500">
                       {emptyMessage}
                     </Typography>
@@ -590,8 +614,13 @@ function ActivityLogTable({
                       </Typography>
                     </Td>
                     <Td>
+                      <Typography variant="pi" textColor="neutral600">
+                        {row.order_reference || "—"}
+                      </Typography>
+                    </Td>
+                    <Td>
                       <Typography variant="pi" textColor="neutral500">
-                        {[row.order_reference, row.reason].filter(Boolean).join(" · ") || "—"}
+                        {row.reason || "—"}
                       </Typography>
                     </Td>
                   </tr>
@@ -607,7 +636,7 @@ function ActivityLogTable({
   return (
     <TableWrap>
       <DataTable>
-        <TableColGroup />
+        <TableColGroup widths={PRICE_COLUMN_WIDTHS} />
         <thead>
           <tr>
             <Th>When</Th>
@@ -625,7 +654,7 @@ function ActivityLogTable({
           {rows.length === 0 ? (
             <>
               <tr aria-hidden="true" style={{ height: 0, lineHeight: 0 }}>
-                {TABLE_COLUMN_WIDTHS.map((_, index) => (
+                {PRICE_COLUMN_WIDTHS.map((_, index) => (
                   <Td key={index} style={{ padding: 0, border: "none", fontSize: 0 }}>
                     &nbsp;
                   </Td>
