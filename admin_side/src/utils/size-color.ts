@@ -1,4 +1,14 @@
 import type { Core } from '@strapi/strapi';
+import type { LogSource, MovementType } from './inventory-log';
+import { logInventoryMovement } from './inventory-log';
+
+export type StockLogContext = {
+  movementType: MovementType;
+  orderId?: number | null;
+  orderReference?: string | null;
+  reason?: string | null;
+  source?: LogSource;
+};
 
 export type SizeColorRow = {
   id: number;
@@ -74,17 +84,33 @@ export async function updateSizeColorStock(
   strapi: Core.Strapi,
   row: SizeColorRow,
   howManyLeft: number,
+  log?: StockLogContext,
 ) {
+  const quantityBefore = Math.max(0, Number(row.how_many_left ?? 0));
+  const quantityAfter = Math.max(0, Math.round(howManyLeft));
+
   if (row.source === 'component') {
     await strapi.db.query('product.size-and-color').update({
       where: { id: row.id },
-      data: { how_many_left: howManyLeft },
+      data: { how_many_left: quantityAfter },
     });
-    return;
+  } else {
+    await strapi.db.query('api::product-variant.product-variant').update({
+      where: { id: row.id },
+      data: { how_many_left: quantityAfter },
+    });
   }
 
-  await strapi.db.query('api::product-variant.product-variant').update({
-    where: { id: row.id },
-    data: { how_many_left: howManyLeft },
-  });
+  if (log) {
+    await logInventoryMovement(strapi, {
+      variant: row,
+      movementType: log.movementType,
+      quantityBefore,
+      quantityAfter,
+      orderId: log.orderId,
+      orderReference: log.orderReference,
+      reason: log.reason,
+      source: log.source ?? 'system',
+    });
+  }
 }
