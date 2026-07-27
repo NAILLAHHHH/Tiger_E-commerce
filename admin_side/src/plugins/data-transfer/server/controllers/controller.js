@@ -19,12 +19,19 @@ function sendCsv(ctx, filename, csv) {
 function readScopeOptions(ctx) {
   const body = ctx.request.body ?? {};
   const query = ctx.query ?? {};
+  const { normalizeFilters } = require('../services/cm-query');
 
   return {
     documentIds: body.documentIds ?? query.documentIds,
-    filters: body.filters ?? query.filters,
+    filters: normalizeFilters(body.filters ?? query.filters),
     _q: body._q ?? query._q,
     format: body.format ?? query.format ?? 'csv',
+    from: body.from ?? query.from,
+    to: body.to ?? query.to,
+    date: body.date ?? query.date,
+    period: body.period ?? query.period,
+    item_code: body.item_code ?? query.item_code,
+    movement_type: body.movement_type ?? query.movement_type,
   };
 }
 
@@ -92,5 +99,43 @@ module.exports = ({ strapi }) => ({
     ctx.body = {
       data: await strapi.plugin(PLUGIN).service('inventoryDashboard').getDashboard(),
     };
+  },
+
+  async inventoryHistory(ctx) {
+    const query = ctx.query ?? {};
+    ctx.body = {
+      data: await strapi
+        .plugin(PLUGIN)
+        .service('inventoryHistory')
+        .getHistory({
+          period: query.period,
+          date: query.date,
+          from: query.from,
+          to: query.to,
+          item_code: query.item_code,
+          movement_type: query.movement_type,
+        }),
+    };
+  },
+
+  async restockInventory(ctx) {
+    const body = ctx.request.body ?? {};
+
+    try {
+      const data = await strapi
+        .plugin(PLUGIN)
+        .service('inventoryHistory')
+        .restock({
+          documentId: body.documentId,
+          item_code: body.item_code,
+          quantity: body.quantity,
+          note: body.note,
+        });
+      ctx.body = { data };
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Could not update stock';
+      return ctx.badRequest(message);
+    }
   },
 });
