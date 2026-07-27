@@ -690,7 +690,11 @@ function registerVariantDocumentMiddleware(strapi: Core.Strapi) {
       const after = Number(fresh.how_many_left ?? 0);
 
       if (before !== after) {
-        const movementType = isBulkImportActive() ? 'import' : 'adjustment';
+        const movementType = isBulkImportActive()
+          ? 'import'
+          : after > before
+            ? 'restock'
+            : 'adjustment';
         await logInventoryMovement(strapi, {
           variant: fresh,
           movementType,
@@ -698,7 +702,9 @@ function registerVariantDocumentMiddleware(strapi: Core.Strapi) {
           quantityAfter: after,
           reason: isBulkImportActive()
             ? 'Updated via CSV import'
-            : 'Manual edit in admin',
+            : after > before
+              ? 'Stock added in admin'
+              : 'Stock removed in admin',
           source: isBulkImportActive() ? 'import' : 'admin',
         });
       }
