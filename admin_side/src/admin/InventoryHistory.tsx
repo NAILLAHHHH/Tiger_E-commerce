@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ComponentType,
+  type ReactNode,
+} from "react";
 import {
   Layouts,
   Page,
@@ -8,19 +15,42 @@ import {
 import {
   Box,
   Button,
+  Field,
   Flex,
   Grid,
   Loader,
   Main,
-  SingleSelect,
-  SingleSelectOption,
   TextInput,
   Typography,
 } from "@strapi/design-system";
-import { Calendar, Download, Plus } from "@strapi/icons";
+import {
+  Archive,
+  ArrowUp,
+  Calendar,
+  Download,
+  Minus,
+  Pencil,
+  ShoppingCart,
+  Stack,
+} from "@strapi/icons";
 import { styled } from "styled-components";
 
 type Period = "day" | "month" | "year" | "custom";
+type Tone =
+  | "primary"
+  | "secondary"
+  | "success"
+  | "warning"
+  | "danger"
+  | "alternative"
+  | "neutral";
+type Tab = "movements" | "prices";
+
+type IconType = ComponentType<{
+  fill?: string;
+  width?: string | number;
+  height?: string | number;
+}>;
 
 type MovementRow = {
   id: number;
@@ -64,11 +94,14 @@ type HistoryData = {
     restored: number;
     adjustedIn: number;
     adjustedOut: number;
+    added: number;
+    removed: number;
     netChange: number;
     movementCount: number;
   };
   openingBalance: number;
   closingBalance: number;
+  currentStock?: number;
   movements: MovementRow[];
   priceChanges: PriceRow[];
   monthlyBreakdown: Array<{
@@ -76,47 +109,146 @@ type HistoryData = {
     label: string;
     sales: number;
     restocked: number;
+    added: number;
+    removed: number;
     netChange: number;
     movementCount: number;
   }>;
 };
 
-const MOVEMENT_TYPES = [
-  { value: "", label: "All types" },
-  { value: "sale", label: "Sales" },
-  { value: "cancel_restore", label: "Cancellations restored" },
-  { value: "restock", label: "Restocks" },
-  { value: "adjustment", label: "Adjustments" },
-  { value: "import", label: "Imports" },
-  { value: "initial", label: "Initial stock" },
-];
+const MOVEMENT_LABELS: Record<string, string> = {
+  sale: "Sales",
+  cancel_restore: "Cancellations restored",
+  restock: "Restocks",
+  adjustment: "Adjustments",
+  count: "Stock counts",
+  import: "Imports",
+  initial: "Initial stock",
+};
 
 const PERIODS: { value: Period; label: string }[] = [
   { value: "day", label: "Day" },
   { value: "month", label: "Month" },
   { value: "year", label: "Year" },
-  { value: "custom", label: "Custom range" },
+  { value: "custom", label: "Custom" },
 ];
 
-const Panel = styled(Box)`
-  background: ${({ theme }) => theme.colors.neutral0};
-  border: 1px solid ${({ theme }) => theme.colors.neutral150};
-  border-radius: 8px;
-  padding: 20px;
+const LIST_PREVIEW = 15;
+
+const TABLE_COLUMN_WIDTHS = ["11%", "14%", "11%", "7%", "8%", "11%", "8%", "10%", "20%"];
+
+const TONES: Record<Tone, { bg: string; fg: string }> = {
+  primary: { bg: "primary100", fg: "primary600" },
+  secondary: { bg: "secondary100", fg: "secondary600" },
+  success: { bg: "success100", fg: "success600" },
+  warning: { bg: "warning100", fg: "warning600" },
+  danger: { bg: "danger100", fg: "danger600" },
+  alternative: { bg: "alternative100", fg: "alternative600" },
+  neutral: { bg: "neutral150", fg: "neutral600" },
+};
+
+const ListRow = styled(Flex)`
+  border-radius: 6px;
+  margin: 0 -8px;
+  padding: 10px 8px;
+  transition: background 120ms ease;
+
+  &:hover {
+    background: ${({ theme }) => theme.colors.neutral100};
+  }
 `;
 
-const StatCard = styled(Box)`
-  background: ${({ theme }) => theme.colors.neutral100};
-  border-radius: 8px;
-  padding: 16px;
+const DataTable = styled.table`
+  width: 100%;
+  min-width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 1.2rem;
 `;
+
+const Th = styled.th`
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: ${({ theme }) => theme.colors.neutral600};
+  border-bottom: 1px solid ${({ theme }) => theme.colors.neutral150};
+  white-space: nowrap;
+`;
+
+const Td = styled.td`
+  padding: 12px;
+  vertical-align: top;
+  color: ${({ theme }) => theme.colors.neutral800};
+  border-bottom: 1px solid ${({ theme }) => theme.colors.neutral100};
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const TableWrap = styled(Box)`
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+`;
+
+const FullWidthPanel = styled(Box)`
+  width: 100%;
+`;
+
+const StretchColumn = styled(Box)`
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+`;
+
+const EmptyTableCell = styled(Td)`
+  text-align: center;
+  vertical-align: middle;
+  padding: 32px 12px;
+  border-bottom: none;
+`;
+
+function TableColGroup() {
+  return (
+    <colgroup>
+      {TABLE_COLUMN_WIDTHS.map((width, index) => (
+        <col key={index} style={{ width }} />
+      ))}
+    </colgroup>
+  );
+}
 
 function todayInputValue() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function movementLabel(type: string) {
-  return MOVEMENT_TYPES.find((item) => item.value === type)?.label ?? type;
+function movementLabel(type: string, delta?: number) {
+  if (type === "adjustment" && typeof delta === "number") {
+    if (delta > 0) return "Added";
+    if (delta < 0) return "Removed";
+  }
+  return MOVEMENT_LABELS[type] ?? type;
+}
+
+function movementTone(type: string): Tone {
+  switch (type) {
+    case "sale":
+      return "secondary";
+    case "cancel_restore":
+      return "success";
+    case "restock":
+      return "success";
+    case "adjustment":
+    case "count":
+      return "warning";
+    case "import":
+      return "primary";
+    case "initial":
+      return "alternative";
+    default:
+      return "neutral";
+  }
 }
 
 function formatWhen(value: string | null) {
@@ -126,6 +258,7 @@ function formatWhen(value: string | null) {
   return date.toLocaleString(undefined, {
     month: "short",
     day: "numeric",
+    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -134,6 +267,187 @@ function formatWhen(value: string | null) {
 function formatMoney(value: number | null) {
   if (value == null) return "—";
   return `RWF ${Math.round(value).toLocaleString("en-US")}`;
+}
+
+function formatDelta(value: number) {
+  if (value > 0) return `+${value}`;
+  return String(value);
+}
+
+function buildReconciliation(data: HistoryData) {
+  const { summary, openingBalance, closingBalance } = data;
+  const parts = [String(openingBalance)];
+
+  if (summary.added > 0) parts.push(`+${summary.added} added`);
+  if (summary.removed > 0) parts.push(`−${summary.removed} removed`);
+  if (summary.sales > 0) parts.push(`−${summary.sales} sold`);
+  if (summary.restored > 0) parts.push(`+${summary.restored} restored`);
+
+  parts.push(`= ${closingBalance}`);
+  return parts.join(" · ");
+}
+
+function IconTile({
+  icon: Icon,
+  tone,
+  size = 36,
+}: {
+  icon: IconType;
+  tone: Tone;
+  size?: number;
+}) {
+  const t = TONES[tone];
+  const glyph = Math.round(size * 0.5);
+  return (
+    <Flex
+      justifyContent="center"
+      alignItems="center"
+      background={t.bg}
+      shrink={0}
+      style={{ width: size, height: size, borderRadius: size * 0.28 }}
+    >
+      <Icon fill={t.fg} width={`${glyph}px`} height={`${glyph}px`} />
+    </Flex>
+  );
+}
+
+function Pill({ tone, children }: { tone: Tone; children: ReactNode }) {
+  const t = TONES[tone];
+  return (
+    <Box
+      background={t.bg}
+      shrink={0}
+      paddingLeft={2}
+      paddingRight={2}
+      style={{ paddingTop: 2, paddingBottom: 2, borderRadius: 999 }}
+    >
+      <Typography variant="pi" fontWeight="bold" textColor={t.fg}>
+        {children}
+      </Typography>
+    </Box>
+  );
+}
+
+function Panel({
+  title,
+  subtitle,
+  icon,
+  tone = "neutral",
+  action,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  icon: IconType;
+  tone?: Tone;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <Flex
+      direction="column"
+      alignItems="stretch"
+      gap={4}
+      hasRadius
+      background="neutral0"
+      borderColor="neutral150"
+      shadow="tableShadow"
+      paddingTop={5}
+      paddingBottom={5}
+      paddingLeft={5}
+      paddingRight={5}
+      style={{ height: "100%", width: "100%" }}
+    >
+      <Flex justifyContent="space-between" alignItems="flex-start" gap={3}>
+        <Flex gap={3} alignItems="center" style={{ minWidth: 0 }}>
+          <IconTile icon={icon} tone={tone} />
+          <Box style={{ minWidth: 0 }}>
+            <Typography variant="delta" textColor="neutral800">
+              {title}
+            </Typography>
+            {subtitle ? (
+              <Typography
+                variant="pi"
+                textColor="neutral600"
+                style={{ marginTop: 2, display: "block" }}
+              >
+                {subtitle}
+              </Typography>
+            ) : null}
+          </Box>
+        </Flex>
+        {action}
+      </Flex>
+      <Box background="neutral150" style={{ height: 1 }} />
+      <Box
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          width: "100%",
+          minWidth: 0,
+        }}
+      >
+        {children}
+      </Box>
+    </Flex>
+  );
+}
+
+function StatChip({
+  label,
+  value,
+  hint,
+  icon,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  icon: IconType;
+  tone?: Tone;
+}) {
+  return (
+    <Box
+      hasRadius
+      background="neutral0"
+      borderColor="neutral150"
+      paddingTop={3}
+      paddingBottom={3}
+      paddingLeft={4}
+      paddingRight={4}
+      style={{ height: "100%" }}
+    >
+      <Flex gap={3} alignItems="center">
+        <IconTile icon={icon} tone={tone} size={32} />
+        <Box style={{ minWidth: 0 }}>
+          <Typography variant="pi" textColor="neutral600">
+            {label}
+          </Typography>
+          <Flex gap={2} alignItems="baseline" wrap="wrap">
+            <Typography variant="delta" fontWeight="bold" textColor="neutral800">
+              {value}
+            </Typography>
+            {hint ? (
+              <Typography variant="pi" textColor="neutral500">
+                {hint}
+              </Typography>
+            ) : null}
+          </Flex>
+        </Box>
+      </Flex>
+    </Box>
+  );
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <Flex justifyContent="center" paddingTop={6} paddingBottom={6}>
+      <Typography variant="pi" textColor="neutral500">
+        {message}
+      </Typography>
+    </Flex>
+  );
 }
 
 async function downloadExport(
@@ -169,9 +483,217 @@ async function downloadExport(
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = result.filename || `${contentType}.${format === "excel" ? "xlsx" : "csv"}`;
+  link.download =
+    result.filename || `${contentType}.${format === "excel" ? "xlsx" : "csv"}`;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+function ActivityLogTable({
+  activeTab,
+  rows,
+}: {
+  activeTab: Tab;
+  rows: Array<MovementRow | PriceRow>;
+}) {
+  const emptyMessage =
+    activeTab === "movements"
+      ? "No stock movements in this period."
+      : "No price changes in this period.";
+
+  if (activeTab === "movements") {
+    return (
+      <TableWrap>
+        <DataTable>
+          <TableColGroup />
+          <thead>
+            <tr>
+              <Th>When</Th>
+              <Th>Product</Th>
+              <Th>Code</Th>
+              <Th>Size</Th>
+              <Th>Color</Th>
+              <Th>Type</Th>
+              <Th>Change</Th>
+              <Th>Stock</Th>
+              <Th>Details</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 ? (
+              <>
+                <tr aria-hidden="true" style={{ height: 0, lineHeight: 0 }}>
+                  {TABLE_COLUMN_WIDTHS.map((_, index) => (
+                    <Td key={index} style={{ padding: 0, border: "none", fontSize: 0 }}>
+                      &nbsp;
+                    </Td>
+                  ))}
+                </tr>
+                <tr>
+                  <EmptyTableCell colSpan={9}>
+                    <Typography variant="pi" textColor="neutral500">
+                      {emptyMessage}
+                    </Typography>
+                  </EmptyTableCell>
+                </tr>
+              </>
+            ) : (
+              (rows as MovementRow[]).map((row) => {
+                const tone = movementTone(row.movement_type);
+                const deltaTone =
+                  row.quantity_delta > 0
+                    ? "success600"
+                    : row.quantity_delta < 0
+                      ? "danger600"
+                      : "neutral600";
+
+                return (
+                  <tr key={row.id}>
+                    <Td>
+                      <Typography variant="pi" textColor="neutral600">
+                        {formatWhen(row.createdAt)}
+                      </Typography>
+                    </Td>
+                    <Td>
+                      <Typography variant="pi" fontWeight="semiBold">
+                        {row.product_name || "—"}
+                      </Typography>
+                    </Td>
+                    <Td>
+                      <Typography variant="pi" textColor="neutral600">
+                        {row.item_code || "—"}
+                      </Typography>
+                    </Td>
+                    <Td>
+                      <Typography variant="pi" textColor="neutral600">
+                        {row.size || "—"}
+                      </Typography>
+                    </Td>
+                    <Td>
+                      <Typography variant="pi" textColor="neutral600">
+                        {row.color || "—"}
+                      </Typography>
+                    </Td>
+                    <Td>
+                      <Pill tone={tone}>
+                        {movementLabel(row.movement_type, row.quantity_delta)}
+                      </Pill>
+                    </Td>
+                    <Td>
+                      <Typography variant="pi" fontWeight="bold" textColor={deltaTone}>
+                        {formatDelta(row.quantity_delta)}
+                      </Typography>
+                    </Td>
+                    <Td>
+                      <Typography variant="pi" textColor="neutral600">
+                        {row.quantity_before} → {row.quantity_after}
+                      </Typography>
+                    </Td>
+                    <Td>
+                      <Typography variant="pi" textColor="neutral500">
+                        {[row.order_reference, row.reason].filter(Boolean).join(" · ") || "—"}
+                      </Typography>
+                    </Td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </DataTable>
+      </TableWrap>
+    );
+  }
+
+  return (
+    <TableWrap>
+      <DataTable>
+        <TableColGroup />
+        <thead>
+          <tr>
+            <Th>When</Th>
+            <Th>Product</Th>
+            <Th>Code</Th>
+            <Th>Size</Th>
+            <Th>Color</Th>
+            <Th>Price type</Th>
+            <Th>Before</Th>
+            <Th>After</Th>
+            <Th>Note</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.length === 0 ? (
+            <>
+              <tr aria-hidden="true" style={{ height: 0, lineHeight: 0 }}>
+                {TABLE_COLUMN_WIDTHS.map((_, index) => (
+                  <Td key={index} style={{ padding: 0, border: "none", fontSize: 0 }}>
+                    &nbsp;
+                  </Td>
+                ))}
+              </tr>
+              <tr>
+                <EmptyTableCell colSpan={9}>
+                  <Typography variant="pi" textColor="neutral500">
+                    {emptyMessage}
+                  </Typography>
+                </EmptyTableCell>
+              </tr>
+            </>
+          ) : (
+            (rows as PriceRow[]).map((row) => (
+              <tr key={row.id}>
+                <Td>
+                  <Typography variant="pi" textColor="neutral600">
+                    {formatWhen(row.createdAt)}
+                  </Typography>
+                </Td>
+                <Td>
+                  <Typography variant="pi" fontWeight="semiBold">
+                    {row.product_name || "—"}
+                  </Typography>
+                </Td>
+                <Td>
+                  <Typography variant="pi" textColor="neutral600">
+                    {row.item_code || "—"}
+                  </Typography>
+                </Td>
+                <Td>
+                  <Typography variant="pi" textColor="neutral600">
+                    {row.size || "—"}
+                  </Typography>
+                </Td>
+                <Td>
+                  <Typography variant="pi" textColor="neutral600">
+                    {row.color || "—"}
+                  </Typography>
+                </Td>
+                <Td>
+                  <Pill tone="primary">
+                    {row.price_field === "price_for_bulk" ? "Bulk" : "Retail"}
+                  </Pill>
+                </Td>
+                <Td>
+                  <Typography variant="pi" textColor="neutral600">
+                    {formatMoney(row.price_before)}
+                  </Typography>
+                </Td>
+                <Td>
+                  <Typography variant="pi" fontWeight="semiBold">
+                    {formatMoney(row.price_after)}
+                  </Typography>
+                </Td>
+                <Td>
+                  <Typography variant="pi" textColor="neutral500">
+                    {row.reason || "—"}
+                  </Typography>
+                </Td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </DataTable>
+    </TableWrap>
+  );
 }
 
 export function InventoryHistory() {
@@ -182,16 +704,11 @@ export function InventoryHistory() {
   const [anchorDate, setAnchorDate] = useState(todayInputValue());
   const [fromDate, setFromDate] = useState(todayInputValue());
   const [toDate, setToDate] = useState(todayInputValue());
-  const [itemCode, setItemCode] = useState("");
-  const [movementType, setMovementType] = useState("");
   const [data, setData] = useState<HistoryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
-
-  const [restockCode, setRestockCode] = useState("");
-  const [restockQty, setRestockQty] = useState("5");
-  const [restockNote, setRestockNote] = useState("");
-  const [restocking, setRestocking] = useState(false);
+  const [activeTab, setActiveTab] = useState<Tab>("movements");
+  const [listExpanded, setListExpanded] = useState(false);
 
   const queryParams = useMemo(() => {
     const params: Record<string, string> = { period };
@@ -201,13 +718,12 @@ export function InventoryHistory() {
     } else {
       params.date = anchorDate;
     }
-    if (itemCode.trim()) params.item_code = itemCode.trim();
-    if (movementType) params.movement_type = movementType;
     return params;
-  }, [period, anchorDate, fromDate, toDate, itemCode, movementType]);
+  }, [period, anchorDate, fromDate, toDate]);
 
   const loadHistory = useCallback(async () => {
     setLoading(true);
+    setListExpanded(false);
     try {
       const search = new URLSearchParams(queryParams).toString();
       const response = await get(`/data-transfer/history/inventory?${search}`);
@@ -240,410 +756,293 @@ export function InventoryHistory() {
     }
   };
 
-  const handleRestock = async () => {
-    const code = restockCode.trim();
-    const quantity = Math.round(Number(restockQty));
-    if (!code) {
-      toggleNotification({ type: "warning", message: "Enter a product code." });
-      return;
-    }
-    if (!Number.isFinite(quantity) || quantity <= 0) {
-      toggleNotification({ type: "warning", message: "Enter a positive quantity." });
-      return;
-    }
-
-    setRestocking(true);
-    try {
-      await post("/data-transfer/inventory/restock", {
-        item_code: code,
-        quantity,
-        note: restockNote.trim() || undefined,
-      });
-
-      toggleNotification({
-        type: "success",
-        message: `Added ${quantity} to ${code}.`,
-      });
-      setRestockNote("");
-      await loadHistory();
-    } catch {
-      toggleNotification({
-        type: "danger",
-        message: "Could not receive stock.",
-      });
-    } finally {
-      setRestocking(false);
-    }
-  };
+  const activeRows =
+    activeTab === "movements" ? (data?.movements ?? []) : (data?.priceChanges ?? []);
+  const visibleRows = listExpanded
+    ? activeRows
+    : activeRows.slice(0, LIST_PREVIEW);
 
   return (
     <Main>
-      <Page.Title>
-        <Flex gap={2} alignItems="center">
-          <Calendar />
-          Stock history
-        </Flex>
-      </Page.Title>
+      <Page.Title>Stock history</Page.Title>
 
       <Layouts.Content>
-        <Flex direction="column" gap={5}>
-          <Panel>
-            <Flex direction="column" gap={4}>
-              <Typography variant="beta">Filters</Typography>
-              <Flex gap={2} wrap="wrap">
-                {PERIODS.map((item) => (
-                  <Button
-                    key={item.value}
-                    variant={period === item.value ? "default" : "tertiary"}
-                    onClick={() => setPeriod(item.value)}
-                  >
-                    {item.label}
-                  </Button>
-                ))}
-              </Flex>
-
-              <Grid.Root gap={4}>
-                {period === "custom" ? (
-                  <>
-                    <Grid.Item col={3} xs={12}>
-                      <TextInput
-                        label="From"
-                        name="from"
-                        type="date"
-                        value={fromDate}
-                        onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                          setFromDate(event.target.value)
-                        }
-                      />
-                    </Grid.Item>
-                    <Grid.Item col={3} xs={12}>
-                      <TextInput
-                        label="To"
-                        name="to"
-                        type="date"
-                        value={toDate}
-                        onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                          setToDate(event.target.value)
-                        }
-                      />
-                    </Grid.Item>
-                  </>
-                ) : (
-                  <Grid.Item col={3} xs={12}>
-                    <TextInput
-                      label={period === "year" ? "Year anchor" : "Date"}
-                      name="date"
-                      type="date"
-                      value={anchorDate}
-                      onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                        setAnchorDate(event.target.value)
-                      }
-                    />
-                  </Grid.Item>
-                )}
-                <Grid.Item col={3} xs={12}>
-                  <TextInput
-                    label="Product code"
-                    name="item_code"
-                    placeholder="e.g. Grey-Hoodie-M"
-                    value={itemCode}
-                    onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                      setItemCode(event.target.value)
-                    }
-                  />
-                </Grid.Item>
-                <Grid.Item col={3} xs={12}>
-                  <SingleSelect
-                    label="Movement type"
-                    placeholder="All types"
-                    value={movementType}
-                    onChange={(value: string) => setMovementType(value)}
-                  >
-                    {MOVEMENT_TYPES.map((item) => (
-                      <SingleSelectOption key={item.value || "all"} value={item.value}>
-                        {item.label}
-                      </SingleSelectOption>
-                    ))}
-                  </SingleSelect>
-                </Grid.Item>
-              </Grid.Root>
-
-              <Flex gap={2} wrap="wrap">
-                <Button onClick={() => void loadHistory()}>Apply</Button>
-                <Button
-                  variant="secondary"
-                  startIcon={<Download />}
-                  loading={exporting}
-                  onClick={() => void handleExport("inventory-movements", "csv")}
-                >
-                  Export movements (CSV)
-                </Button>
-                <Button
-                  variant="secondary"
-                  startIcon={<Download />}
-                  loading={exporting}
-                  onClick={() => void handleExport("inventory-movements", "excel")}
-                >
-                  Export movements (Excel)
-                </Button>
-                <Button
-                  variant="tertiary"
-                  loading={exporting}
-                  onClick={() => void handleExport("price-histories", "csv")}
-                >
-                  Export price changes
-                </Button>
-              </Flex>
-            </Flex>
-          </Panel>
-
-          <Panel>
-            <Typography variant="beta">Receive stock</Typography>
-            <Typography variant="pi" textColor="neutral600">
-              Add units when a shipment arrives. This is logged automatically as a restock.
-            </Typography>
-            <Box paddingTop={4}>
-              <Grid.Root gap={4}>
-                <Grid.Item col={3} xs={12}>
-                  <TextInput
-                    label="Product code"
-                    name="restock_code"
-                    placeholder="Grey-Hoodie-M"
-                    value={restockCode}
-                    onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                      setRestockCode(event.target.value)
-                    }
-                  />
-                </Grid.Item>
-                <Grid.Item col={2} xs={12}>
-                  <TextInput
-                    label="Quantity to add"
-                    name="restock_qty"
-                    type="number"
-                    min={1}
-                    value={restockQty}
-                    onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                      setRestockQty(event.target.value)
-                    }
-                  />
-                </Grid.Item>
-                <Grid.Item col={4} xs={12}>
-                  <TextInput
-                    label="Note (optional)"
-                    name="restock_note"
-                    placeholder="Delivery #42"
-                    value={restockNote}
-                    onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                      setRestockNote(event.target.value)
-                    }
-                  />
-                </Grid.Item>
-                <Grid.Item col={3} xs={12}>
-                  <Box paddingTop={6}>
-                    <Button
-                      startIcon={<Plus />}
-                      loading={restocking}
-                      onClick={() => void handleRestock()}
-                    >
-                      Receive stock
-                    </Button>
-                  </Box>
-                </Grid.Item>
-              </Grid.Root>
+        <Flex direction="column" gap={5} alignItems="stretch" style={{ width: "100%" }}>
+          <Flex justifyContent="space-between" alignItems="flex-start" gap={4} wrap="wrap">
+            <Box>
+              <Typography variant="alpha" textColor="neutral800">
+                Inventory history
+              </Typography>
+              <Typography variant="pi" textColor="neutral600" style={{ marginTop: 4 }}>
+                Track stock movements and price changes over time.
+              </Typography>
             </Box>
-          </Panel>
-
-          {loading ? (
-            <Flex justifyContent="center" padding={8}>
-              <Loader>Loading history…</Loader>
+            <Flex gap={2} wrap="wrap">
+              <Button
+                variant="secondary"
+                startIcon={<Download />}
+                loading={exporting}
+                onClick={() => void handleExport("inventory-movements", "csv")}
+              >
+                Export movements
+              </Button>
+              <Button
+                variant="tertiary"
+                loading={exporting}
+                onClick={() => void handleExport("price-histories", "csv")}
+              >
+                Export prices
+              </Button>
             </Flex>
-          ) : !data ? (
-            <Typography textColor="neutral600">No data.</Typography>
-          ) : (
-            <>
-              <Panel>
-                <Typography variant="beta">{data.range.label}</Typography>
-                <Box paddingTop={4}>
+          </Flex>
+
+          <Grid.Root gap={4} style={{ alignItems: "stretch", width: "100%" }}>
+            <Grid.Item col={5} xs={12} style={{ display: "flex" }}>
+              <StretchColumn>
+              <Panel
+                title="Period"
+                subtitle="Choose the day, month, year, or custom range to review"
+                icon={Calendar}
+                tone="secondary"
+              >
+                <Flex direction="column" gap={4}>
+                  <Flex gap={2} wrap="wrap">
+                    {PERIODS.map((item) => (
+                      <Button
+                        key={item.value}
+                        size="S"
+                        variant={period === item.value ? "default" : "tertiary"}
+                        onClick={() => setPeriod(item.value)}
+                      >
+                        {item.label}
+                      </Button>
+                    ))}
+                  </Flex>
+
                   <Grid.Root gap={4}>
-                    <Grid.Item col={3} xs={6}>
-                      <StatCard>
-                        <Typography variant="pi" textColor="neutral600">
-                          Opening balance
-                        </Typography>
-                        <Typography variant="alpha">
-                          {data.openingBalance.toLocaleString()}
-                        </Typography>
-                      </StatCard>
+                    {period === "custom" ? (
+                      <>
+                        <Grid.Item col={12}>
+                          <Field.Root name="from">
+                            <Field.Label>From</Field.Label>
+                            <TextInput
+                              type="date"
+                              value={fromDate}
+                              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                                setFromDate(event.target.value)
+                              }
+                            />
+                          </Field.Root>
+                        </Grid.Item>
+                        <Grid.Item col={12}>
+                          <Field.Root name="to">
+                            <Field.Label>To</Field.Label>
+                            <TextInput
+                              type="date"
+                              value={toDate}
+                              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                                setToDate(event.target.value)
+                              }
+                            />
+                          </Field.Root>
+                        </Grid.Item>
+                      </>
+                    ) : (
+                      <Grid.Item col={12}>
+                        <Field.Root name="date">
+                          <Field.Label>{period === "year" ? "Year" : "Date"}</Field.Label>
+                          <TextInput
+                            type="date"
+                            value={anchorDate}
+                            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                              setAnchorDate(event.target.value)
+                            }
+                          />
+                        </Field.Root>
+                      </Grid.Item>
+                    )}
+                  </Grid.Root>
+                </Flex>
+              </Panel>
+              </StretchColumn>
+            </Grid.Item>
+
+            <Grid.Item col={7} xs={12} style={{ display: "flex" }}>
+              <StretchColumn>
+              {loading ? (
+                <Flex
+                  justifyContent="center"
+                  alignItems="center"
+                  hasRadius
+                  background="neutral0"
+                  borderColor="neutral150"
+                  shadow="tableShadow"
+                  style={{ flex: 1, minHeight: 360 }}
+                >
+                  <Loader>Loading history…</Loader>
+                </Flex>
+              ) : !data ? (
+                <Panel
+                  title="Summary"
+                  subtitle="Could not load data for this period"
+                  icon={Calendar}
+                  tone="neutral"
+                >
+                  <EmptyState message="Try choosing a different period." />
+                </Panel>
+              ) : (
+                <Panel
+                  title={data.range.label}
+                  subtitle={buildReconciliation(data)}
+                  icon={Calendar}
+                  tone="alternative"
+                >
+                  <Grid.Root gap={3}>
+                    <Grid.Item col={6} xs={12}>
+                      <StatChip
+                        label="Opening balance"
+                        value={data.openingBalance.toLocaleString()}
+                        hint="units at period start"
+                        icon={Stack}
+                        tone="neutral"
+                      />
                     </Grid.Item>
-                    <Grid.Item col={3} xs={6}>
-                      <StatCard>
-                        <Typography variant="pi" textColor="neutral600">
-                          Closing balance
-                        </Typography>
-                        <Typography variant="alpha">
-                          {data.closingBalance.toLocaleString()}
-                        </Typography>
-                      </StatCard>
+                    <Grid.Item col={6} xs={12}>
+                      <StatChip
+                        label="Closing balance"
+                        value={data.closingBalance.toLocaleString()}
+                        hint="units at period end"
+                        icon={Stack}
+                        tone="primary"
+                      />
                     </Grid.Item>
-                    <Grid.Item col={2} xs={6}>
-                      <StatCard>
-                        <Typography variant="pi" textColor="neutral600">
-                          Sold
-                        </Typography>
-                        <Typography variant="alpha">{data.summary.sales}</Typography>
-                      </StatCard>
+                    <Grid.Item col={6} xs={12}>
+                      <StatChip
+                        label="Added"
+                        value={String(data.summary.added ?? 0)}
+                        hint="restocks and manual increases"
+                        icon={ArrowUp}
+                        tone="success"
+                      />
                     </Grid.Item>
-                    <Grid.Item col={2} xs={6}>
-                      <StatCard>
-                        <Typography variant="pi" textColor="neutral600">
-                          Restocked
-                        </Typography>
-                        <Typography variant="alpha">
-                          {data.summary.restocked}
-                        </Typography>
-                      </StatCard>
+                    <Grid.Item col={6} xs={12}>
+                      <StatChip
+                        label="Removed"
+                        value={String(data.summary.removed ?? 0)}
+                        hint="manual decreases (not sales)"
+                        icon={Minus}
+                        tone="warning"
+                      />
                     </Grid.Item>
-                    <Grid.Item col={2} xs={6}>
-                      <StatCard>
-                        <Typography variant="pi" textColor="neutral600">
-                          Net change
-                        </Typography>
-                        <Typography variant="alpha">
-                          {data.summary.netChange > 0 ? "+" : ""}
-                          {data.summary.netChange}
-                        </Typography>
-                      </StatCard>
+                    <Grid.Item col={6} xs={12}>
+                      <StatChip
+                        label="Sold"
+                        value={String(data.summary.sales)}
+                        hint="units shipped on orders"
+                        icon={ShoppingCart}
+                        tone="secondary"
+                      />
+                    </Grid.Item>
+                    <Grid.Item col={6} xs={12}>
+                      <StatChip
+                        label="Restored"
+                        value={String(data.summary.restored)}
+                        hint="returned from cancelled orders"
+                        icon={Archive}
+                        tone="alternative"
+                      />
                     </Grid.Item>
                   </Grid.Root>
-                </Box>
-              </Panel>
-
-              {data.monthlyBreakdown.length > 0 ? (
-                <Panel>
-                  <Typography variant="beta">Monthly breakdown</Typography>
-                  <Box paddingTop={3}>
-                    <Flex direction="column" gap={2}>
-                      {data.monthlyBreakdown.map((month) => (
-                        <Flex
-                          key={month.key}
-                          justifyContent="space-between"
-                          gap={3}
-                          wrap="wrap"
-                        >
-                          <Typography fontWeight="semiBold">{month.label}</Typography>
-                          <Typography textColor="neutral600">
-                            {month.movementCount} events · sold {month.sales} · restocked{" "}
-                            {month.restocked} · net {month.netChange > 0 ? "+" : ""}
-                            {month.netChange}
-                          </Typography>
-                        </Flex>
-                      ))}
-                    </Flex>
-                  </Box>
                 </Panel>
-              ) : null}
+              )}
+              </StretchColumn>
+            </Grid.Item>
 
-              <Panel>
-                <Typography variant="beta">
-                  Movements ({data.movements.length})
-                </Typography>
-                <Box paddingTop={3}>
-                  {data.movements.length === 0 ? (
-                    <Typography textColor="neutral600">
-                      No stock movements in this period.
-                    </Typography>
-                  ) : (
-                    <Flex direction="column" gap={2}>
-                      {data.movements.map((row) => (
-                        <Flex
-                          key={row.id}
-                          justifyContent="space-between"
-                          gap={3}
-                          wrap="wrap"
-                          padding={2}
-                          background="neutral100"
-                          hasRadius
-                        >
-                          <Box style={{ minWidth: 0 }}>
-                            <Typography fontWeight="semiBold">
-                              {row.product_name || row.item_code || "Item"}
-                            </Typography>
-                            <Typography variant="pi" textColor="neutral600">
-                              {[
-                                formatWhen(row.createdAt),
-                                movementLabel(row.movement_type),
-                                row.size,
-                                row.color,
-                                row.item_code,
-                              ]
-                                .filter(Boolean)
-                                .join(" · ")}
-                            </Typography>
-                            {row.order_reference || row.reason ? (
-                              <Typography variant="pi" textColor="neutral500">
-                                {[row.order_reference, row.reason]
-                                  .filter(Boolean)
-                                  .join(" · ")}
+            {!loading && data ? (
+              <>
+                {data.monthlyBreakdown.length > 0 ? (
+                  <Grid.Item col={12} style={{ display: "flex", width: "100%" }}>
+                    <FullWidthPanel>
+                      <Panel
+                        title="Monthly breakdown"
+                        subtitle="Totals grouped by month for the selected year"
+                        icon={Calendar}
+                        tone="secondary"
+                      >
+                        <Flex direction="column" gap={1}>
+                          {data.monthlyBreakdown.map((month) => (
+                            <ListRow
+                              key={month.key}
+                              justifyContent="space-between"
+                              alignItems="center"
+                              gap={3}
+                            >
+                              <Typography fontWeight="semiBold">{month.label}</Typography>
+                              <Typography variant="pi" textColor="neutral600">
+                                {month.movementCount} events · +{month.added ?? 0} added · −
+                                {month.removed ?? 0} removed · sold {month.sales}
                               </Typography>
-                            ) : null}
-                          </Box>
-                          <Typography fontWeight="bold">
-                            {row.quantity_delta > 0 ? "+" : ""}
-                            {row.quantity_delta} → {row.quantity_after}
-                          </Typography>
+                            </ListRow>
+                          ))}
                         </Flex>
-                      ))}
-                    </Flex>
-                  )}
-                </Box>
-              </Panel>
+                      </Panel>
+                    </FullWidthPanel>
+                  </Grid.Item>
+                ) : null}
 
-              <Panel>
-                <Typography variant="beta">
-                  Price changes ({data.priceChanges.length})
-                </Typography>
-                <Box paddingTop={3}>
-                  {data.priceChanges.length === 0 ? (
-                    <Typography textColor="neutral600">
-                      No price changes in this period.
-                    </Typography>
-                  ) : (
-                    <Flex direction="column" gap={2}>
-                      {data.priceChanges.map((row) => (
-                        <Flex
-                          key={row.id}
-                          justifyContent="space-between"
-                          gap={3}
-                          wrap="wrap"
-                          padding={2}
-                          background="neutral100"
-                          hasRadius
-                        >
-                          <Box>
-                            <Typography fontWeight="semiBold">
-                              {row.product_name || row.item_code}
-                            </Typography>
-                            <Typography variant="pi" textColor="neutral600">
-                              {[formatWhen(row.createdAt), row.item_code, row.size, row.color]
-                                .filter(Boolean)
-                                .join(" · ")}
-                            </Typography>
-                          </Box>
-                          <Typography>
-                            {row.price_field === "price_for_bulk"
-                              ? "Bulk price"
-                              : "Retail price"}
-                            : {formatMoney(row.price_before)} →{" "}
-                            {formatMoney(row.price_after)}
-                          </Typography>
+                <Grid.Item col={12} style={{ display: "flex", width: "100%" }}>
+                  <FullWidthPanel>
+                    <Panel
+                      title="Activity log"
+                      subtitle="Newest events first"
+                      icon={Pencil}
+                      tone="neutral"
+                      action={
+                        <Flex gap={2}>
+                          <Button
+                            size="S"
+                            variant={activeTab === "movements" ? "default" : "tertiary"}
+                            onClick={() => {
+                              setActiveTab("movements");
+                              setListExpanded(false);
+                            }}
+                          >
+                            Movements ({data.movements.length})
+                          </Button>
+                          <Button
+                            size="S"
+                            variant={activeTab === "prices" ? "default" : "tertiary"}
+                            onClick={() => {
+                              setActiveTab("prices");
+                              setListExpanded(false);
+                            }}
+                          >
+                            Prices ({data.priceChanges.length})
+                          </Button>
                         </Flex>
-                      ))}
-                    </Flex>
-                  )}
-                </Box>
-              </Panel>
-            </>
-          )}
+                      }
+                    >
+                      <ActivityLogTable activeTab={activeTab} rows={visibleRows} />
+
+                      {activeRows.length > LIST_PREVIEW ? (
+                        <Box paddingTop={2}>
+                          <Button
+                            size="S"
+                            variant="tertiary"
+                            onClick={() => setListExpanded((expanded) => !expanded)}
+                          >
+                            {listExpanded
+                              ? "See less"
+                              : `See more (${activeRows.length - LIST_PREVIEW} more)`}
+                          </Button>
+                        </Box>
+                      ) : null}
+                    </Panel>
+                  </FullWidthPanel>
+                </Grid.Item>
+              </>
+            ) : null}
+          </Grid.Root>
         </Flex>
       </Layouts.Content>
     </Main>
