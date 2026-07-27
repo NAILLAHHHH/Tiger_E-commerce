@@ -165,6 +165,7 @@ type InventoryDashboard = {
 type ReportKey = keyof InventoryDashboard["reports"];
 
 const REPORT_KEYS: ReportKey[] = ["today", "week", "month", "all"];
+const TODAY_ACTIVITY_VISIBLE = 5;
 
 const shortcuts = [
   {
@@ -257,7 +258,11 @@ type Tone =
   | "alternative"
   | "neutral";
 
-type IconType = ComponentType<{ fill?: string; width?: string; height?: string }>;
+type IconType = ComponentType<{
+  fill?: string;
+  width?: string | number;
+  height?: string | number;
+}>;
 
 function activityTone(type: string): Tone {
   switch (type) {
@@ -636,6 +641,7 @@ function InventoryDashboardSection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [reportKey, setReportKey] = useState<ReportKey>("today");
+  const [activityExpanded, setActivityExpanded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -1014,7 +1020,10 @@ function InventoryDashboardSection() {
               <EmptyRow message="Nothing recorded for today yet. New orders, stock edits, and price changes will show up here." />
             ) : (
               <Flex direction="column" alignItems="stretch" gap={1}>
-                {today.activity.map((item, index) => {
+                {(activityExpanded
+                  ? today.activity
+                  : today.activity.slice(0, TODAY_ACTIVITY_VISIBLE)
+                ).map((item, index) => {
                   const Icon = activityIcon(item.type);
                   return (
                     <ListRow
@@ -1066,6 +1075,19 @@ function InventoryDashboardSection() {
                     </ListRow>
                   );
                 })}
+                {today.activity.length > TODAY_ACTIVITY_VISIBLE ? (
+                  <Box paddingTop={1}>
+                    <Button
+                      size="S"
+                      variant="tertiary"
+                      onClick={() => setActivityExpanded((expanded) => !expanded)}
+                    >
+                      {activityExpanded
+                        ? "See less"
+                        : `See more (${today.activity.length - TODAY_ACTIVITY_VISIBLE} more)`}
+                    </Button>
+                  </Box>
+                ) : null}
               </Flex>
             )}
           </Panel>
