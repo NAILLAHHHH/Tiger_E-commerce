@@ -334,6 +334,9 @@ module.exports = ({ strapi }) => ({
     if (!Number.isFinite(qty) || qty <= 0) {
       throw new Error('quantity must be a positive number');
     }
+    if (!note || !String(note).trim()) {
+      throw new Error('A reason is required when restocking');
+    }
 
     const variant = documentId
       ? await strapi.db
@@ -364,7 +367,7 @@ module.exports = ({ strapi }) => ({
       after,
       {
         movementType: 'restock',
-        reason: note?.trim() || 'Stock received',
+        reason: String(note).trim(),
         source: 'admin',
       },
     );

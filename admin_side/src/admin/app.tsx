@@ -6,6 +6,7 @@ import Favicon from "./extensions/favicon.ico";
 import { tigerWearDarkColors, tigerWearLightColors } from "./theme";
 import { installSelectOnlyProductRelations } from "./select-only-relations";
 import { installReadOnlyAuditUi } from "./read-only-audit-ui";
+import { installRequireChangeReason } from "./require-change-reason";
 import { Calendar } from "@strapi/icons";
 import { DataTransferListActions } from "./data-transfer-actions";
 import { TrackListSelection } from "./order-selection-store";
@@ -55,6 +56,7 @@ export default {
     }
     installSelectOnlyProductRelations();
     installReadOnlyAuditUi();
+    installRequireChangeReason();
     // Export / Import (+ order totals on Orders) on each content table
     app.getPlugin("content-manager")?.injectComponent("listView", "actions", {
       name: "tigerwear-data-transfer",

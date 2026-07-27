@@ -80,10 +80,13 @@
       "label": "More photos",
       "description": "Extra angles for this color"
     },
-    "price_for_one": { "label": "Price for 1 piece (RWF)" },
+    "price_for_one": {
+      "label": "Price for 1 piece (RWF)",
+      "description": "Changing this requires a reason when you save"
+    },
     "price_for_bulk": {
       "label": "Price per piece when buying many (RWF)",
-      "description": "Leave empty if there is no discount for large orders"
+      "description": "Leave empty if there is no discount for large orders. Changing this requires a reason when you save"
     },
     "min_quantity_for_bulk": {
       "label": "How many to buy for lower price",
@@ -91,7 +94,7 @@
     },
     "how_many_left": {
       "label": "How many we have",
-      "description": "Count how many of this size/color are available to sell"
+      "description": "Count how many of this size/color are available to sell. Changing this requires a reason when you save"
     },
     "product": {
       "label": "Belongs to product",

@@ -163,10 +163,14 @@ export async function logVariantPriceChanges(
   strapi: Core.Strapi,
   previous: Record<string, unknown>,
   next: Record<string, unknown>,
-  source: LogSource = 'admin',
+  opts: { source?: LogSource; reason?: string | null } = {},
 ) {
   const variant = next as VariantInfo;
   const fields: PriceField[] = ['price_for_one', 'price_for_bulk'];
+  const source = opts.source ?? 'admin';
+  const reason =
+    opts.reason ??
+    (isBulkImportActive() ? 'Updated via CSV import' : null);
 
   for (const field of fields) {
     const before = previous[field] as number | null | undefined;
@@ -178,6 +182,7 @@ export async function logVariantPriceChanges(
       priceField: field,
       priceBefore: before == null ? null : Number(before),
       priceAfter: after == null ? null : Number(after),
+      reason,
       source: isBulkImportActive() ? 'import' : source,
     });
   }
