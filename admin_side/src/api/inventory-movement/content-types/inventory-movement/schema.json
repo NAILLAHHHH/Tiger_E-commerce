@@ -1,0 +1,86 @@
+{
+  "kind": "collectionType",
+  "collectionName": "inventory_movements",
+  "info": {
+    "singularName": "inventory-movement",
+    "pluralName": "inventory-movements",
+    "displayName": "Stock movement",
+    "description": "Auto-logged record every time stock changes — sales, restocks, adjustments"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "movement_type": {
+      "type": "enumeration",
+      "enum": [
+        "sale",
+        "cancel_restore",
+        "restock",
+        "adjustment",
+        "import",
+        "initial",
+        "count"
+      ],
+      "required": true,
+      "description": "What caused the stock change"
+    },
+    "quantity_delta": {
+      "type": "integer",
+      "required": true,
+      "description": "Change in units (negative = out, positive = in)"
+    },
+    "quantity_before": {
+      "type": "integer",
+      "required": true,
+      "min": 0,
+      "description": "Stock count before this change"
+    },
+    "quantity_after": {
+      "type": "integer",
+      "required": true,
+      "min": 0,
+      "description": "Stock count after this change"
+    },
+    "item_code": {
+      "type": "string",
+      "description": "Product code at time of movement"
+    },
+    "size": {
+      "type": "string"
+    },
+    "color": {
+      "type": "string"
+    },
+    "product_name": {
+      "type": "string",
+      "description": "Product name at time of movement"
+    },
+    "order_reference": {
+      "type": "string",
+      "description": "Linked order number, if this was a sale or cancellation"
+    },
+    "reason": {
+      "type": "text",
+      "description": "Optional note — restock delivery, manual correction, etc."
+    },
+    "source": {
+      "type": "enumeration",
+      "enum": ["system", "admin", "import", "api"],
+      "default": "system",
+      "description": "Where the change came from"
+    },
+    "product_variant": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::product-variant.product-variant",
+      "description": "Which size/color row changed"
+    },
+    "order": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::order.order",
+      "description": "Linked order, if applicable"
+    }
+  }
+}

@@ -183,5 +183,36 @@
     "price_each": { "label": "Price per piece (RWF)" },
     "bought_as": { "label": "How they bought", "description": "One piece or many at a lower price" },
     "row_total": { "label": "Line total (RWF)" }
+  },
+  "plugin_content_manager_configuration_content_types::api::inventory-movement.inventory-movement": {
+    "movement_type": {
+      "label": "Type",
+      "description": "Read-only — recorded automatically",
+      "editable": false
+    },
+    "quantity_delta": {
+      "label": "Change",
+      "description": "Negative = out, positive = in",
+      "editable": false
+    },
+    "quantity_before": { "label": "Before", "editable": false },
+    "quantity_after": { "label": "After", "editable": false },
+    "item_code": { "label": "Product code", "editable": false },
+    "product_name": { "label": "Product", "editable": false },
+    "order_reference": { "label": "Order number", "editable": false },
+    "reason": { "label": "Note", "editable": false },
+    "source": { "label": "Source", "editable": false },
+    "product_variant": { "label": "Size & color row", "editable": false },
+    "order": { "label": "Order", "editable": false }
+  },
+  "plugin_content_manager_configuration_content_types::api::price-history.price-history": {
+    "price_field": { "label": "Which price", "editable": false },
+    "price_before": { "label": "Old price (RWF)", "editable": false },
+    "price_after": { "label": "New price (RWF)", "editable": false },
+    "item_code": { "label": "Product code", "editable": false },
+    "product_name": { "label": "Product", "editable": false },
+    "reason": { "label": "Note", "editable": false },
+    "source": { "label": "Source", "editable": false },
+    "product_variant": { "label": "Size & color row", "editable": false }
   }
 }
