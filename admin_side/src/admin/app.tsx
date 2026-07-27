@@ -5,6 +5,8 @@ import MenuLogo from "./extensions/tigerwear-logo.png";
 import Favicon from "./extensions/favicon.ico";
 import { tigerWearDarkColors, tigerWearLightColors } from "./theme";
 import { installSelectOnlyProductRelations } from "./select-only-relations";
+import { installReadOnlyAuditUi } from "./read-only-audit-ui";
+import { Calendar } from "@strapi/icons";
 import { DataTransferListActions } from "./data-transfer-actions";
 import { TrackListSelection } from "./order-selection-store";
 
@@ -52,6 +54,7 @@ export default {
       localStorage.setItem("STRAPI_THEME", "light");
     }
     installSelectOnlyProductRelations();
+    installReadOnlyAuditUi();
 
     // Export / Import (+ order totals on Orders) on each content table
     app.getPlugin("content-manager")?.injectComponent("listView", "actions", {
@@ -72,5 +75,33 @@ export default {
       const { Homepage } = await import("./Homepage");
       return { Component: Homepage };
     };
+
+    app.addMenuLink({
+      to: "/inventory-history",
+      icon: Calendar,
+      intlLabel: {
+        id: "tigerwear.inventory-history",
+        defaultMessage: "Stock history",
+      },
+      Component: async () => {
+        const { InventoryHistory } = await import("./InventoryHistory");
+        return InventoryHistory;
+      },
+      permissions: [],
+    });
+
+    app.addMenuLink({
+      to: "/audit-record",
+      icon: Calendar,
+      intlLabel: {
+        id: "tigerwear.audit-record",
+        defaultMessage: "Audit record",
+      },
+      Component: async () => {
+        const { AuditRecordView } = await import("./AuditRecordView");
+        return AuditRecordView;
+      },
+      permissions: [],
+    });
   },
 };
