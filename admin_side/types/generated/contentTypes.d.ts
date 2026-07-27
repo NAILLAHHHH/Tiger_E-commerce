@@ -586,7 +586,6 @@ export interface ApiInventoryMovementInventoryMovement
       ]
     > &
       Schema.Attribute.Required;
-    order: Schema.Attribute.Relation<'manyToOne', 'api::order.order'>;
     order_reference: Schema.Attribute.String;
     product_name: Schema.Attribute.String;
     product_variant: Schema.Attribute.Relation<

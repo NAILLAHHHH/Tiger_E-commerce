@@ -35,7 +35,7 @@ async function applyStockDelta(
   strapi: Core.Strapi,
   lines: OrderLine[],
   direction: 'deduct' | 'restore',
-  order: { id: number; order_reference?: string | null },
+  order: { order_reference?: string | null },
 ) {
   for (const line of lines) {
     const qty = Number(line.how_many ?? 0);
@@ -57,7 +57,6 @@ async function applyStockDelta(
 
     await updateSizeColorStock(strapi, variant, nextQty, {
       movementType: direction === 'deduct' ? 'sale' : 'cancel_restore',
-      orderId: order.id,
       orderReference: order.order_reference ?? undefined,
       source: 'system',
     });
@@ -99,7 +98,6 @@ export async function syncOrderStock(
       (fresh.what_they_ordered as OrderLine[]) ?? lines,
       'deduct',
       {
-        id: next.id,
         order_reference:
           (fresh.order_reference as string | null | undefined) ??
           (next as { order_reference?: string | null }).order_reference,
@@ -118,7 +116,6 @@ export async function syncOrderStock(
       (fresh.what_they_ordered as OrderLine[]) ?? lines,
       'restore',
       {
-        id: next.id,
         order_reference:
           (fresh.order_reference as string | null | undefined) ??
           (next as { order_reference?: string | null }).order_reference,

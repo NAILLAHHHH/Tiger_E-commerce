@@ -91,7 +91,6 @@ export async function logInventoryMovement(
     movementType: MovementType;
     quantityBefore: number;
     quantityAfter: number;
-    orderId?: number | null;
     orderReference?: string | null;
     reason?: string | null;
     source?: LogSource;
@@ -119,7 +118,6 @@ export async function logInventoryMovement(
         reason: opts.reason ?? null,
         source: opts.source ?? 'system',
         product_variant: opts.variant.id ?? null,
-        order: opts.orderId ?? null,
       },
     }),
   );

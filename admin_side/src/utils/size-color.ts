@@ -4,7 +4,6 @@ import { logInventoryMovement } from './inventory-log';
 
 export type StockLogContext = {
   movementType: MovementType;
-  orderId?: number | null;
   orderReference?: string | null;
   reason?: string | null;
   source?: LogSource;
@@ -107,7 +106,6 @@ export async function updateSizeColorStock(
       movementType: log.movementType,
       quantityBefore,
       quantityAfter,
-      orderId: log.orderId,
       orderReference: log.orderReference,
       reason: log.reason,
       source: log.source ?? 'system',

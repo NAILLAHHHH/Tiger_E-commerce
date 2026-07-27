@@ -58,7 +58,7 @@
     },
     "order_reference": {
       "type": "string",
-      "description": "Linked order number, if this was a sale or cancellation"
+      "description": "Order number reference only (e.g. TW-20260619-1234) — not a full order copy"
     },
     "reason": {
       "type": "text",
@@ -75,12 +75,6 @@
       "relation": "manyToOne",
       "target": "api::product-variant.product-variant",
       "description": "Which size/color row changed"
-    },
-    "order": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::order.order",
-      "description": "Linked order, if applicable"
     }
   }
 }
