@@ -550,6 +550,77 @@ export interface ApiHomepageHomepage extends Struct.SingleTypeSchema {
   };
 }
 
+export interface ApiInventoryMovementInventoryMovement
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'inventory_movements';
+  info: {
+    description: 'Auto-logged record every time stock changes \u2014 sales, restocks, adjustments';
+    displayName: 'Stock movement';
+    pluralName: 'inventory-movements';
+    singularName: 'inventory-movement';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    color: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    item_code: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::inventory-movement.inventory-movement'
+    > &
+      Schema.Attribute.Private;
+    movement_type: Schema.Attribute.Enumeration<
+      [
+        'sale',
+        'cancel_restore',
+        'restock',
+        'adjustment',
+        'import',
+        'initial',
+        'count',
+      ]
+    > &
+      Schema.Attribute.Required;
+    order: Schema.Attribute.Relation<'manyToOne', 'api::order.order'>;
+    order_reference: Schema.Attribute.String;
+    product_name: Schema.Attribute.String;
+    product_variant: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::product-variant.product-variant'
+    >;
+    publishedAt: Schema.Attribute.DateTime;
+    quantity_after: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      >;
+    quantity_before: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      >;
+    quantity_delta: Schema.Attribute.Integer & Schema.Attribute.Required;
+    reason: Schema.Attribute.Text;
+    size: Schema.Attribute.String;
+    source: Schema.Attribute.Enumeration<['system', 'admin', 'import', 'api']> &
+      Schema.Attribute.DefaultTo<'system'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiOrderOrder extends Struct.CollectionTypeSchema {
   collectionName: 'orders';
   info: {
@@ -588,6 +659,52 @@ export interface ApiOrderOrder extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     what_they_ordered: Schema.Attribute.Component<'order.order-item', true> &
       Schema.Attribute.Required;
+  };
+}
+
+export interface ApiPriceHistoryPriceHistory
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'price_histories';
+  info: {
+    description: 'Auto-logged record when a size/color price is updated';
+    displayName: 'Price change';
+    pluralName: 'price-histories';
+    singularName: 'price-history';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    color: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    item_code: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::price-history.price-history'
+    > &
+      Schema.Attribute.Private;
+    price_after: Schema.Attribute.Decimal;
+    price_before: Schema.Attribute.Decimal;
+    price_field: Schema.Attribute.Enumeration<
+      ['price_for_one', 'price_for_bulk']
+    > &
+      Schema.Attribute.Required;
+    product_name: Schema.Attribute.String;
+    product_variant: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::product-variant.product-variant'
+    >;
+    publishedAt: Schema.Attribute.DateTime;
+    reason: Schema.Attribute.Text;
+    size: Schema.Attribute.String;
+    source: Schema.Attribute.Enumeration<['system', 'admin', 'import', 'api']> &
+      Schema.Attribute.DefaultTo<'admin'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
   };
 }
 
@@ -1261,7 +1378,9 @@ declare module '@strapi/strapi' {
       'admin::user': AdminUser;
       'api::category.category': ApiCategoryCategory;
       'api::homepage.homepage': ApiHomepageHomepage;
+      'api::inventory-movement.inventory-movement': ApiInventoryMovementInventoryMovement;
       'api::order.order': ApiOrderOrder;
+      'api::price-history.price-history': ApiPriceHistoryPriceHistory;
       'api::product-variant.product-variant': ApiProductVariantProductVariant;
       'api::product.product': ApiProductProduct;
       'api::review.review': ApiReviewReview;

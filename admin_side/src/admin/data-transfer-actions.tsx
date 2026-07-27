@@ -15,12 +15,15 @@ import {
 import { Download, Upload } from "@strapi/icons";
 
 import { useSelectedEntries } from "./order-selection-store";
+import { isExportOnlyContentType } from "./audit-routes";
 
 const SLUG_TO_CONTENT_TYPE: Record<string, string> = {
   "api::category.category": "categories",
   "api::product.product": "products",
   "api::product-variant.product-variant": "product-variants",
   "api::order.order": "orders",
+  "api::inventory-movement.inventory-movement": "inventory-movements",
+  "api::price-history.price-history": "price-histories",
 };
 
 type Scope = "all" | "filtered" | "selected";
@@ -100,8 +103,23 @@ function exportButtonLabel(scope: Scope) {
 
 function hasActiveFilters(filters: unknown, searchTerm: string) {
   if (searchTerm) return true;
-  if (!filters || typeof filters !== "object") return false;
-  return Object.keys(filters as object).length > 0;
+  const normalized = normalizeFilters(filters);
+  if (!normalized || typeof normalized !== "object") return false;
+  return Object.keys(normalized as object).length > 0;
+}
+
+function normalizeFilters(filters: unknown) {
+  if (filters == null) return undefined;
+  if (typeof filters === "string") {
+    const trimmed = filters.trim();
+    if (!trimmed) return undefined;
+    try {
+      return JSON.parse(trimmed) as unknown;
+    } catch {
+      return undefined;
+    }
+  }
+  return filters;
 }
 
 /**
@@ -125,7 +143,8 @@ export function DataTransferListActions() {
   const [orderSummary, setOrderSummary] = useState<OrderSummary | null>(null);
 
   const searchTerm = typeof query?._q === "string" ? query._q.trim() : "";
-  const filters = query?.filters;
+  const filters = normalizeFilters(query?.filters);
+  const readOnlyExport = isExportOnlyContentType(contentType ?? "");
 
   const scope: Scope = useMemo(() => {
     if (selectedEntries.length > 0) return "selected";
@@ -305,16 +324,18 @@ export function DataTransferListActions() {
         </Typography>
       )}
 
-      <Button
-        size="S"
-        variant="tertiary"
-        startIcon={<Download />}
-        onClick={handleTemplate}
-        loading={busy === "template"}
-        disabled={busy !== null && busy !== "template"}
-      >
-        Template
-      </Button>
+      {!readOnlyExport ? (
+        <Button
+          size="S"
+          variant="tertiary"
+          startIcon={<Download />}
+          onClick={handleTemplate}
+          loading={busy === "template"}
+          disabled={busy !== null && busy !== "template"}
+        >
+          Template
+        </Button>
+      ) : null}
 
       <SingleSelect
         size="S"
@@ -331,30 +352,34 @@ export function DataTransferListActions() {
       <Button
         size="S"
         variant="secondary"
-        startIcon={<Upload />}
+        startIcon={<Download />}
         onClick={handleExport}
         loading={busy === "export"}
         disabled={busy !== null && busy !== "export"}
       >
         {exportButtonLabel(scope)}
       </Button>
-      <Button
-        size="S"
-        variant="secondary"
-        startIcon={<Download />}
-        onClick={handleImportClick}
-        loading={busy === "import"}
-        disabled={busy !== null && busy !== "import"}
-      >
-        Import
-      </Button>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".csv,text/csv"
-        hidden
-        onChange={handleImportFile}
-      />
+      {!readOnlyExport ? (
+        <>
+          <Button
+            size="S"
+            variant="secondary"
+            startIcon={<Upload />}
+            onClick={handleImportClick}
+            loading={busy === "import"}
+            disabled={busy !== null && busy !== "import"}
+          >
+            Import
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            hidden
+            onChange={handleImportFile}
+          />
+        </>
+      ) : null}
     </Flex>
   );
 }

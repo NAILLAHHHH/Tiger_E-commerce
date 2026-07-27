@@ -2,6 +2,11 @@
 
 const { CONTENT_TYPES, isContentTypeKey, roundMoney } = require('./content-types');
 const {
+  findDocuments,
+  normalizeExportOptions,
+  resolveScope,
+} = require('./cm-query');
+const {
   parseBoolean,
   parseCsv,
   parseInteger,
@@ -51,11 +56,12 @@ async function findProductByName(strapi, name) {
 }
 
 async function exportCategories(strapi, options = {}) {
-  const where = buildWhere('categories', options);
-  const categories = await strapi.db.query('api::category.category').findMany({
-    where,
-    orderBy: { list_position: 'asc' },
-  });
+  const categories = await findDocuments(
+    strapi,
+    'categories',
+    normalizeExportOptions(options),
+    { sort: ['list_position:asc'] },
+  );
 
   return categories.map((category) => ({
     name: category.name ?? '',
@@ -65,12 +71,15 @@ async function exportCategories(strapi, options = {}) {
 }
 
 async function exportProducts(strapi, options = {}) {
-  const where = buildWhere('products', options);
-  const products = await strapi.db.query('api::product.product').findMany({
-    where,
-    populate: ['category'],
-    orderBy: { name: 'asc' },
-  });
+  const products = await findDocuments(
+    strapi,
+    'products',
+    normalizeExportOptions(options),
+    {
+      populate: { category: true },
+      sort: ['name:asc'],
+    },
+  );
 
   return products.map((product) => ({
     name: product.name ?? '',
@@ -82,15 +91,62 @@ async function exportProducts(strapi, options = {}) {
   }));
 }
 
+async function exportInventoryMovements(strapi, options = {}) {
+  const rows = await findDocuments(
+    strapi,
+    'inventory-movements',
+    normalizeExportOptions(options),
+    { sort: ['createdAt:asc'] },
+  );
+
+  return rows.map((row) => ({
+    created_at: formatDate(row.createdAt),
+    movement_type: row.movement_type ?? '',
+    item_code: row.item_code ?? '',
+    product_name: row.product_name ?? '',
+    size: row.size ?? '',
+    color: row.color ?? '',
+    quantity_delta: row.quantity_delta ?? 0,
+    quantity_before: row.quantity_before ?? 0,
+    quantity_after: row.quantity_after ?? 0,
+    order_reference: row.order_reference ?? '',
+    source: row.source ?? '',
+    reason: row.reason ?? '',
+  }));
+}
+
+async function exportPriceHistories(strapi, options = {}) {
+  const rows = await findDocuments(
+    strapi,
+    'price-histories',
+    normalizeExportOptions(options),
+    { sort: ['createdAt:asc'] },
+  );
+
+  return rows.map((row) => ({
+    created_at: formatDate(row.createdAt),
+    price_field: row.price_field ?? '',
+    item_code: row.item_code ?? '',
+    product_name: row.product_name ?? '',
+    size: row.size ?? '',
+    color: row.color ?? '',
+    price_before: row.price_before ?? '',
+    price_after: row.price_after ?? '',
+    source: row.source ?? '',
+    reason: row.reason ?? '',
+  }));
+}
+
 async function exportProductVariants(strapi, options = {}) {
-  const where = buildWhere('product-variants', options);
-  const variants = await strapi.db
-    .query('api::product-variant.product-variant')
-    .findMany({
-      where,
-      populate: ['product'],
-      orderBy: { item_code: 'asc' },
-    });
+  const variants = await findDocuments(
+    strapi,
+    'product-variants',
+    normalizeExportOptions(options),
+    {
+      populate: { product: true },
+      sort: ['item_code:asc'],
+    },
+  );
 
   return variants.map((variant) => ({
     item_code: variant.item_code ?? '',
@@ -106,12 +162,15 @@ async function exportProductVariants(strapi, options = {}) {
 }
 
 async function exportOrders(strapi, options = {}) {
-  const where = buildWhere('orders', options);
-  const orders = await strapi.db.query('api::order.order').findMany({
-    where,
-    populate: ['what_they_ordered'],
-    orderBy: { createdAt: 'desc' },
-  });
+  const orders = await findDocuments(
+    strapi,
+    'orders',
+    normalizeExportOptions(options),
+    {
+      populate: { what_they_ordered: true },
+      sort: ['createdAt:desc'],
+    },
+  );
 
   const rows = [];
 
@@ -253,7 +312,11 @@ async function importProducts(strapi, rows) {
 }
 
 async function importProductVariants(strapi, rows) {
+  const { setBulkImportActive } = require('../../../../utils/inventory-log');
   const result = { created: 0, updated: 0, skipped: 0, errors: [] };
+
+  setBulkImportActive(true);
+  try {
 
   for (const [index, row] of rows.entries()) {
     const itemCode = row.item_code?.trim();
@@ -307,6 +370,9 @@ async function importProductVariants(strapi, rows) {
   }
 
   return result;
+  } finally {
+    setBulkImportActive(false);
+  }
 }
 
 function groupOrderRows(rows) {
@@ -454,6 +520,10 @@ module.exports = ({ strapi }) => ({
         return exportProducts(strapi, options);
       case 'product-variants':
         return exportProductVariants(strapi, options);
+      case 'inventory-movements':
+        return exportInventoryMovements(strapi, options);
+      case 'price-histories':
+        return exportPriceHistories(strapi, options);
       case 'orders':
         return exportOrders(strapi, options);
       default:
@@ -567,25 +637,11 @@ module.exports = ({ strapi }) => ({
     }
   },
 
-  async orderSummary({ documentIds, filters, _q } = {}) {
-    const options = { documentIds, filters, _q };
-    const ids = normalizeIds(documentIds);
-
-    let orders;
-
-    if (ids.length > 0) {
-      orders = await strapi.db.query('api::order.order').findMany({
-        where: { documentId: { $in: ids } },
-        select: ['subtotal', 'total', 'documentId'],
-      });
-    } else {
-      const where = buildWhere('orders', options);
-
-      orders = await strapi.db.query('api::order.order').findMany({
-        where,
-        select: ['subtotal', 'total', 'documentId'],
-      });
-    }
+  async orderSummary(options = {}) {
+    const normalized = normalizeExportOptions(options);
+    const orders = await findDocuments(strapi, 'orders', normalized, {
+      fields: ['subtotal', 'total', 'documentId'],
+    });
 
     let totalSubtotal = 0;
     let totalAmount = 0;
@@ -600,92 +656,7 @@ module.exports = ({ strapi }) => ({
       totalSubtotal: roundMoney(totalSubtotal),
       totalAmount: roundMoney(totalAmount),
       currency: 'RWF',
-      scope: resolveScope(options),
+      scope: resolveScope(normalized),
     };
   },
 });
-
-function normalizeIds(documentIds) {
-  return Array.isArray(documentIds)
-    ? documentIds.map(String).filter(Boolean)
-    : [];
-}
-
-function resolveScope({ documentIds, filters, _q } = {}) {
-  if (normalizeIds(documentIds).length > 0) return 'selected';
-  return searchOrFilterScope(filters, _q);
-}
-
-function sanitizeFilters(filters) {
-  if (!filters || typeof filters !== 'object') return null;
-
-  const clone = JSON.parse(JSON.stringify(filters));
-
-  const stripStatus = (node) => {
-    if (!node || typeof node !== 'object') return node;
-    if (Array.isArray(node)) return node.map(stripStatus).filter(Boolean);
-
-    if ('__status' in node) {
-      const { __status, ...rest } = node;
-      return Object.keys(rest).length ? stripStatus(rest) : null;
-    }
-
-    const next = {};
-    for (const [key, value] of Object.entries(node)) {
-      const cleaned = stripStatus(value);
-      if (cleaned != null && !(Array.isArray(cleaned) && cleaned.length === 0)) {
-        next[key] = cleaned;
-      }
-    }
-    return Object.keys(next).length ? next : null;
-  };
-
-  return stripStatus(clone);
-}
-
-const SEARCH_FIELDS = {
-  categories: ['name', 'link_name'],
-  products: ['name', 'description', 'link_name'],
-  'product-variants': ['item_code', 'size', 'color'],
-  orders: ['order_reference', 'customer_name', 'phone', 'delivery_address'],
-};
-
-function buildWhere(contentType, { documentIds, filters, _q } = {}) {
-  const ids = normalizeIds(documentIds);
-  if (ids.length > 0) {
-    return { documentId: { $in: ids } };
-  }
-
-  const where = {};
-  const andFilters = [];
-  const cleaned = sanitizeFilters(filters);
-
-  if (cleaned) {
-    andFilters.push(cleaned);
-  }
-
-  const search = typeof _q === 'string' ? _q.trim() : '';
-  const fields = SEARCH_FIELDS[contentType] ?? [];
-  if (search && fields.length > 0) {
-    andFilters.push({
-      $or: fields.map((field) => ({ [field]: { $containsi: search } })),
-    });
-  }
-
-  if (andFilters.length === 1) {
-    Object.assign(where, andFilters[0]);
-  } else if (andFilters.length > 1) {
-    where.$and = andFilters;
-  }
-
-  return where;
-}
-
-function searchOrFilterScope(filters, _q) {
-  const hasSearch = typeof _q === 'string' && _q.trim().length > 0;
-  const cleaned = sanitizeFilters(filters);
-  const hasFilters = Boolean(cleaned);
-
-  if (hasSearch || hasFilters) return 'filtered';
-  return 'all';
-}

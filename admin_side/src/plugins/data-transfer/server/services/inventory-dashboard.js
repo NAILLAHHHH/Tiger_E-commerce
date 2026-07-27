@@ -65,6 +65,7 @@ function emptyPeriod() {
     productsCreated: 0,
     variantsCreated: 0,
     stockUpdated: 0,
+    priceUpdated: 0,
   };
 }
 
@@ -93,6 +94,17 @@ function dayLabel(date = new Date()) {
   });
 }
 
+function formatPriceValue(value) {
+  if (value == null || value === '') return '—';
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '—';
+  return `RWF ${Math.round(n).toLocaleString('en-US')}`;
+}
+
+function priceFieldLabel(field) {
+  return field === 'price_for_bulk' ? 'Bulk price' : 'Retail price';
+}
+
 function orderUnits(order) {
   const lines = Array.isArray(order.what_they_ordered)
     ? order.what_they_ordered
@@ -113,7 +125,7 @@ module.exports = ({ strapi }) => ({
     const since7 = daysAgo(7);
     const since30 = daysAgo(30);
 
-    const [variants, products, orders] = await Promise.all([
+    const [variants, products, orders, movements, priceChanges] = await Promise.all([
       strapi.db.query('api::product-variant.product-variant').findMany({
         populate: ['product'],
         orderBy: { how_many_left: 'asc' },
@@ -132,6 +144,14 @@ module.exports = ({ strapi }) => ({
       strapi.db.query('api::order.order').findMany({
         populate: ['what_they_ordered'],
         orderBy: { createdAt: 'desc' },
+      }),
+      strapi.db.query('api::inventory-movement.inventory-movement').findMany({
+        orderBy: { createdAt: 'desc' },
+        limit: 5000,
+      }),
+      strapi.db.query('api::price-history.price-history').findMany({
+        orderBy: { createdAt: 'desc' },
+        limit: 5000,
       }),
     ]);
 
@@ -326,31 +346,90 @@ module.exports = ({ strapi }) => ({
       }
       if (createdWeek) reports.week.variantsCreated += 1;
       if (createdMonth) reports.month.variantsCreated += 1;
+    }
 
-      if (updatedToday) {
-        reports.today.stockUpdated += 1;
+    function movementLabel(type) {
+      switch (type) {
+        case 'sale':
+          return 'Sale';
+        case 'cancel_restore':
+          return 'Stock restored';
+        case 'restock':
+          return 'Restock';
+        case 'import':
+          return 'Import';
+        case 'initial':
+          return 'Initial stock';
+        case 'count':
+          return 'Stock count';
+        default:
+          return 'Stock adjusted';
+      }
+    }
+
+    for (const movement of movements) {
+      const createdAt = movement.createdAt ? new Date(movement.createdAt) : null;
+      const isToday = inRange(createdAt, todayStart);
+      const isWeek = inRange(createdAt, weekStart);
+      const isMonth = inRange(createdAt, monthStart);
+      const delta = Number(movement.quantity_delta ?? 0);
+      const sign = delta > 0 ? '+' : '';
+
+      reports.all.stockUpdated += 1;
+      if (isToday) reports.today.stockUpdated += 1;
+      if (isWeek) reports.week.stockUpdated += 1;
+      if (isMonth) reports.month.stockUpdated += 1;
+
+      if (isToday) {
         todayActivity.push({
           type: 'stock_updated',
-          at: variant.updatedAt,
-          title: productLabel(variant.product) || variant.item_code || 'Stock updated',
+          at: movement.createdAt,
+          title:
+            movement.product_name ||
+            movement.item_code ||
+            movementLabel(movement.movement_type),
           detail: [
-            variant.size,
-            variant.color,
-            `now ${Math.max(0, Number(variant.how_many_left) || 0)} left`,
+            movementLabel(movement.movement_type),
+            movement.size,
+            movement.color,
+            `${sign}${delta} → ${Math.max(0, Number(movement.quantity_after) || 0)} left`,
+            movement.order_reference || movement.reason || '',
           ]
             .filter(Boolean)
             .join(' · '),
-          documentId: variant.documentId,
+          documentId: movement.documentId,
         });
       }
-      if (updatedWeek) reports.week.stockUpdated += 1;
-      if (updatedMonth) reports.month.stockUpdated += 1;
-      if (
-        variant.updatedAt &&
-        variant.createdAt &&
-        String(variant.updatedAt) !== String(variant.createdAt)
-      ) {
-        reports.all.stockUpdated += 1;
+    }
+
+    for (const change of priceChanges) {
+      const createdAt = change.createdAt ? new Date(change.createdAt) : null;
+      const isToday = inRange(createdAt, todayStart);
+      const isWeek = inRange(createdAt, weekStart);
+      const isMonth = inRange(createdAt, monthStart);
+
+      reports.all.priceUpdated += 1;
+      if (isToday) reports.today.priceUpdated += 1;
+      if (isWeek) reports.week.priceUpdated += 1;
+      if (isMonth) reports.month.priceUpdated += 1;
+
+      if (isToday) {
+        todayActivity.push({
+          type: 'price_updated',
+          at: change.createdAt,
+          title: change.product_name || change.item_code || 'Price change',
+          detail: [
+            priceFieldLabel(change.price_field),
+            change.size,
+            change.color,
+            change.item_code,
+            `${formatPriceValue(change.price_before)} → ${formatPriceValue(change.price_after)}`,
+            change.reason || '',
+          ]
+            .filter(Boolean)
+            .join(' · '),
+          documentId: change.documentId,
+        });
       }
     }
 

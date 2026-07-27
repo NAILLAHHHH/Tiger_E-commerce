@@ -65,4 +65,20 @@ module.exports = [
       policies: [],
     },
   },
+  {
+    method: 'GET',
+    path: '/history/inventory',
+    handler: 'controller.inventoryHistory',
+    config: {
+      policies: [],
+    },
+  },
+  {
+    method: 'POST',
+    path: '/inventory/restock',
+    handler: 'controller.restockInventory',
+    config: {
+      policies: [],
+    },
+  },
 ];

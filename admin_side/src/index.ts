@@ -7,10 +7,20 @@ import {
   seedPromoBanners,
 } from '../data/seed-homepage';
 import { applyStaffAdminLabels } from './config/apply-staff-labels';
+import {
+  applyReadOnlyAuditTypes,
+  restrictAuditLogPermissions,
+} from './config/apply-read-only-audit-types';
 import { repairCatalogFromSeed } from './config/repair-catalog';
 import { uploadCatalogImage } from './utils/seed-images';
 import { ensureLinkName } from './utils/link-name';
 import { syncOrderStock } from './api/order/services/order-stock';
+import {
+  isBulkImportActive,
+  isInventoryLoggingSuppressed,
+  logInventoryMovement,
+  logVariantPriceChanges,
+} from './utils/inventory-log';
 import {
   isStockRelevantUpdate,
   loadOrderByDocumentId,
@@ -60,17 +70,10 @@ async function setPublicPermissions(strapi: Core.Strapi) {
       .query('plugin::users-permissions.permission')
       .findOne({ where: { action, role: publicRole.id } });
 
-    if (existing) {
-      if (!existing.enabled) {
-        await strapi.db
-          .query('plugin::users-permissions.permission')
-          .update({ where: { id: existing.id }, data: { enabled: true } });
-      }
-      continue;
-    }
+    if (existing) continue;
 
     await strapi.db.query('plugin::users-permissions.permission').create({
-      data: { action, role: publicRole.id, enabled: true },
+      data: { action, role: publicRole.id },
     });
   }
 }
@@ -616,12 +619,111 @@ function registerOrderDocumentMiddleware(strapi: Core.Strapi) {
 
     if (!order) return result;
 
-    const stockPatch = await syncOrderStock(strapi, previous, order);
-    if (stockPatch) {
-      await strapi.db.query('api::order.order').update({
-        where: { id: orderId },
-        data: stockPatch,
-      });
+    try {
+      const stockPatch = await syncOrderStock(strapi, previous, order);
+      if (stockPatch) {
+        await strapi.db.query('api::order.order').update({
+          where: { id: orderId },
+          data: stockPatch,
+        });
+      }
+    } catch (err) {
+      strapi.log.error(
+        `Order ${orderId}: stock sync failed after ${ctx.action}`,
+        err,
+      );
+    }
+
+    return result;
+  });
+}
+
+/** Log stock and price changes when staff edit size/color in admin or via import. */
+function registerVariantDocumentMiddleware(strapi: Core.Strapi) {
+  strapi.documents.use(async (ctx, next) => {
+    if (ctx.uid !== 'api::product-variant.product-variant') {
+      return next();
+    }
+
+    if (ctx.action !== 'create' && ctx.action !== 'update') {
+      return next();
+    }
+
+    const params = ctx.params as {
+      data?: Record<string, unknown>;
+      documentId?: string;
+    };
+
+    let previous: Record<string, unknown> | null = null;
+    if (ctx.action === 'update' && params.documentId) {
+      previous = (await strapi.db
+        .query('api::product-variant.product-variant')
+        .findOne({
+          where: { documentId: params.documentId },
+          populate: ['product'],
+        })) as Record<string, unknown> | null;
+    }
+
+    const result = await next();
+
+    if (isInventoryLoggingSuppressed()) {
+      return result;
+    }
+
+    const variantId =
+      (result as { id?: number } | undefined)?.id ??
+      (previous?.id as number | undefined);
+
+    if (!variantId) return result;
+
+    const fresh = (await strapi.db
+      .query('api::product-variant.product-variant')
+      .findOne({
+        where: { id: variantId },
+        populate: ['product'],
+      })) as Record<string, unknown> | null;
+
+    if (!fresh) return result;
+
+    if (previous) {
+      const before = Number(previous.how_many_left ?? 0);
+      const after = Number(fresh.how_many_left ?? 0);
+
+      if (before !== after) {
+        const movementType = isBulkImportActive()
+          ? 'import'
+          : after > before
+            ? 'restock'
+            : 'adjustment';
+        await logInventoryMovement(strapi, {
+          variant: fresh,
+          movementType,
+          quantityBefore: before,
+          quantityAfter: after,
+          reason: isBulkImportActive()
+            ? 'Updated via CSV import'
+            : after > before
+              ? 'Stock added in admin'
+              : 'Stock removed in admin',
+          source: isBulkImportActive() ? 'import' : 'admin',
+        });
+      }
+
+      await logVariantPriceChanges(strapi, previous, fresh);
+    } else if (ctx.action === 'create') {
+      const initial = Number(fresh.how_many_left ?? 0);
+      if (initial > 0) {
+        await logInventoryMovement(strapi, {
+          variant: fresh,
+          movementType: 'initial',
+          quantityBefore: 0,
+          quantityAfter: initial,
+          reason: isBulkImportActive()
+            ? 'Imported with initial stock'
+            : 'Initial stock when size/color was created',
+          source: isBulkImportActive() ? 'import' : 'admin',
+        });
+      }
     }
 
     return result;
@@ -632,6 +734,7 @@ export default {
   register({ strapi }: { strapi: Core.Strapi }) {
     registerCatalogDocumentMiddleware(strapi);
     registerOrderDocumentMiddleware(strapi);
+    registerVariantDocumentMiddleware(strapi);
   },
 
   async bootstrap({ strapi }: { strapi: Core.Strapi }) {
@@ -650,5 +753,7 @@ export default {
     await publishLegacyDraftProducts(strapi);
     await attachMissingPhotos(strapi);
     await applyStaffAdminLabels(strapi);
+    await restrictAuditLogPermissions(strapi);
+    await applyReadOnlyAuditTypes(strapi);
   },
 };

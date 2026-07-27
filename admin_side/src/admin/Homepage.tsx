@@ -77,6 +77,7 @@ type PeriodReport = {
   productsCreated: number;
   variantsCreated: number;
   stockUpdated: number;
+  priceUpdated: number;
 };
 
 type TodayActivity = {
@@ -164,6 +165,7 @@ type InventoryDashboard = {
 type ReportKey = keyof InventoryDashboard["reports"];
 
 const REPORT_KEYS: ReportKey[] = ["today", "week", "month", "all"];
+const TODAY_ACTIVITY_VISIBLE = 5;
 
 const shortcuts = [
   {
@@ -189,6 +191,12 @@ const shortcuts = [
     subtitle: "Shop sections and display order",
     to: "/content-manager/collection-types/api::category.category",
     icon: GridFour,
+  },
+  {
+    title: "Stock history",
+    subtitle: "Movements, restocks, price changes, and exports",
+    to: "/inventory-history",
+    icon: Calendar,
   },
   {
     title: "Orders",
@@ -250,7 +258,11 @@ type Tone =
   | "alternative"
   | "neutral";
 
-type IconType = ComponentType<{ fill?: string; width?: string; height?: string }>;
+type IconType = ComponentType<{
+  fill?: string;
+  width?: string | number;
+  height?: string | number;
+}>;
 
 function activityTone(type: string): Tone {
   switch (type) {
@@ -264,6 +276,8 @@ function activityTone(type: string): Tone {
       return "alternative";
     case "stock_updated":
       return "warning";
+    case "price_updated":
+      return "primary";
     default:
       return "neutral";
   }
@@ -281,6 +295,8 @@ function activityIcon(type: string): IconType {
       return Stack;
     case "stock_updated":
       return Pencil;
+    case "price_updated":
+      return Crown;
     default:
       return BulletList;
   }
@@ -298,6 +314,8 @@ function activityLabel(type: string) {
       return "Size/color";
     case "stock_updated":
       return "Stock";
+    case "price_updated":
+      return "Price";
     default:
       return "Change";
   }
@@ -623,6 +641,7 @@ function InventoryDashboardSection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [reportKey, setReportKey] = useState<ReportKey>("today");
+  const [activityExpanded, setActivityExpanded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -688,6 +707,7 @@ function InventoryDashboardSection() {
       productsCreated: 0,
       variantsCreated: 0,
       stockUpdated: 0,
+      priceUpdated: 0,
     },
     week: {
       key: "week",
@@ -700,6 +720,7 @@ function InventoryDashboardSection() {
       productsCreated: 0,
       variantsCreated: 0,
       stockUpdated: 0,
+      priceUpdated: 0,
     },
     month: {
       key: "month",
@@ -712,6 +733,7 @@ function InventoryDashboardSection() {
       productsCreated: 0,
       variantsCreated: 0,
       stockUpdated: 0,
+      priceUpdated: 0,
     },
     all: {
       key: "all",
@@ -724,6 +746,7 @@ function InventoryDashboardSection() {
       productsCreated: 0,
       variantsCreated: 0,
       stockUpdated: 0,
+      priceUpdated: 0,
     },
   };
   const today = data.today ?? {
@@ -859,9 +882,12 @@ function InventoryDashboardSection() {
             <StatChip
               label="Catalog changes"
               value={String(
-                report.productsCreated + report.variantsCreated + report.stockUpdated,
+                report.productsCreated +
+                  report.variantsCreated +
+                  report.stockUpdated +
+                  (report.priceUpdated ?? 0),
               )}
-              hint={`${report.productsCreated} products · ${report.variantsCreated} sizes · ${report.stockUpdated} stock edits`}
+              hint={`${report.productsCreated} products · ${report.variantsCreated} sizes · ${report.stockUpdated} stock · ${report.priceUpdated ?? 0} prices`}
               icon={Pencil}
               tone="alternative"
             />
@@ -966,7 +992,8 @@ function InventoryDashboardSection() {
                     >
                       {today.productsCreated +
                         today.variantsCreated +
-                        today.stockUpdated}
+                        today.stockUpdated +
+                        (today.priceUpdated ?? 0)}
                     </Typography>
                   </Box>
                 </Grid.Item>
@@ -974,7 +1001,8 @@ function InventoryDashboardSection() {
 
               <Typography variant="pi" textColor="neutral500">
                 {today.productsCreated} products added · {today.variantsCreated}{" "}
-                size/color rows added · {today.stockUpdated} stock edits
+                size/color rows added · {today.stockUpdated} stock edits ·{" "}
+                {today.priceUpdated ?? 0} price changes
                 {today.cancelled > 0 ? ` · ${today.cancelled} cancelled` : ""}
               </Typography>
             </Flex>
@@ -984,15 +1012,18 @@ function InventoryDashboardSection() {
         <Grid.Item col={7} xs={12}>
           <Panel
             title="What happened today"
-            subtitle="Orders, stock edits, and catalog changes for this day"
+            subtitle="Orders, stock edits, price changes, and catalog updates for this day"
             icon={BulletList}
             tone="alternative"
           >
             {!today.activity || today.activity.length === 0 ? (
-              <EmptyRow message="Nothing recorded for today yet. New orders and stock edits will show up here." />
+              <EmptyRow message="Nothing recorded for today yet. New orders, stock edits, and price changes will show up here." />
             ) : (
               <Flex direction="column" alignItems="stretch" gap={1}>
-                {today.activity.map((item, index) => {
+                {(activityExpanded
+                  ? today.activity
+                  : today.activity.slice(0, TODAY_ACTIVITY_VISIBLE)
+                ).map((item, index) => {
                   const Icon = activityIcon(item.type);
                   return (
                     <ListRow
@@ -1044,6 +1075,19 @@ function InventoryDashboardSection() {
                     </ListRow>
                   );
                 })}
+                {today.activity.length > TODAY_ACTIVITY_VISIBLE ? (
+                  <Box paddingTop={1}>
+                    <Button
+                      size="S"
+                      variant="tertiary"
+                      onClick={() => setActivityExpanded((expanded) => !expanded)}
+                    >
+                      {activityExpanded
+                        ? "See less"
+                        : `See more (${today.activity.length - TODAY_ACTIVITY_VISIBLE} more)`}
+                    </Button>
+                  </Box>
+                ) : null}
               </Flex>
             )}
           </Panel>

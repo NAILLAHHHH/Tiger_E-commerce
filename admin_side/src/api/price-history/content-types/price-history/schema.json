@@ -1,0 +1,54 @@
+{
+  "kind": "collectionType",
+  "collectionName": "price_histories",
+  "info": {
+    "singularName": "price-history",
+    "pluralName": "price-histories",
+    "displayName": "Price change",
+    "description": "Auto-logged record when a size/color price is updated"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "price_field": {
+      "type": "enumeration",
+      "enum": ["price_for_one", "price_for_bulk"],
+      "required": true,
+      "description": "Which price was changed"
+    },
+    "price_before": {
+      "type": "decimal",
+      "description": "Previous price (RWF), empty if none"
+    },
+    "price_after": {
+      "type": "decimal",
+      "description": "New price (RWF), empty if removed"
+    },
+    "item_code": {
+      "type": "string"
+    },
+    "size": {
+      "type": "string"
+    },
+    "color": {
+      "type": "string"
+    },
+    "product_name": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "text"
+    },
+    "source": {
+      "type": "enumeration",
+      "enum": ["system", "admin", "import", "api"],
+      "default": "admin"
+    },
+    "product_variant": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::product-variant.product-variant"
+    }
+  }
+}
