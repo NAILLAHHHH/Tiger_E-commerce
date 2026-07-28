@@ -5,7 +5,7 @@ import { whatsappUrl } from "@/lib/contact";
 export default function Footer() {
   return (
     <footer className="mt-auto border-t border-dark-4 bg-dark text-gray-3">
-      <div className="container-custom grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-[1.4fr_0.8fr_1.2fr] lg:gap-12 lg:py-14">
+      <div className="container-custom grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-[1.4fr_0.8fr_0.8fr_1.2fr] lg:gap-12 lg:py-14">
         <div className="max-w-sm">
           <Logo height={64} onDark />
           <p className="mt-5 text-sm leading-relaxed text-meta-4">
@@ -37,6 +37,30 @@ export default function Footer() {
 
         <div>
           <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-white">
+            Legal
+          </h4>
+          <ul className="space-y-2.5 text-sm">
+            <li>
+              <Link
+                href="/privacy"
+                className="transition-colors hover:text-white"
+              >
+                Privacy Policy
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/data-usage"
+                className="transition-colors hover:text-white"
+              >
+                Data Usage
+              </Link>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-white">
             Get in touch
           </h4>
           <p className="text-sm leading-relaxed text-meta-4">
@@ -55,8 +79,20 @@ export default function Footer() {
       </div>
 
       <div className="border-t border-dark-4 py-5">
-        <div className="container-custom text-center text-xs text-meta-5 sm:text-left">
-          <p>© {new Date().getFullYear()} TygaMart. All rights reserved.</p>
+        <div className="container-custom flex flex-col items-center gap-3 text-xs text-meta-5 sm:flex-row sm:justify-between">
+          <p>© {new Date().getFullYear()} TygaStyle. All rights reserved.</p>
+          <div className="flex items-center gap-3">
+            <Link href="/privacy" className="transition-colors hover:text-white">
+              Privacy Policy
+            </Link>
+            <span aria-hidden="true">·</span>
+            <Link
+              href="/data-usage"
+              className="transition-colors hover:text-white"
+            >
+              Data Usage
+            </Link>
+          </div>
         </div>
       </div>
     </footer>
