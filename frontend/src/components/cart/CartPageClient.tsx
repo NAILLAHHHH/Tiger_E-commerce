@@ -38,6 +38,7 @@ export default function CartPageClient() {
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
+  const [dataUsageAgreed, setDataUsageAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
@@ -51,6 +52,11 @@ export default function CartPageClient() {
     e.preventDefault();
     setError(null);
     setPhoneError(null);
+
+    if (!dataUsageAgreed) {
+      setError("Please agree to our Privacy Policy and Data Usage information.");
+      return;
+    }
 
     if (!isValidPhoneForCountry(phoneCountry.code, phoneNational)) {
       setPhoneError(
@@ -351,12 +357,43 @@ export default function CartPageClient() {
                 className="mt-1 w-full rounded-lg border border-gray-3 px-3 py-2 text-sm"
               />
             </div>
+            <label className="flex cursor-pointer items-start gap-2.5 pt-1">
+              <input
+                type="checkbox"
+                required
+                checked={dataUsageAgreed}
+                onChange={(e) => {
+                  setDataUsageAgreed(e.target.checked);
+                  if (e.target.checked) setError(null);
+                }}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-3 text-brand focus:ring-brand"
+              />
+              <span className="text-xs leading-relaxed text-muted">
+                I agree to the{" "}
+                <Link
+                  href="/privacy"
+                  target="_blank"
+                  className="font-medium text-brand hover:underline"
+                >
+                  Privacy Policy
+                </Link>{" "}
+                and understand how my information will be used, as described in{" "}
+                <Link
+                  href="/data-usage"
+                  target="_blank"
+                  className="font-medium text-brand hover:underline"
+                >
+                  Data Usage
+                </Link>
+                .
+              </span>
+            </label>
             {error && (
               <p className="text-xs text-red-600">{error}</p>
             )}
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !dataUsageAgreed}
               className="btn-primary w-full py-3 disabled:opacity-60"
             >
               {submitting ? "Submitting…" : "Submit order"}
