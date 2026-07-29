@@ -41,7 +41,6 @@ const SEARCHABLE_FIELDS: Record<string, string[]> = {
     'product_name',
     'size',
     'color',
-    'order_reference',
     'reason',
     'source',
   ],

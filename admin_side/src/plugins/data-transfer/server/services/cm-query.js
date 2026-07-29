@@ -10,7 +10,6 @@ const SEARCH_FIELDS = {
     'product_name',
     'size',
     'color',
-    'order_reference',
     'reason',
     'source',
   ],
@@ -185,6 +184,10 @@ function buildWhere(contentTypeKey, options = {}) {
       options.movement_type.trim()
     ) {
       andFilters.push({ movement_type: options.movement_type.trim() });
+    } else if (contentTypeKey === 'inventory-movements') {
+      andFilters.push({
+        movement_type: { $notIn: ['sale', 'cancel_restore'] },
+      });
     }
 
     if (typeof options.item_code === 'string' && options.item_code.trim()) {
