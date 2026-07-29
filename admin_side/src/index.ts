@@ -401,6 +401,26 @@ async function migrateOrderStatuses(strapi: Core.Strapi) {
   }
 }
 
+/** Sales are tracked via Orders — remove legacy order-linked stock movement rows. */
+async function purgeOrderLinkedStockMovements(strapi: Core.Strapi) {
+  const deleted = await strapi.db
+    .query('api::inventory-movement.inventory-movement')
+    .deleteMany({
+      where: {
+        movement_type: { $in: ['sale', 'cancel_restore'] },
+      },
+    });
+
+  const count =
+    typeof deleted === 'number'
+      ? deleted
+      : ((deleted as { count?: number } | null)?.count ?? 0);
+
+  if (count > 0) {
+    strapi.log.info(`Removed ${count} order-linked stock movement row(s)`);
+  }
+}
+
 /** If products only had embedded size/color components, copy them into Size & color entries. */
 async function migrateEmbeddedSizeColorsToCollection(strapi: Core.Strapi) {
   const mediaId = (value: unknown): number | null => {
@@ -791,6 +811,7 @@ export default {
 
     await migrateToHumanFields(strapi);
     await migrateOrderStatuses(strapi);
+    await purgeOrderLinkedStockMovements(strapi);
     await migrateEmbeddedSizeColorsToCollection(strapi);
     await repairCatalogFromSeed(strapi);
     await publishLegacyDraftCategories(strapi);

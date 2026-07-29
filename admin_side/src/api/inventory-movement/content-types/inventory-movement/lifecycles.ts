@@ -5,7 +5,7 @@ function rejectMutation() {
   if (isSystemAuditWrite()) return;
 
   throw new errors.ForbiddenError(
-    'Stock movements are read-only. They are recorded automatically when stock changes.',
+    'Stock movements are read-only. They are recorded automatically for restocks and adjustments.',
   );
 }
 
