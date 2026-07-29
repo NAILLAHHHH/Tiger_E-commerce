@@ -56,8 +56,8 @@ type MovementRow = {
   id: number;
   movement_type: string;
   quantity_delta: number;
-  quantity_before: number;
-  quantity_after: number;
+  quantity_before: number | null;
+  quantity_after: number | null;
   item_code: string;
   product_name: string;
   size: string;
@@ -117,8 +117,8 @@ type HistoryData = {
 };
 
 const MOVEMENT_LABELS: Record<string, string> = {
-  sale: "Sales",
-  cancel_restore: "Cancellations restored",
+  sale: "Sale",
+  cancel_restore: "Cancellation restored",
   restock: "Restocks",
   adjustment: "Adjustments",
   count: "Stock counts",
@@ -272,6 +272,11 @@ function movementTone(type: string): Tone {
     default:
       return "neutral";
   }
+}
+
+function formatStockLevel(before: number | null, after: number | null) {
+  if (before == null || after == null) return "—";
+  return `${before} → ${after}`;
 }
 
 function formatWhen(value: string | null) {
@@ -610,7 +615,7 @@ function ActivityLogTable({
                     </Td>
                     <Td>
                       <Typography variant="pi" textColor="neutral600">
-                        {row.quantity_before} → {row.quantity_after}
+                        {formatStockLevel(row.quantity_before, row.quantity_after)}
                       </Typography>
                     </Td>
                     <Td>
@@ -803,7 +808,7 @@ export function InventoryHistory() {
                 Inventory history
               </Typography>
               <Typography variant="pi" textColor="neutral600" style={{ marginTop: 4 }}>
-                Track stock movements and price changes over time.
+                Track stock movements and price changes. Sales appear here from Orders.
               </Typography>
             </Box>
             <Flex gap={2} wrap="wrap">
