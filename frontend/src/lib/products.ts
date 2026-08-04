@@ -14,8 +14,14 @@ import {
   PUBLISHED_CATEGORIES,
   PUBLISHED_PRODUCTS,
   strapiList,
+  VARIANT_POPULATE,
+  type StrapiEntity,
 } from "@/lib/strapi/client";
-import { mapStrapiCategory, mapStrapiProduct } from "@/lib/strapi/mappers";
+import {
+  mapStrapiCategory,
+  mapStrapiProduct,
+  mergeProductVariants,
+} from "@/lib/strapi/mappers";
 import { productSupportsBulk, roundMoney } from "@/lib/pricing";
 import { createClient } from "@/lib/supabase/server";
 import type { Category, Product } from "@/types/database";
@@ -166,12 +172,51 @@ function filterMockProducts(options?: {
   return items;
 }
 
+function productDocumentId(entity: StrapiEntity): string {
+  return String(entity.documentId ?? entity.id ?? "");
+}
+
+function indexVariantsByProduct(variants: StrapiEntity[]): Map<string, StrapiEntity[]> {
+  const byProduct = new Map<string, StrapiEntity[]>();
+
+  for (const variant of variants) {
+    const productRef = variant.product as StrapiEntity | null | undefined;
+    const productId = productDocumentId(productRef ?? {});
+    if (!productId) continue;
+
+    const list = byProduct.get(productId) ?? [];
+    list.push(variant);
+    byProduct.set(productId, list);
+  }
+
+  return byProduct;
+}
+
+const fetchStrapiVariants = cache(async (): Promise<StrapiEntity[]> =>
+  strapiList(
+    "product-variants",
+    `${VARIANT_POPULATE}&pagination[pageSize]=500`,
+  ),
+);
+
 const fetchStrapiProducts = cache(async (): Promise<Product[]> => {
-  const rows = await strapiList(
-    "products",
-    `${PUBLISHED_PRODUCTS}&${PRODUCT_POPULATE}&pagination[pageSize]=100`,
-  );
-  return rows.map(mapStrapiProduct);
+  const [rows, variants] = await Promise.all([
+    strapiList(
+      "products",
+      `${PUBLISHED_PRODUCTS}&${PRODUCT_POPULATE}&pagination[pageSize]=100`,
+    ),
+    fetchStrapiVariants(),
+  ]);
+
+  const variantsByProduct = indexVariantsByProduct(variants);
+
+  return rows.map((row) => {
+    const merged = mergeProductVariants(
+      row,
+      variantsByProduct.get(productDocumentId(row)) ?? [],
+    );
+    return mapStrapiProduct(merged);
+  });
 });
 
 const fetchStrapiCategories = cache(async (): Promise<Category[]> => {
@@ -252,7 +297,17 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
         `${PUBLISHED_PRODUCTS}&filters[link_name][$eq]=${encodeURIComponent(slug)}&${PRODUCT_POPULATE}`,
       );
       const product = rows[0];
-      return product ? mapStrapiProduct(product) : null;
+      if (!product) return null;
+
+      const productId = productDocumentId(product);
+      const variants = productId
+        ? await strapiList(
+            "product-variants",
+            `${VARIANT_POPULATE}&filters[product][documentId][$eq]=${encodeURIComponent(productId)}&pagination[pageSize]=100`,
+          )
+        : [];
+
+      return mapStrapiProduct(mergeProductVariants(product, variants));
     } catch {
       return getMockProductBySlug(slug);
     }

@@ -62,6 +62,9 @@ export async function strapiCreate<T extends StrapiEntity>(
 export const PRODUCT_POPULATE =
   "populate[category]=true&populate[photo]=true&populate[video]=true&populate[sizes_and_colors][populate][photo]=true&populate[sizes_and_colors][populate][color_photos]=true";
 
+export const VARIANT_POPULATE =
+  "populate[photo]=true&populate[color_photos]=true&populate[product]=true";
+
 /** Only return published products — drafts stay hidden from the storefront. */
 export const PUBLISHED_PRODUCTS = "status=published";
 
