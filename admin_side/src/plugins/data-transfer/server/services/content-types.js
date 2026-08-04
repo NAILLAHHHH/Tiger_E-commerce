@@ -83,7 +83,7 @@ const CONTENT_TYPES = {
     key: 'inventory-movements',
     label: 'Stock movements',
     description:
-      'Audit log of every stock change — sales, restocks, and adjustments',
+      'Audit log of manual stock changes — restocks and adjustments (sales are tracked via Orders)',
     exportHeaders: [
       'created_at',
       'movement_type',
@@ -94,7 +94,6 @@ const CONTENT_TYPES = {
       'quantity_delta',
       'quantity_before',
       'quantity_after',
-      'order_reference',
       'source',
       'reason',
     ],

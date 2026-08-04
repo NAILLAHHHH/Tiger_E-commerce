@@ -202,11 +202,6 @@
     "quantity_after": { "label": "After", "editable": false },
     "item_code": { "label": "Product code", "editable": false },
     "product_name": { "label": "Product", "editable": false },
-    "order_reference": {
-      "label": "Order ref",
-      "description": "Order number only — full order stays under Orders",
-      "editable": false
-    },
     "reason": { "label": "Note", "editable": false },
     "source": { "label": "Source", "editable": false },
     "product_variant": { "label": "Size & color row", "editable": false }

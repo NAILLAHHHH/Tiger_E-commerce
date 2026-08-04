@@ -1,8 +1,6 @@
 import type { Core } from '@strapi/strapi';
 
 export const MOVEMENT_TYPES = [
-  'sale',
-  'cancel_restore',
   'restock',
   'adjustment',
   'import',
@@ -91,7 +89,6 @@ export async function logInventoryMovement(
     movementType: MovementType;
     quantityBefore: number;
     quantityAfter: number;
-    orderReference?: string | null;
     reason?: string | null;
     source?: LogSource;
   },
@@ -114,7 +111,6 @@ export async function logInventoryMovement(
         size: opts.variant.size ?? '',
         color: opts.variant.color ?? '',
         product_name: productLabel(opts.variant.product),
-        order_reference: opts.orderReference ?? null,
         reason: opts.reason ?? null,
         source: opts.source ?? 'system',
         product_variant: opts.variant.id ?? null,

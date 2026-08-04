@@ -5,7 +5,7 @@
     "singularName": "inventory-movement",
     "pluralName": "inventory-movements",
     "displayName": "Stock movement",
-    "description": "Auto-logged record every time stock changes — sales, restocks, adjustments"
+    "description": "Auto-logged record when stock changes manually — restocks, adjustments, imports (sales are tracked via Orders)"
   },
   "options": {
     "draftAndPublish": false
@@ -14,8 +14,6 @@
     "movement_type": {
       "type": "enumeration",
       "enum": [
-        "sale",
-        "cancel_restore",
         "restock",
         "adjustment",
         "import",
@@ -55,10 +53,6 @@
     "product_name": {
       "type": "string",
       "description": "Product name at time of movement"
-    },
-    "order_reference": {
-      "type": "string",
-      "description": "Order number reference only (e.g. TW-20260619-1234) — not a full order copy"
     },
     "reason": {
       "type": "text",

@@ -554,7 +554,7 @@ export interface ApiInventoryMovementInventoryMovement
   extends Struct.CollectionTypeSchema {
   collectionName: 'inventory_movements';
   info: {
-    description: 'Auto-logged record every time stock changes \u2014 sales, restocks, adjustments';
+    description: 'Auto-logged record when stock changes manually \u2014 restocks, adjustments, imports (sales are tracked via Orders)';
     displayName: 'Stock movement';
     pluralName: 'inventory-movements';
     singularName: 'inventory-movement';
@@ -575,18 +575,9 @@ export interface ApiInventoryMovementInventoryMovement
     > &
       Schema.Attribute.Private;
     movement_type: Schema.Attribute.Enumeration<
-      [
-        'sale',
-        'cancel_restore',
-        'restock',
-        'adjustment',
-        'import',
-        'initial',
-        'count',
-      ]
+      ['restock', 'adjustment', 'import', 'initial', 'count']
     > &
       Schema.Attribute.Required;
-    order_reference: Schema.Attribute.String;
     product_name: Schema.Attribute.String;
     product_variant: Schema.Attribute.Relation<
       'manyToOne',

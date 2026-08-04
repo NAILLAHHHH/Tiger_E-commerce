@@ -99,7 +99,9 @@ async function exportInventoryMovements(strapi, options = {}) {
     { sort: ['createdAt:asc'] },
   );
 
-  return rows.map((row) => ({
+  return rows
+    .filter((row) => !['sale', 'cancel_restore'].includes(row.movement_type))
+    .map((row) => ({
     created_at: formatDate(row.createdAt),
     movement_type: row.movement_type ?? '',
     item_code: row.item_code ?? '',
@@ -109,7 +111,6 @@ async function exportInventoryMovements(strapi, options = {}) {
     quantity_delta: row.quantity_delta ?? 0,
     quantity_before: row.quantity_before ?? 0,
     quantity_after: row.quantity_after ?? 0,
-    order_reference: row.order_reference ?? '',
     source: row.source ?? '',
     reason: row.reason ?? '',
   }));

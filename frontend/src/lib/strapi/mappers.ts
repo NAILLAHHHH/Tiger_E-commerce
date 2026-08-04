@@ -78,6 +78,33 @@ function mapCategory(entity: StrapiEntity): Category {
   };
 }
 
+/** Strapi 5 may return relations as arrays or { data: [...] } wrappers. */
+export function normalizeStrapiRelationList(value: unknown): StrapiEntity[] {
+  if (Array.isArray(value)) return value as StrapiEntity[];
+  if (value && typeof value === "object" && "data" in value) {
+    const data = (value as { data: unknown }).data;
+    if (Array.isArray(data)) return data as StrapiEntity[];
+    if (data && typeof data === "object") return [data as StrapiEntity];
+  }
+  return [];
+}
+
+/** Merge populated variants with a direct product-variants query (deduped by id). */
+export function mergeProductVariants(
+  product: StrapiEntity,
+  extraVariants: StrapiEntity[],
+): StrapiEntity {
+  const populated = normalizeStrapiRelationList(product.sizes_and_colors);
+  const byKey = new Map<string, StrapiEntity>();
+
+  for (const variant of [...populated, ...extraVariants]) {
+    const key = String(variant.documentId ?? variant.id ?? "");
+    if (key) byKey.set(key, variant);
+  }
+
+  return { ...product, sizes_and_colors: [...byKey.values()] };
+}
+
 function mapVariant(entity: StrapiEntity, productId: string): ProductVariant {
   const perPiece =
     entity.price_for_one ??
@@ -123,14 +150,22 @@ function mapVariant(entity: StrapiEntity, productId: string): ProductVariant {
   };
 }
 
+function firstRelationList(...values: unknown[]): StrapiEntity[] {
+  for (const value of values) {
+    const list = normalizeStrapiRelationList(value);
+    if (list.length > 0) return list;
+  }
+  return [];
+}
+
 export function mapStrapiProduct(entity: StrapiEntity): Product {
   const productId = entityId(entity);
   const categoryEntity = entity.category as StrapiEntity | null | undefined;
-  const variantEntities =
-    (entity.sizes_and_colors as StrapiEntity[] | undefined) ??
-    (entity.size_color_options as StrapiEntity[] | undefined) ??
-    (entity.variants as StrapiEntity[] | undefined) ??
-    [];
+  const variantEntities = firstRelationList(
+    entity.sizes_and_colors,
+    entity.size_color_options,
+    entity.variants,
+  );
 
   const variants = variantEntities.map((v) => mapVariant(v, productId));
   const total_stock = variants.reduce((sum, v) => sum + v.stock_quantity, 0);

@@ -350,10 +350,6 @@ module.exports = ({ strapi }) => ({
 
     function movementLabel(type) {
       switch (type) {
-        case 'sale':
-          return 'Sale';
-        case 'cancel_restore':
-          return 'Stock restored';
         case 'restock':
           return 'Restock';
         case 'import':
@@ -368,24 +364,23 @@ module.exports = ({ strapi }) => ({
     }
 
     for (const movement of movements) {
+      if (['sale', 'cancel_restore'].includes(movement.movement_type)) {
+        continue;
+      }
+
       const createdAt = movement.createdAt ? new Date(movement.createdAt) : null;
       const isToday = inRange(createdAt, todayStart);
       const isWeek = inRange(createdAt, weekStart);
       const isMonth = inRange(createdAt, monthStart);
       const delta = Number(movement.quantity_delta ?? 0);
       const sign = delta > 0 ? '+' : '';
-      const isOrderLinked =
-        movement.movement_type === 'sale' ||
-        movement.movement_type === 'cancel_restore';
 
       reports.all.stockUpdated += 1;
       if (isToday) reports.today.stockUpdated += 1;
       if (isWeek) reports.week.stockUpdated += 1;
       if (isMonth) reports.month.stockUpdated += 1;
 
-      // Order-linked movements only store an order_reference — don't also
-      // list them in today's activity (orders already appear there).
-      if (isToday && !isOrderLinked) {
+      if (isToday) {
         todayActivity.push({
           type: 'stock_updated',
           at: movement.createdAt,

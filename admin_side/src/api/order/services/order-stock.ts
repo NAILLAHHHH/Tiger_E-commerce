@@ -35,7 +35,6 @@ async function applyStockDelta(
   strapi: Core.Strapi,
   lines: OrderLine[],
   direction: 'deduct' | 'restore',
-  order: { order_reference?: string | null },
 ) {
   for (const line of lines) {
     const qty = Number(line.how_many ?? 0);
@@ -55,11 +54,7 @@ async function applyStockDelta(
         ? Math.max(0, current - qty)
         : current + qty;
 
-    await updateSizeColorStock(strapi, variant, nextQty, {
-      movementType: direction === 'deduct' ? 'sale' : 'cancel_restore',
-      orderReference: order.order_reference ?? undefined,
-      source: 'system',
-    });
+    await updateSizeColorStock(strapi, variant, nextQty);
 
     strapi.log.info(
       `Stock ${direction}: ${variant.item_code ?? variant.id} ${current} -> ${nextQty}`,
@@ -97,11 +92,6 @@ export async function syncOrderStock(
       strapi,
       (fresh.what_they_ordered as OrderLine[]) ?? lines,
       'deduct',
-      {
-        order_reference:
-          (fresh.order_reference as string | null | undefined) ??
-          (next as { order_reference?: string | null }).order_reference,
-      },
     );
     strapi.log.info(`Order ${next.id}: stock deducted (${nextStatus})`);
     return { stock_deducted: true };
@@ -115,11 +105,6 @@ export async function syncOrderStock(
       strapi,
       (fresh.what_they_ordered as OrderLine[]) ?? lines,
       'restore',
-      {
-        order_reference:
-          (fresh.order_reference as string | null | undefined) ??
-          (next as { order_reference?: string | null }).order_reference,
-      },
     );
     strapi.log.info(`Order ${next.id}: stock restored (cancelled)`);
     return { stock_deducted: false };
