@@ -5,7 +5,7 @@
     "singularName": "category",
     "pluralName": "categories",
     "displayName": "Category",
-    "description": "Shop sections — T-Shirts, Hoodies, Pants, etc."
+    "description": "Shop sections — clothing, grocery aisles, electronics, etc."
   },
   "options": {
     "draftAndPublish": true

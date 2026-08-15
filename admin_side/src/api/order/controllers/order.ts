@@ -22,6 +22,9 @@ function toPublicOrderSummary(order: Record<string, unknown>) {
         product_name: String(item.product_name ?? ''),
         size: item.size != null ? String(item.size) : null,
         color: item.color != null ? String(item.color) : null,
+        options_snapshot: Array.isArray(item.options_snapshot)
+          ? item.options_snapshot
+          : null,
         item_code: item.item_code != null ? String(item.item_code) : null,
         how_many: Number(item.how_many ?? 0),
         price_each: Number(item.price_each ?? 0),

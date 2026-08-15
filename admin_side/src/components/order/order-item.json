@@ -13,32 +13,36 @@
     },
     "size": {
       "type": "string",
-      "description": "Size"
+      "description": "Legacy size — prefer options_snapshot"
     },
     "color": {
       "type": "string",
-      "description": "Color"
+      "description": "Legacy color — prefer options_snapshot"
+    },
+    "options_snapshot": {
+      "type": "json",
+      "description": "Chosen options at order time, e.g. [{\"name\":\"Size\",\"value\":\"M\"},{\"name\":\"Color\",\"value\":\"Black\"}]"
     },
     "item_code": {
       "type": "string",
-      "description": "Your item code for this size/color"
+      "description": "Your item code for this SKU"
     },
     "how_many": {
       "type": "integer",
       "required": true,
       "min": 1,
-      "description": "How many pieces"
+      "description": "How many units"
     },
     "price_each": {
       "type": "decimal",
       "required": true,
-      "description": "Price for one piece (RWF)"
+      "description": "Price for one unit (RWF)"
     },
     "bought_as": {
       "type": "enumeration",
       "enum": ["one_piece", "many_pieces"],
       "default": "one_piece",
-      "description": "Did they buy one piece, or many at the lower price?"
+      "description": "Did they buy one unit, or many at the lower price?"
     },
     "row_total": {
       "type": "decimal",

@@ -1,5 +1,5 @@
 /** Hide “Create a relation” on Product edit so staff only pick an existing Category.
- *  Size & color is not on the Product form — create those under Content → Size & color.
+ *  Variants are not on the Product form — create those under Content → Product variant.
  */
 
 const PRODUCT_EDIT_PATH = "api::product.product";
@@ -12,6 +12,7 @@ const CREATE_LABELS = new Set([
   "Create a relation",
   "Create under Category",
   "Create under Category / Size & color",
+  "Create under Category / Product variant",
 ]);
 
 function hideCreateRelationRows(root: ParentNode = document) {

@@ -64,6 +64,7 @@ export interface OrderOrderItem extends Struct.ComponentSchema {
       >;
     image_url: Schema.Attribute.Text;
     item_code: Schema.Attribute.String;
+    options_snapshot: Schema.Attribute.JSON;
     price_each: Schema.Attribute.Decimal & Schema.Attribute.Required;
     product_name: Schema.Attribute.String & Schema.Attribute.Required;
     row_total: Schema.Attribute.Decimal & Schema.Attribute.Required;

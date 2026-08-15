@@ -5,7 +5,7 @@
     "singularName": "price-history",
     "pluralName": "price-histories",
     "displayName": "Price change",
-    "description": "Auto-logged record when a size/color price is updated"
+    "description": "Auto-logged record when a variant price is updated"
   },
   "options": {
     "draftAndPublish": false
@@ -29,10 +29,16 @@
       "type": "string"
     },
     "size": {
-      "type": "string"
+      "type": "string",
+      "description": "Legacy — prefer options_label"
     },
     "color": {
-      "type": "string"
+      "type": "string",
+      "description": "Legacy — prefer options_label"
+    },
+    "options_label": {
+      "type": "string",
+      "description": "Human-readable options at time of change"
     },
     "product_name": {
       "type": "string"

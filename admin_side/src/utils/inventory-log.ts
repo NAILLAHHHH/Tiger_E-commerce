@@ -1,4 +1,5 @@
 import type { Core } from '@strapi/strapi';
+import { optionsLabelFromValues } from './variant-options';
 
 export const MOVEMENT_TYPES = [
   'restock',
@@ -58,8 +59,21 @@ type VariantInfo = {
   item_code?: string | null;
   size?: string | null;
   color?: string | null;
+  options_label?: string | null;
+  option_values?: Array<{
+    label?: string | null;
+    attribute?: { name?: string | null; code?: string | null; list_position?: number | null } | null;
+  }> | null;
   product?: { name?: string } | null | unknown;
 };
+
+function variantOptionsLabel(variant: VariantInfo): string {
+  if (variant.options_label) return variant.options_label;
+  return optionsLabelFromValues(variant.option_values, {
+    size: variant.size,
+    color: variant.color,
+  });
+}
 
 function productLabel(product: VariantInfo['product']): string {
   if (!product || typeof product !== 'object') return '';
@@ -110,6 +124,7 @@ export async function logInventoryMovement(
         item_code: opts.variant.item_code ?? '',
         size: opts.variant.size ?? '',
         color: opts.variant.color ?? '',
+        options_label: variantOptionsLabel(opts.variant),
         product_name: productLabel(opts.variant.product),
         reason: opts.reason ?? null,
         source: opts.source ?? 'system',
@@ -144,6 +159,7 @@ export async function logPriceChange(
         item_code: opts.variant.item_code ?? '',
         size: opts.variant.size ?? '',
         color: opts.variant.color ?? '',
+        options_label: variantOptionsLabel(opts.variant),
         product_name: productLabel(opts.variant.product),
         reason: opts.reason ?? null,
         source: opts.source ?? 'admin',

@@ -26,6 +26,11 @@ import {
   normalizeChangeReason,
   variantStockOrPriceChanging,
 } from './utils/variant-change-reason';
+import {
+  migrateLegacyVariantOptions,
+  resolveOptionValueIdsFromLegacy,
+  seedCoreAttributes,
+} from './utils/variant-options';
 import { errors } from '@strapi/utils';
 import {
   isStockRelevantUpdate,
@@ -40,6 +45,12 @@ const PUBLIC_ACTIONS = [
   'api::product.product.findOne',
   'api::product-variant.product-variant.find',
   'api::product-variant.product-variant.findOne',
+  'api::attribute.attribute.find',
+  'api::attribute.attribute.findOne',
+  'api::attribute-value.attribute-value.find',
+  'api::attribute-value.attribute-value.findOne',
+  'api::attribute-set.attribute-set.find',
+  'api::attribute-set.attribute-set.findOne',
   'api::homepage.homepage.find',
   'api::order.order.create',
   'api::order.order.markPaid',
@@ -664,7 +675,7 @@ function registerOrderDocumentMiddleware(strapi: Core.Strapi) {
   });
 }
 
-/** Log stock and price changes when staff edit size/color in admin or via import. */
+/** Log stock/price changes; auto-link legacy size/color into option_values. */
 function registerVariantDocumentMiddleware(strapi: Core.Strapi) {
   strapi.documents.use(async (ctx, next) => {
     if (ctx.uid !== 'api::product-variant.product-variant') {
@@ -699,13 +710,28 @@ function registerVariantDocumentMiddleware(strapi: Core.Strapi) {
       }
     }
 
+    if (params.data) {
+      try {
+        const optionIds = await resolveOptionValueIdsFromLegacy(strapi, params.data);
+        if (optionIds?.length) {
+          params.data.option_values = optionIds;
+        }
+      } catch (err) {
+        strapi.log.warn(
+          `Could not sync legacy size/color to option_values: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    }
+
     let previous: Record<string, unknown> | null = null;
     if (ctx.action === 'update' && params.documentId) {
       previous = (await strapi.db
         .query('api::product-variant.product-variant')
         .findOne({
           where: { documentId: params.documentId },
-          populate: ['product'],
+          populate: ['product', 'option_values'],
         })) as Record<string, unknown> | null;
     }
 
@@ -740,7 +766,10 @@ function registerVariantDocumentMiddleware(strapi: Core.Strapi) {
       .query('api::product-variant.product-variant')
       .findOne({
         where: { id: variantId },
-        populate: ['product'],
+        populate: {
+          product: true,
+          option_values: { populate: ['attribute'] },
+        },
       })) as Record<string, unknown> | null;
 
     if (!fresh) return result;
@@ -784,7 +813,7 @@ function registerVariantDocumentMiddleware(strapi: Core.Strapi) {
           quantityAfter: initial,
           reason: isBulkImportActive()
             ? 'Imported with initial stock'
-            : 'Initial stock when size/color was created',
+            : 'Initial stock when variant was created',
           source: isBulkImportActive() ? 'import' : 'admin',
         });
       }
@@ -809,10 +838,12 @@ export default {
       await seedHomepageContent(strapi);
     }
 
+    await seedCoreAttributes(strapi);
     await migrateToHumanFields(strapi);
     await migrateOrderStatuses(strapi);
     await purgeOrderLinkedStockMovements(strapi);
     await migrateEmbeddedSizeColorsToCollection(strapi);
+    await migrateLegacyVariantOptions(strapi);
     await repairCatalogFromSeed(strapi);
     await publishLegacyDraftCategories(strapi);
     await publishLegacyDraftProducts(strapi);

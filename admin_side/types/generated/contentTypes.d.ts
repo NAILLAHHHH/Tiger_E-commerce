@@ -440,10 +440,130 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiAttributeSetAttributeSet
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'attribute_sets';
+  info: {
+    description: 'Clothes, Food, or Electronics \u2014 which options that kind of product uses';
+    displayName: 'Product kind';
+    pluralName: 'attribute-sets';
+    singularName: 'attribute-set';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    attributes: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::attribute.attribute'
+    >;
+    code: Schema.Attribute.UID<'name'> & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::attribute-set.attribute-set'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    products: Schema.Attribute.Relation<'oneToMany', 'api::product.product'>;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiAttributeValueAttributeValue
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'attribute_values';
+  info: {
+    description: 'One pick under an option \u2014 M, Black, 256GB, Single pack\u2026';
+    displayName: 'Options value';
+    pluralName: 'attribute-values';
+    singularName: 'attribute-value';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    attribute: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::attribute.attribute'
+    > &
+      Schema.Attribute.Required;
+    code: Schema.Attribute.String & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    label: Schema.Attribute.String & Schema.Attribute.Required;
+    list_position: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::attribute-value.attribute-value'
+    > &
+      Schema.Attribute.Private;
+    meta: Schema.Attribute.JSON;
+    product_variants: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::product-variant.product-variant'
+    >;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiAttributeAttribute extends Struct.CollectionTypeSchema {
+  collectionName: 'attributes';
+  info: {
+    description: 'What customers can pick \u2014 Size, Color, Storage, Pack, Weight\u2026';
+    displayName: 'Options';
+    pluralName: 'attributes';
+    singularName: 'attribute';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    attribute_sets: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::attribute-set.attribute-set'
+    >;
+    code: Schema.Attribute.UID<'name'> & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    display_type: Schema.Attribute.Enumeration<['select', 'swatch', 'text']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'select'>;
+    list_position: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::attribute.attribute'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    values: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::attribute-value.attribute-value'
+    >;
+  };
+}
+
 export interface ApiCategoryCategory extends Struct.CollectionTypeSchema {
   collectionName: 'categories';
   info: {
-    description: 'Shop sections \u2014 T-Shirts, Hoodies, Pants, etc.';
+    description: 'Shop sections \u2014 clothing, grocery aisles, electronics, etc.';
     displayName: 'Category';
     pluralName: 'categories';
     singularName: 'category';
@@ -578,6 +698,7 @@ export interface ApiInventoryMovementInventoryMovement
       ['restock', 'adjustment', 'import', 'initial', 'count']
     > &
       Schema.Attribute.Required;
+    options_label: Schema.Attribute.String;
     product_name: Schema.Attribute.String;
     product_variant: Schema.Attribute.Relation<
       'manyToOne',
@@ -656,7 +777,7 @@ export interface ApiPriceHistoryPriceHistory
   extends Struct.CollectionTypeSchema {
   collectionName: 'price_histories';
   info: {
-    description: 'Auto-logged record when a size/color price is updated';
+    description: 'Auto-logged record when a variant price is updated';
     displayName: 'Price change';
     pluralName: 'price-histories';
     singularName: 'price-history';
@@ -676,6 +797,7 @@ export interface ApiPriceHistoryPriceHistory
       'api::price-history.price-history'
     > &
       Schema.Attribute.Private;
+    options_label: Schema.Attribute.String;
     price_after: Schema.Attribute.Decimal;
     price_before: Schema.Attribute.Decimal;
     price_field: Schema.Attribute.Enumeration<
@@ -702,8 +824,8 @@ export interface ApiProductVariantProductVariant
   extends Struct.CollectionTypeSchema {
   collectionName: 'product_variants';
   info: {
-    description: 'One row = one size and color with price and stock \u2014 create these here (not on the Product form)';
-    displayName: 'Size & color';
+    description: 'One sellable SKU \u2014 attach Options values (Size, Color, Storage, Pack\u2026) instead of hard-coded fields';
+    displayName: 'Product variant';
     pluralName: 'product-variants';
     singularName: 'product-variant';
   };
@@ -711,7 +833,7 @@ export interface ApiProductVariantProductVariant
     draftAndPublish: false;
   };
   attributes: {
-    color: Schema.Attribute.String & Schema.Attribute.Required;
+    color: Schema.Attribute.String;
     color_dot: Schema.Attribute.String;
     color_photos: Schema.Attribute.Media<'images', true>;
     createdAt: Schema.Attribute.DateTime;
@@ -742,13 +864,17 @@ export interface ApiProductVariantProductVariant
         number
       > &
       Schema.Attribute.DefaultTo<10>;
+    option_values: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::attribute-value.attribute-value'
+    >;
     photo: Schema.Attribute.Media<'images'>;
     price_for_bulk: Schema.Attribute.Decimal;
     price_for_one: Schema.Attribute.Decimal & Schema.Attribute.Required;
     product: Schema.Attribute.Relation<'manyToOne', 'api::product.product'> &
       Schema.Attribute.Required;
     publishedAt: Schema.Attribute.DateTime;
-    size: Schema.Attribute.String & Schema.Attribute.Required;
+    size: Schema.Attribute.String;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -758,7 +884,7 @@ export interface ApiProductVariantProductVariant
 export interface ApiProductProduct extends Struct.CollectionTypeSchema {
   collectionName: 'products';
   info: {
-    description: 'A clothing item \u2014 sizes, colors, prices and stock are added under Size & color';
+    description: 'Any catalog item \u2014 clothes, food, electronics. Sellable SKUs live under Product variant.';
     displayName: 'Product';
     pluralName: 'products';
     singularName: 'product';
@@ -767,6 +893,10 @@ export interface ApiProductProduct extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
+    attribute_set: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::attribute-set.attribute-set'
+    >;
     category: Schema.Attribute.Relation<'manyToOne', 'api::category.category'>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -1366,6 +1496,9 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::attribute-set.attribute-set': ApiAttributeSetAttributeSet;
+      'api::attribute-value.attribute-value': ApiAttributeValueAttributeValue;
+      'api::attribute.attribute': ApiAttributeAttribute;
       'api::category.category': ApiCategoryCategory;
       'api::homepage.homepage': ApiHomepageHomepage;
       'api::inventory-movement.inventory-movement': ApiInventoryMovementInventoryMovement;

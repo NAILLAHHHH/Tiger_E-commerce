@@ -5,7 +5,7 @@
     "singularName": "product",
     "pluralName": "products",
     "displayName": "Product",
-    "description": "A clothing item — sizes, colors, prices and stock are added under Size & color"
+    "description": "Any catalog item — clothes, food, electronics. Sellable SKUs live under Product variant."
   },
   "options": {
     "draftAndPublish": true
@@ -62,12 +62,19 @@
       "inversedBy": "products",
       "description": "Pick an existing shop section from the list"
     },
+    "attribute_set": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::attribute-set.attribute-set",
+      "inversedBy": "products",
+      "description": "Optional — Apparel / Grocery / Electronics"
+    },
     "sizes_and_colors": {
       "type": "relation",
       "relation": "oneToMany",
       "target": "api::product-variant.product-variant",
       "mappedBy": "product",
-      "description": "Managed under Size & color — not edited on this form",
+      "description": "Managed under Product variant — not edited on this form",
       "pluginOptions": {
         "content-manager": {
           "visible": false
