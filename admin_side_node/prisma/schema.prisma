@@ -1,0 +1,250 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DisplayType {
+  select
+  swatch
+  text
+}
+
+enum OrderStatus {
+  placed
+  paid
+  pending
+  completed
+  cancelled
+}
+
+enum BoughtAs {
+  one_piece
+  many_pieces
+}
+
+enum MovementType {
+  restock
+  adjustment
+  import
+  initial
+  count
+}
+
+enum LogSource {
+  system
+  admin
+  import
+  api
+}
+
+enum PriceField {
+  price_for_one
+  price_for_bulk
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  /// Permanent owner from ADMIN_EMAIL — cannot be deleted; password synced from env on boot
+  isOwner      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model AttributeSet {
+  id         String               @id @default(cuid())
+  name       String
+  code       String               @unique
+  attributes AttributeSetMember[]
+  products   Product[]
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+}
+
+model Attribute {
+  id            String               @id @default(cuid())
+  name          String
+  code          String               @unique
+  displayType   DisplayType          @default(select)
+  listPosition  Int                  @default(0)
+  values        AttributeValue[]
+  attributeSets AttributeSetMember[]
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+}
+
+model AttributeSetMember {
+  attributeSetId String
+  attributeId    String
+  attributeSet   AttributeSet @relation(fields: [attributeSetId], references: [id], onDelete: Cascade)
+  attribute      Attribute    @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+
+  @@id([attributeSetId, attributeId])
+}
+
+model AttributeValue {
+  id           String                     @id @default(cuid())
+  attributeId  String
+  label        String
+  code         String
+  meta         Json?
+  listPosition Int                        @default(0)
+  attribute    Attribute                  @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  variants     ProductVariantOptionValue[]
+  createdAt    DateTime                   @default(now())
+  updatedAt    DateTime                   @updatedAt
+
+  @@unique([attributeId, code])
+}
+
+model Category {
+  id           String    @id @default(cuid())
+  name         String
+  linkName     String    @unique
+  photoUrl     String?
+  listPosition Int       @default(0)
+  published    Boolean   @default(true)
+  products     Product[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Product {
+  id                   String           @id @default(cuid())
+  name                 String
+  linkName             String           @unique
+  description          String?
+  photoUrl             String?
+  videoUrl             String?
+  highlightOnHomepage  Boolean          @default(false)
+  markAsNew            Boolean          @default(false)
+  published            Boolean          @default(true)
+  categoryId           String?
+  attributeSetId       String?
+  category             Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  attributeSet         AttributeSet?    @relation(fields: [attributeSetId], references: [id], onDelete: SetNull)
+  variants             ProductVariant[]
+  reviews              Review[]
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+}
+
+model ProductVariant {
+  id                  String                      @id @default(cuid())
+  productId           String
+  itemCode            String                      @unique
+  priceForOne         Int
+  priceForBulk        Int?
+  minQuantityForBulk  Int                         @default(10)
+  howManyLeft         Int                         @default(0)
+  photoUrl            String?
+  extraPhotoUrls      String[]                    @default([])
+  /// Legacy helpers for CSV / migration
+  size                String?
+  color               String?
+  colorDot            String?
+  product             Product                     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  optionValues        ProductVariantOptionValue[]
+  inventoryMovements  InventoryMovement[]
+  priceHistories      PriceHistory[]
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+}
+
+model ProductVariantOptionValue {
+  variantId        String
+  attributeValueId String
+  variant          ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  attributeValue   AttributeValue @relation(fields: [attributeValueId], references: [id], onDelete: Cascade)
+
+  @@id([variantId, attributeValueId])
+}
+
+model Order {
+  id               String      @id @default(cuid())
+  orderReference   String      @unique
+  customerName     String
+  phone            String
+  deliveryAddress  String?
+  customerNotes    String?
+  orderStatus      OrderStatus @default(placed)
+  subtotal         Int
+  total            Int
+  stockDeducted    Boolean     @default(false)
+  items            OrderItem[]
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+}
+
+model OrderItem {
+  id               String   @id @default(cuid())
+  orderId          String
+  productName      String
+  itemCode         String?
+  size             String?
+  color            String?
+  optionsSnapshot  Json?
+  howMany          Int
+  priceEach        Int
+  boughtAs         BoughtAs @default(one_piece)
+  rowTotal         Int
+  imageUrl         String?
+  order            Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model Review {
+  id            String   @id @default(cuid())
+  productId     String
+  customerName String
+  stars         Int
+  title         String?
+  comment       String
+  showOnWebsite Boolean  @default(true)
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model InventoryMovement {
+  id              String       @id @default(cuid())
+  movementType    MovementType
+  quantityDelta   Int
+  quantityBefore  Int
+  quantityAfter   Int
+  itemCode        String?
+  optionsLabel    String?
+  productName     String?
+  reason          String?
+  source          LogSource    @default(system)
+  variantId       String?
+  variant         ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  createdAt       DateTime     @default(now())
+}
+
+model PriceHistory {
+  id           String     @id @default(cuid())
+  priceField   PriceField
+  priceBefore  Int?
+  priceAfter   Int?
+  itemCode     String?
+  optionsLabel String?
+  productName  String?
+  reason       String?
+  source       LogSource  @default(admin)
+  variantId    String?
+  variant      ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  createdAt    DateTime   @default(now())
+}
+
+model Homepage {
+  id        String   @id @default(cuid())
+  data      Json
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
