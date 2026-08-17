@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TygaMart admin</title>
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="stylesheet" href="/admin.css" />
+</head>
+<body>
+  <div id="loginView">
+    <div class="login-brand">
+      <img src="/tigerwear-logo.png" alt="TygaMart" />
+      <h1>Welcome to TygaMart</h1>
+      <p>Sign in to the Content Manager</p>
+    </div>
+    <div class="login-form-wrap">
+      <div class="login-card">
+        <h2>Welcome back!</h2>
+        <p class="muted">Log in to your TygaMart account</p>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" value="admin@tygamart.com" autocomplete="username" />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" type="password" value="" placeholder="Owner password from env" autocomplete="current-password" />
+        </div>
+        <button class="btn btn-primary" style="width:100%" id="loginBtn">Login</button>
+        <div id="loginError" class="error"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="appView" class="hidden">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <img src="/tigerwear-logo.png" alt="" />
+        <div>
+          <div class="title">TygaMart</div>
+          <div class="sub">Content Manager</div>
+        </div>
+      </div>
+
+      <div class="nav-section">General</div>
+      <button class="nav-item active" data-view="home">Dashboard</button>
+      <button class="nav-item" data-view="staff">Staff users</button>
+
+      <div class="nav-section">Collection Types</div>
+      <button class="nav-item" data-view="products">Product</button>
+      <button class="nav-item" data-view="variants">Product variant</button>
+      <button class="nav-item" data-view="categories">Category</button>
+      <button class="nav-item" data-view="orders">Order</button>
+      <button class="nav-item" data-view="attributes">Options</button>
+      <button class="nav-item" data-view="kinds">Product kind</button>
+      <button class="nav-item" data-view="reviews">Review</button>
+      <button class="nav-item" data-view="stock">Stock history</button>
+      <button class="nav-item" data-view="prices">Price changes</button>
+
+      <div class="nav-section">Single Types</div>
+      <button class="nav-item" data-view="homepage">Homepage</button>
+
+      <div class="sidebar-foot" id="userBox">—</div>
+    </aside>
+    <div class="main">
+      <div class="topbar">
+        <div id="breadcrumb">Content Manager</div>
+        <button class="btn btn-secondary" id="logoutBtn">Log out</button>
+      </div>
+      <div class="content" id="contentRoot"></div>
+    </div>
+  </div>
+  <script src="/admin.js"></script>
+</body>
+</html>
