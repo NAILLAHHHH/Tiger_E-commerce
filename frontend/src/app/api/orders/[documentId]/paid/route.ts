@@ -24,7 +24,9 @@ export async function POST(_request: Request, context: RouteContext) {
 
     if (!res.ok) {
       const message =
-        json?.error?.message ?? json?.error ?? "Failed to update order";
+        typeof json?.error === "string"
+          ? json.error
+          : json?.error?.message ?? "Failed to update order";
       return NextResponse.json({ error: message }, { status: res.status });
     }
 
@@ -33,7 +35,7 @@ export async function POST(_request: Request, context: RouteContext) {
     });
   } catch {
     return NextResponse.json(
-      { error: "Could not reach Strapi. Is admin_side running?" },
+      { error: "Could not reach the shop API. Is admin_side_node running on :1338?" },
       { status: 502 },
     );
   }

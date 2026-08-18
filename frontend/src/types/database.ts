@@ -9,8 +9,10 @@ export type Category = {
 export type GalleryItem = {
   type: "image" | "video";
   url: string;
-  /** Color this media belongs to — used to sync variant selection from the gallery */
+  /** Option value this media belongs to (usually a color) — syncs pickers from the gallery */
   color?: string;
+  option_code?: string;
+  option_value?: string;
 };
 
 export type ColorOption = {
@@ -20,15 +22,29 @@ export type ColorOption = {
   image_url: string | null;
 };
 
+export type VariantOption = {
+  code: string;
+  name: string;
+  value: string;
+  value_code: string;
+  meta?: { hex?: string } | null;
+  display_type: "select" | "swatch" | "text";
+  list_position?: number;
+};
+
 export type ProductVariant = {
   id: string;
   product_id: string;
   sku: string;
+  /** Dynamic options (Size, Color, Storage, Pack…). Prefer this over size/color. */
+  options: VariantOption[];
+  /** Convenience: Size option value, or legacy field */
   size: string;
+  /** Convenience: Color option value, or legacy field */
   color: string;
   color_hex: string | null;
   image_url: string | null;
-  /** More photos for this color (angles, details) */
+  /** More photos for this look (angles, details) */
   color_images?: string[];
   per_piece_price: number;
   bulk_price: number | null;
@@ -48,6 +64,7 @@ export type Product = {
   is_new: boolean;
   category_id: string | null;
   category?: Category | null;
+  attribute_set?: { id: string; name: string; code: string } | null;
   variants?: ProductVariant[];
   total_stock?: number;
   /** Average star rating (1–5) when reviews exist */
@@ -78,6 +95,8 @@ export type CartItem = {
   name: string;
   slug: string;
   image: string;
+  options: Array<{ name: string; value: string; code?: string }>;
+  /** Legacy convenience fields derived from options */
   size: string;
   color: string;
   sku: string;

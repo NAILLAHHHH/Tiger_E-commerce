@@ -9,31 +9,23 @@ import { shouldUseMockData, shouldUseStrapi } from "@/lib/config";
 import { strapiCreate, strapiList, type StrapiEntity } from "@/lib/strapi/client";
 import type { ProductReview, RatingSummary } from "@/types/database";
 
-function mapStrapiReview(row: StrapiEntity): ProductReview {
-  const product = row.product as StrapiEntity | null | undefined;
-  const productId = product
-    ? String(product.documentId ?? product.id ?? "")
-    : "";
-
+function mapApiReview(row: StrapiEntity): ProductReview {
   return {
-    id: String(row.documentId ?? row.id ?? ""),
-    product_id: productId,
+    id: String(row.id ?? row.documentId ?? ""),
+    product_id: String(row.product_id ?? ""),
     customer_name: String(row.customer_name ?? "Customer"),
     stars: Math.min(5, Math.max(1, Number(row.stars) || 1)),
     title: row.title ? String(row.title) : null,
     comment: String(row.comment ?? ""),
     created_at: String(
-      row.createdAt ?? row.created_at ?? new Date().toISOString(),
+      row.created_at ?? row.createdAt ?? new Date().toISOString(),
     ),
   };
 }
 
 const fetchApprovedReviews = cache(async (): Promise<ProductReview[]> => {
-  const rows = await strapiList(
-    "reviews",
-    "filters[show_on_website][$eq]=true&populate[product]=true&sort=createdAt:desc&pagination[pageSize]=200",
-  );
-  return rows.map(mapStrapiReview);
+  const rows = await strapiList<StrapiEntity>("reviews");
+  return rows.map(mapApiReview);
 });
 
 export async function getReviewsForProduct(
@@ -43,8 +35,11 @@ export async function getReviewsForProduct(
 
   if (shouldUseStrapi()) {
     try {
-      const all = await fetchApprovedReviews();
-      return all.filter((r) => r.product_id === productId);
+      const rows = await strapiList<StrapiEntity>(
+        "reviews",
+        `productId=${encodeURIComponent(productId)}`,
+      );
+      return rows.map(mapApiReview);
     } catch {
       return getMockReviewsForProduct(productId);
     }
@@ -122,16 +117,15 @@ export async function submitReview(
     return review;
   }
 
-  const created = await strapiCreate("reviews", {
+  const created = await strapiCreate<StrapiEntity>("reviews", {
     customer_name,
     stars,
     title,
     comment,
-    show_on_website: true,
-    product: input.productId,
+    productId: input.productId,
   });
 
-  return mapStrapiReview(created);
+  return mapApiReview(created);
 }
 
 export { summarizeReviews };

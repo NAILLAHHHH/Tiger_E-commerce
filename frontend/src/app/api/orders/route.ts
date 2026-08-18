@@ -69,8 +69,17 @@ export async function POST(request: Request) {
     what_they_ordered: normalizedItems.map((item) => ({
       product_name: item.name,
       item_code: item.sku,
-      size: item.size,
-      color: item.color,
+      size: item.size || null,
+      color: item.color || null,
+      options_snapshot:
+        item.options?.length > 0
+          ? item.options
+          : [
+              ...(item.size ? [{ name: "Size", value: item.size, code: "size" }] : []),
+              ...(item.color
+                ? [{ name: "Color", value: item.color, code: "color" }]
+                : []),
+            ],
       how_many: item.quantity,
       price_each: item.unitPrice,
       bought_as: item.pricingMode === "wholesale" ? "many_pieces" : "one_piece",
@@ -79,31 +88,33 @@ export async function POST(request: Request) {
     })),
   };
 
-  const strapiUrl = getStrapiUrl().replace(/\/$/, "");
+  const apiUrl = getStrapiUrl().replace(/\/$/, "");
 
   try {
-    const res = await fetch(`${strapiUrl}/api/orders`, {
+    const res = await fetch(`${apiUrl}/api/orders`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ data: orderData }),
+      body: JSON.stringify(orderData),
     });
 
     const json = await res.json().catch(() => ({}));
 
     if (!res.ok) {
       const message =
-        json?.error?.message ?? json?.error ?? "Failed to place order";
+        typeof json?.error === "string"
+          ? json.error
+          : json?.error?.message ?? "Failed to place order";
       return NextResponse.json({ error: message }, { status: res.status });
     }
 
     return NextResponse.json({
       order_number:
         json.data?.order_reference ?? json.data?.order_number,
-      documentId: json.data?.documentId,
+      documentId: json.data?.documentId ?? json.data?.id,
     });
   } catch {
     return NextResponse.json(
-      { error: "Could not reach Strapi. Is admin_side running?" },
+      { error: "Could not reach the shop API. Is admin_side_node running on :1338?" },
       { status: 502 },
     );
   }

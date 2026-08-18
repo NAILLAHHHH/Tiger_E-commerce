@@ -25,6 +25,9 @@ export const useCartStore = create<CartState>()(
       addItem: (item) => {
         const normalized: CartItem = {
           ...item,
+          options: item.options ?? [],
+          size: item.size ?? "",
+          color: item.color ?? "",
           unitPrice: roundMoney(item.unitPrice),
         };
         const existing = get().items.find(

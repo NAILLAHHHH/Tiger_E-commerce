@@ -5,7 +5,12 @@ import {
 } from "@/lib/catalog-fallbacks";
 import { roundMoney } from "@/lib/pricing";
 import type { StrapiEntity } from "@/lib/strapi/client";
-import type { Category, Product, ProductVariant } from "@/types/database";
+import type {
+  Category,
+  Product,
+  ProductVariant,
+  VariantOption,
+} from "@/types/database";
 
 function entityId(entity: StrapiEntity): string {
   return String(entity.documentId ?? entity.id ?? "");
@@ -105,6 +110,77 @@ export function mergeProductVariants(
   return { ...product, sizes_and_colors: [...byKey.values()] };
 }
 
+function mapMeta(value: unknown): VariantOption["meta"] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const hex = (value as { hex?: unknown }).hex;
+  if (typeof hex === "string" && hex.trim()) return { hex: hex.trim() };
+  return value as VariantOption["meta"];
+}
+
+function mapOptionValue(entity: StrapiEntity): VariantOption | null {
+  const attribute = entity.attribute as StrapiEntity | null | undefined;
+  const label = String(entity.label ?? "").trim();
+  if (!label) return null;
+
+  const code = String(
+    attribute?.code ?? entity.attribute_code ?? "option",
+  ).trim();
+  const name = String(attribute?.name ?? code).trim();
+  const displayRaw = String(attribute?.display_type ?? "select");
+  const display_type =
+    displayRaw === "swatch" || displayRaw === "text" ? displayRaw : "select";
+
+  return {
+    code,
+    name,
+    value: label,
+    value_code: String(entity.code ?? slugifyName(label)),
+    meta: mapMeta(entity.meta),
+    display_type,
+    list_position: Number(attribute?.list_position ?? entity.list_position ?? 0),
+  };
+}
+
+function mapOptionsFromEntity(entity: StrapiEntity): VariantOption[] {
+  const fromRelation = normalizeStrapiRelationList(
+    entity.option_values ?? entity.options,
+  )
+    .map(mapOptionValue)
+    .filter((o): o is VariantOption => o != null)
+    .sort((a, b) => (a.list_position ?? 0) - (b.list_position ?? 0));
+
+  if (fromRelation.length) return fromRelation;
+
+  const options: VariantOption[] = [];
+  const size = String(entity.size ?? "").trim();
+  const color = String(entity.color ?? "").trim();
+  const colorHex =
+    entity.color_dot ?? entity.color_swatch ?? entity.color_hex ?? null;
+
+  if (size) {
+    options.push({
+      code: "size",
+      name: "Size",
+      value: size,
+      value_code: slugifyName(size),
+      display_type: "select",
+      list_position: 1,
+    });
+  }
+  if (color) {
+    options.push({
+      code: "color",
+      name: "Color",
+      value: color,
+      value_code: slugifyName(color),
+      meta: colorHex ? { hex: String(colorHex) } : null,
+      display_type: "swatch",
+      list_position: 2,
+    });
+  }
+  return options;
+}
+
 function mapVariant(entity: StrapiEntity, productId: string): ProductVariant {
   const perPiece =
     entity.price_for_one ??
@@ -118,11 +194,12 @@ function mapVariant(entity: StrapiEntity, productId: string): ProductVariant {
     entity.stock_count ??
     entity.stock_quantity ??
     0;
+  const options = mapOptionsFromEntity(entity);
+  const sizeOption = options.find((o) => o.code === "size");
+  const colorOption = options.find((o) => o.code === "color");
   const colorHex =
-    entity.color_dot ??
-    entity.color_swatch ??
-    entity.color_hex ??
-    null;
+    colorOption?.meta?.hex ??
+    (entity.color_dot ?? entity.color_swatch ?? entity.color_hex ?? null);
   const itemCode = entity.item_code ?? entity.sku ?? "";
   const image = resolveStrapiImage(entity.photo ?? entity.image_url ?? null);
   const colorImages = resolveStrapiMediaList(
@@ -133,8 +210,9 @@ function mapVariant(entity: StrapiEntity, productId: string): ProductVariant {
     id: entityId(entity),
     product_id: productId,
     sku: String(itemCode),
-    size: String(entity.size ?? ""),
-    color: String(entity.color ?? ""),
+    options,
+    size: sizeOption?.value ?? String(entity.size ?? ""),
+    color: colorOption?.value ?? String(entity.color ?? ""),
     color_hex: colorHex ? String(colorHex) : null,
     image_url: image,
     color_images: colorImages.length ? colorImages : undefined,
@@ -161,6 +239,10 @@ function firstRelationList(...values: unknown[]): StrapiEntity[] {
 export function mapStrapiProduct(entity: StrapiEntity): Product {
   const productId = entityId(entity);
   const categoryEntity = entity.category as StrapiEntity | null | undefined;
+  const attributeSetEntity = entity.attribute_set as
+    | StrapiEntity
+    | null
+    | undefined;
   const variantEntities = firstRelationList(
     entity.sizes_and_colors,
     entity.size_color_options,
@@ -195,6 +277,13 @@ export function mapStrapiProduct(entity: StrapiEntity): Product {
     ),
     category_id: categoryEntity ? entityId(categoryEntity) : null,
     category: categoryEntity ? mapCategory(categoryEntity) : null,
+    attribute_set: attributeSetEntity
+      ? {
+          id: entityId(attributeSetEntity),
+          name: String(attributeSetEntity.name ?? ""),
+          code: String(attributeSetEntity.code ?? ""),
+        }
+      : null,
     variants,
     total_stock,
   };
