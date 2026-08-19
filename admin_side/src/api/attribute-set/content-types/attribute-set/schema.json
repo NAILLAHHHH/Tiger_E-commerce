@@ -1,0 +1,39 @@
+{
+  "kind": "collectionType",
+  "collectionName": "attribute_sets",
+  "info": {
+    "singularName": "attribute-set",
+    "pluralName": "attribute-sets",
+    "displayName": "Product kind",
+    "description": "Clothes, Food, or Electronics — which options that kind of product uses"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true,
+      "description": "e.g. Apparel, Grocery, Electronics"
+    },
+    "code": {
+      "type": "uid",
+      "targetField": "name",
+      "required": true,
+      "description": "Stable key, e.g. apparel, grocery, electronics"
+    },
+    "attributes": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::attribute.attribute",
+      "inversedBy": "attribute_sets",
+      "description": "Options this product kind can use"
+    },
+    "products": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::product.product",
+      "mappedBy": "attribute_set"
+    }
+  }
+}

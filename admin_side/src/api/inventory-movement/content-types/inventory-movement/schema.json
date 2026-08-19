@@ -45,10 +45,16 @@
       "description": "Product code at time of movement"
     },
     "size": {
-      "type": "string"
+      "type": "string",
+      "description": "Legacy — prefer options_label"
     },
     "color": {
-      "type": "string"
+      "type": "string",
+      "description": "Legacy — prefer options_label"
+    },
+    "options_label": {
+      "type": "string",
+      "description": "Human-readable options at time of movement, e.g. Size M · Color Black"
     },
     "product_name": {
       "type": "string",
@@ -68,7 +74,7 @@
       "type": "relation",
       "relation": "manyToOne",
       "target": "api::product-variant.product-variant",
-      "description": "Which size/color row changed"
+      "description": "Which variant row changed"
     }
   }
 }

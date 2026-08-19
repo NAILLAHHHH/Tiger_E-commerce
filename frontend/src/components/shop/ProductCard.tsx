@@ -44,6 +44,10 @@ export default function ProductCard({
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
+    if (!colors.length) {
+      if (activeColor) setActiveColor("");
+      return;
+    }
     if (colors.some((c) => c.color === activeColor)) return;
     setActiveColor(colors[0]?.color ?? "");
   }, [colors, activeColor]);

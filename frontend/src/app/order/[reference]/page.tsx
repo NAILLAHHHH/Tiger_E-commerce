@@ -104,9 +104,15 @@ export default async function OrderSummaryPage({ params }: Props) {
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-dark">{item.product_name}</p>
                     <p className="text-xs text-muted">
-                      {[item.color, item.size ? `Size ${item.size}` : null]
-                        .filter(Boolean)
-                        .join(" · ")}
+                      {(item.options_snapshot?.length
+                        ? item.options_snapshot
+                            .map((o) =>
+                              o.name ? `${o.name} ${o.value}` : o.value,
+                            )
+                            .join(" · ")
+                        : [item.color, item.size ? `Size ${item.size}` : null]
+                            .filter(Boolean)
+                            .join(" · ")) || "Standard"}
                       {item.item_code ? ` · ${item.item_code}` : ""}
                       {` · ×${item.how_many}`}
                     </p>

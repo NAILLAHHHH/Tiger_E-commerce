@@ -11,16 +11,27 @@ import {
   variantSupportsBulk,
 } from "@/lib/pricing";
 import { resolveProductImage } from "@/lib/images";
-import {
-  buildProductGallery,
-  getProductColors,
-} from "@/lib/product-media";
+import { buildProductGallery } from "@/lib/product-media";
 import { variantDisplayImage } from "@/lib/strapi/mappers";
+import {
+  adjustSelectionForStock,
+  findVariantForSelection,
+  getProductOptionAxes,
+  initialSelection,
+  optionsSnapshot,
+} from "@/lib/variant-options";
 import ColorSwatches from "@/components/shop/ColorSwatches";
 import ProductGallery from "@/components/shop/ProductGallery";
 import StarRating from "@/components/shop/StarRating";
 import { useCartStore } from "@/store/cart-store";
-import type { GalleryItem, PricingMode, Product, ProductVariant, RatingSummary } from "@/types/database";
+import type {
+  ColorOption,
+  GalleryItem,
+  PricingMode,
+  Product,
+  ProductVariant,
+  RatingSummary,
+} from "@/types/database";
 
 type Props = {
   product: Product;
@@ -32,15 +43,7 @@ export default function ProductDetailClient({
   ratingSummary,
 }: Props) {
   const variants = product.variants ?? [];
-
-  const colors = useMemo(
-    () => getProductColors(variants, product.image_url),
-    [variants, product.image_url],
-  );
-  const sizes = useMemo(
-    () => [...new Set(variants.map((v) => v.size))],
-    [variants],
-  );
+  const axes = useMemo(() => getProductOptionAxes(variants), [variants]);
 
   const canRetail = productSupportsRetail(product);
   const canWholesale = productSupportsBulk(product);
@@ -48,26 +51,61 @@ export default function ProductDetailClient({
   const [mode, setMode] = useState<PricingMode>(
     canRetail ? "retail" : "wholesale",
   );
-  const [color, setColor] = useState(colors[0]?.color ?? "");
-  const [size, setSize] = useState(sizes[0] ?? "");
+  const [selection, setSelection] = useState<Record<string, string>>(() =>
+    initialSelection(variants, axes),
+  );
   const [gallerySeek, setGallerySeek] = useState({ index: 0, token: 0 });
+
+  useEffect(() => {
+    setSelection(initialSelection(variants, axes));
+  }, [product.id, axes, variants]);
 
   const gallery = useMemo(() => buildProductGallery(product), [product]);
 
+  const swatchAxis = axes.find(
+    (a) => a.display_type === "swatch" || a.code === "color",
+  );
+  const selectAxes = axes.filter((a) => a.code !== swatchAxis?.code);
+
+  const colors: ColorOption[] = useMemo(() => {
+    if (!swatchAxis) return [];
+    return swatchAxis.values.map((v) => ({
+      color: v.value,
+      color_hex: v.meta?.hex ?? null,
+      image_url: v.image_url ?? product.image_url ?? null,
+    }));
+  }, [swatchAxis, product.image_url]);
+
   const handleGalleryActiveChange = (item: GalleryItem) => {
-    if (item.color) setColor(item.color);
+    const code = item.option_code ?? (item.color ? swatchAxis?.code : undefined);
+    const value = item.option_value ?? item.color;
+    if (!code || !value) return;
+    setSelection((prev) =>
+      adjustSelectionForStock(variants, axes, { ...prev, [code]: value }, code),
+    );
   };
 
-  const handleColorSelect = (next: string) => {
-    setColor(next);
-    const index = gallery.findIndex((item) => item.color === next);
+  const handleSwatchSelect = (next: string) => {
+    if (!swatchAxis) return;
+    setSelection((prev) =>
+      adjustSelectionForStock(
+        variants,
+        axes,
+        { ...prev, [swatchAxis.code]: next },
+        swatchAxis.code,
+      ),
+    );
+    const index = gallery.findIndex(
+      (item) => (item.option_value ?? item.color) === next,
+    );
     if (index >= 0) {
       setGallerySeek((prev) => ({ index, token: prev.token + 1 }));
     }
   };
 
-  const selectedVariant: ProductVariant | undefined = variants.find(
-    (v) => v.color === color && v.size === size,
+  const selectedVariant: ProductVariant | undefined = findVariantForSelection(
+    variants,
+    selection,
   );
 
   const bulkMinimum = selectedVariant?.bulk_minimum ?? 10;
@@ -86,23 +124,17 @@ export default function ProductDetailClient({
 
   const addItem = useCartStore((s) => s.addItem);
 
-  useEffect(() => {
-    const available = sizes.find((s) => {
-      const v = variants.find((v) => v.size === s && v.color === color);
-      return v && v.stock_quantity > 0;
-    });
-    if (available) setSize(available);
-  }, [color, sizes, variants]);
-
   const handleAddToCart = () => {
     if (!selectedVariant || selectedVariant.stock_quantity < quantity) return;
 
+    const snapshot = optionsSnapshot(selectedVariant);
     addItem({
       productId: product.id,
       variantId: selectedVariant.id,
       name: product.name,
       slug: product.slug,
       image: displayImage,
+      options: snapshot,
       size: selectedVariant.size,
       color: selectedVariant.color,
       sku: selectedVariant.sku,
@@ -221,43 +253,57 @@ export default function ProductDetailClient({
           </span>
         </div>
 
-        <ColorSwatches
-          colors={colors}
-          selected={color}
-          onSelect={handleColorSelect}
-          className="mt-6"
-        />
+        {swatchAxis && colors.length > 0 && (
+          <ColorSwatches
+            colors={colors}
+            selected={selection[swatchAxis.code] ?? ""}
+            onSelect={handleSwatchSelect}
+            className="mt-6"
+          />
+        )}
 
-        {sizes.length > 0 && (
-          <div className="mt-4">
-            <p className="mb-2 text-sm font-medium text-dark">Size</p>
+        {selectAxes.map((axis) => (
+          <div key={axis.code} className="mt-4">
+            <p className="mb-2 text-sm font-medium text-dark">{axis.name}</p>
             <div className="flex flex-wrap gap-2">
-              {sizes.map((s) => {
-                const variant = variants.find(
-                  (v) => v.size === s && v.color === color,
-                );
+              {axis.values.map((value) => {
+                const candidate = {
+                  ...selection,
+                  [axis.code]: value.value,
+                };
+                const variant = findVariantForSelection(variants, candidate);
                 const disabled = !variant || variant.stock_quantity === 0;
+                const isSelected = selection[axis.code] === value.value;
                 return (
                   <button
-                    key={s}
+                    key={value.value}
                     type="button"
                     disabled={disabled}
-                    onClick={() => setSize(s)}
+                    onClick={() =>
+                      setSelection(
+                        adjustSelectionForStock(
+                          variants,
+                          axes,
+                          candidate,
+                          axis.code,
+                        ),
+                      )
+                    }
                     className={`min-w-[3rem] rounded-md border px-3 py-2 text-sm font-medium ${
-                      size === s
+                      isSelected
                         ? "border-brand bg-brand text-white"
                         : disabled
                           ? "cursor-not-allowed border-gray-2 text-gray-300"
                           : "border-gray-3 text-dark hover:border-brand"
                     }`}
                   >
-                    {s}
+                    {value.value}
                   </button>
                 );
               })}
             </div>
           </div>
-        )}
+        ))}
 
         <div className="mt-6">
           <p className="mb-2 text-sm font-medium text-dark">Quantity</p>

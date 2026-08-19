@@ -4,8 +4,8 @@
   "info": {
     "singularName": "product-variant",
     "pluralName": "product-variants",
-    "displayName": "Size & color",
-    "description": "One row = one size and color with price and stock — create these here (not on the Product form)"
+    "displayName": "Product variant",
+    "description": "One sellable SKU — attach Options values (Size, Color, Storage, Pack…) instead of hard-coded fields"
   },
   "options": {
     "draftAndPublish": false
@@ -15,56 +15,63 @@
       "type": "string",
       "required": true,
       "unique": true,
-      "description": "Your own short code to recognise this item, e.g. Grey-Hoodie-M"
+      "description": "Your own short code to recognise this SKU, e.g. Grey-Hoodie-M"
     },
     "size": {
       "type": "string",
-      "required": true,
-      "description": "Size, e.g. M, L, 32"
+      "required": false,
+      "description": "Legacy — prefer Options values. Kept for old rows and CSV import (auto-synced)"
     },
     "color": {
       "type": "string",
-      "required": true,
-      "description": "Color name, e.g. Navy, Black"
+      "required": false,
+      "description": "Legacy — prefer Options values. Kept for old rows and CSV import (auto-synced)"
     },
     "color_dot": {
       "type": "string",
-      "description": "Optional — color on the website (# code, e.g. #1E3A5F)"
+      "description": "Legacy color hex — prefer Options value meta.hex for Color"
     },
     "photo": {
       "type": "media",
       "multiple": false,
       "required": false,
       "allowedTypes": ["images"],
-      "description": "Picture for this size and color (optional — uses product picture if empty)"
+      "description": "Picture for this variant (optional — uses product picture if empty)"
     },
     "color_photos": {
       "type": "media",
       "multiple": true,
       "required": false,
       "allowedTypes": ["images"],
-      "description": "More photos for this color — detail shots and alternate angles"
+      "description": "More photos for this look — detail shots and alternate angles"
     },
     "price_for_one": {
       "type": "decimal",
       "required": true,
-      "description": "How much for 1 piece (RWF)"
+      "description": "How much for 1 unit (RWF)"
     },
     "price_for_bulk": {
       "type": "decimal",
-      "description": "How much per piece when buying many (leave empty if no bulk price)"
+      "description": "How much per unit when buying many (leave empty if no bulk price)"
     },
     "min_quantity_for_bulk": {
       "type": "integer",
       "default": 10,
       "min": 1,
-      "description": "How many pieces the customer must buy to get the bulk price"
+      "description": "How many units the customer must buy to get the bulk price"
     },
     "how_many_left": {
       "type": "integer",
       "default": 0,
       "min": 0,
-      "description": "How many of this size/color you currently have"
+      "description": "How many of this SKU you currently have"
+    },
+    "option_values": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::attribute-value.attribute-value",
+      "inversedBy": "product_variants",
+      "description": "Options values for this SKU — e.g. Size=M + Color=Black, or Storage=256GB"
     },
     "product": {
       "type": "relation",
@@ -72,7 +79,7 @@
       "target": "api::product.product",
       "inversedBy": "sizes_and_colors",
       "required": true,
-      "description": "Which product this size/color belongs to — pick an existing saved product"
+      "description": "Which product this variant belongs to"
     }
   }
 }

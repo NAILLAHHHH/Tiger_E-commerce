@@ -1,16 +1,15 @@
 import { getStrapiUrl } from "@/lib/config";
 
-type StrapiListResponse<T> = {
+type ApiListResponse<T> = {
   data: T[];
-  meta?: { pagination?: { page: number; pageSize: number; total: number } };
 };
 
-type StrapiSingleResponse<T> = {
+type ApiSingleResponse<T> = {
   data: T | null;
 };
 
 export type StrapiEntity = Record<string, unknown> & {
-  id?: number;
+  id?: number | string;
   documentId?: string;
 };
 
@@ -32,41 +31,36 @@ export async function strapiFetch<T>(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`Strapi ${res.status}: ${text || res.statusText}`);
+    throw new Error(`API ${res.status}: ${text || res.statusText}`);
   }
 
   return res.json() as Promise<T>;
 }
 
-export async function strapiList<T extends StrapiEntity>(
+export async function strapiList<T>(
   resource: string,
   query?: string,
 ): Promise<T[]> {
   const qs = query ? `?${query}` : "";
-  const json = await strapiFetch<StrapiListResponse<T>>(`/api/${resource}${qs}`);
+  const json = await strapiFetch<ApiListResponse<T>>(`/api/${resource}${qs}`);
   return json.data ?? [];
 }
 
-export async function strapiCreate<T extends StrapiEntity>(
+/** Node API accepts a flat body (not Strapi `{ data: ... }`). */
+export async function strapiCreate<T>(
   resource: string,
   data: Record<string, unknown>,
 ): Promise<T> {
-  const json = await strapiFetch<StrapiSingleResponse<T>>(`/api/${resource}`, {
+  const json = await strapiFetch<ApiSingleResponse<T>>(`/api/${resource}`, {
     method: "POST",
-    body: JSON.stringify({ data }),
+    body: JSON.stringify(data),
   });
-  if (!json.data) throw new Error("Strapi create returned no data");
+  if (!json.data) throw new Error("API create returned no data");
   return json.data;
 }
 
-export const PRODUCT_POPULATE =
-  "populate[category]=true&populate[photo]=true&populate[video]=true&populate[sizes_and_colors][populate][photo]=true&populate[sizes_and_colors][populate][color_photos]=true";
-
-export const VARIANT_POPULATE =
-  "populate[photo]=true&populate[color_photos]=true&populate[product]=true";
-
-/** Only return published products — drafts stay hidden from the storefront. */
-export const PUBLISHED_PRODUCTS = "status=published";
-
-/** Only return published categories — drafts stay hidden from the storefront. */
-export const PUBLISHED_CATEGORIES = "status=published";
+/** @deprecated Node API returns nested relations; populate query unused. */
+export const PRODUCT_POPULATE = "";
+export const VARIANT_POPULATE = "";
+export const PUBLISHED_PRODUCTS = "";
+export const PUBLISHED_CATEGORIES = "";

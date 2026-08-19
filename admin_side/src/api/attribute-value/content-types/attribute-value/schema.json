@@ -1,0 +1,48 @@
+{
+  "kind": "collectionType",
+  "collectionName": "attribute_values",
+  "info": {
+    "singularName": "attribute-value",
+    "pluralName": "attribute-values",
+    "displayName": "Options value",
+    "description": "One pick under an option — M, Black, 256GB, Single pack…"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "label": {
+      "type": "string",
+      "required": true,
+      "description": "What customers see, e.g. M, Black, 256GB"
+    },
+    "code": {
+      "type": "string",
+      "required": true,
+      "description": "Stable key, e.g. m, black, 256gb"
+    },
+    "meta": {
+      "type": "json",
+      "description": "Optional extras — for Color use {\"hex\":\"#1E3A5F\"}"
+    },
+    "list_position": {
+      "type": "integer",
+      "default": 0,
+      "description": "Order in pickers (1 = first)"
+    },
+    "attribute": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::attribute.attribute",
+      "inversedBy": "values",
+      "required": true,
+      "description": "Which Options this value belongs to"
+    },
+    "product_variants": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::product-variant.product-variant",
+      "mappedBy": "option_values"
+    }
+  }
+}

@@ -1,4 +1,5 @@
 import type { PricingMode, Product, ProductVariant } from "@/types/database";
+import { optionValue } from "@/lib/variant-options";
 
 /**
  * RWF is shown and charged in whole francs.
@@ -50,13 +51,18 @@ function variantsForColor(
   variants: ProductVariant[],
   color: string,
 ): ProductVariant[] {
-  return variants.filter((v) => v.color === color);
+  return variants.filter(
+    (v) => optionValue(v, "color") === color || v.color === color,
+  );
 }
 
 export function colorStockTotal(
   variants: ProductVariant[],
   color: string,
 ): number {
+  if (!color) {
+    return variants.reduce((sum, v) => sum + v.stock_quantity, 0);
+  }
   return variantsForColor(variants, color).reduce(
     (sum, v) => sum + v.stock_quantity,
     0,
@@ -67,9 +73,8 @@ export function lowestPerPiecePriceForColor(
   variants: ProductVariant[],
   color: string,
 ): number {
-  const prices = variantsForColor(variants, color).map((v) =>
-    roundMoney(v.per_piece_price),
-  );
+  const pool = color ? variantsForColor(variants, color) : variants;
+  const prices = pool.map((v) => roundMoney(v.per_piece_price));
   return prices.length ? Math.min(...prices) : 0;
 }
 
@@ -77,7 +82,8 @@ export function lowestBulkPriceForColor(
   variants: ProductVariant[],
   color: string,
 ): number | null {
-  const prices = variantsForColor(variants, color)
+  const pool = color ? variantsForColor(variants, color) : variants;
+  const prices = pool
     .map((v) => (v.bulk_price != null ? roundMoney(v.bulk_price) : null))
     .filter((p): p is number => p != null && p > 0);
   return prices.length ? Math.min(...prices) : null;
@@ -87,9 +93,8 @@ export function lowestBulkMinimumForColor(
   variants: ProductVariant[],
   color: string,
 ): number {
-  const mins = variantsForColor(variants, color)
-    .filter(variantSupportsBulk)
-    .map((v) => v.bulk_minimum);
+  const pool = color ? variantsForColor(variants, color) : variants;
+  const mins = pool.filter(variantSupportsBulk).map((v) => v.bulk_minimum);
   return mins.length ? Math.min(...mins) : 10;
 }
 
@@ -97,7 +102,8 @@ export function colorSupportsBulk(
   variants: ProductVariant[],
   color: string,
 ): boolean {
-  return variantsForColor(variants, color).some(variantSupportsBulk);
+  const pool = color ? variantsForColor(variants, color) : variants;
+  return pool.some(variantSupportsBulk);
 }
 
 export function resolveUnitPrice(

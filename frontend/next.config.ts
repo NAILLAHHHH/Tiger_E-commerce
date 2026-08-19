@@ -1,9 +1,9 @@
 import type { NextConfig } from "next";
 
-const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL ?? "http://localhost:1337";
+const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL ?? "http://localhost:1338";
 const strapi = new URL(strapiUrl);
 const strapiHost = strapi.hostname;
-const strapiPort = strapi.port || "1337";
+const strapiPort = strapi.port || "1338";
 
 /** Strapi Cloud stores uploads on a separate media CDN, not /uploads on the API host. */
 const strapiMediaHost = strapiHost.endsWith(".strapiapp.com")

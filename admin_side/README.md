@@ -1,3 +1,21 @@
+# Tiger Wear — Strapi admin (live)
+
+This is the **live** staff CMS (Content Manager, stock/price reasons, CSV plugin, media, homepage editor).
+
+```bash
+npm run db:up
+npm run develop
+```
+
+- Admin UI: http://localhost:1337/admin  
+- API: http://localhost:1337/api  
+
+Postgres: `localhost:5433`, DB `strapi` / user `strapi` / password `strapi`.
+
+The Fastify+Prisma experiment is kept in `../admin_side_node` (do not run both on port 1337).
+
+---
+
 # 🚀 Getting started with Strapi
 
 This project uses **PostgreSQL** (not SQLite). Start the local database before Strapi:

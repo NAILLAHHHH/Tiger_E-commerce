@@ -12,7 +12,7 @@ type Props = {
 export const metadata: Metadata = {
   title: "Shop",
   description:
-    "Browse clothing by size and color. Buy one piece or many at a lower price.",
+    "Browse products by category. Buy one unit or many at a lower price.",
 };
 
 export default async function ShopPage({ searchParams }: Props) {
@@ -35,8 +35,8 @@ export default async function ShopPage({ searchParams }: Props) {
   const pageDescription = query
     ? `Products matching “${query}”.`
     : activeCategory
-      ? `Clothing in ${activeCategory.name} — pick your size, color, and quantity.`
-      : "Every product comes in sizes and colors. Buy one piece or order many at a lower price.";
+      ? `Products in ${activeCategory.name} — pick your options and quantity.`
+      : "Every product can have its own options (size, color, pack, storage…). Buy one or order many at a lower price.";
 
   return (
     <div className="container-custom py-10">

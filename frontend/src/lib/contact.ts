@@ -1,3 +1,4 @@
+import { cartOptionsLabel } from "@/lib/variant-options";
 import { formatPrice, lineTotal } from "@/lib/pricing";
 import type { CartItem } from "@/types/database";
 
@@ -43,8 +44,11 @@ export function buildOrderWhatsAppMessage(details: OrderWhatsAppDetails): string
   lines.push("", "Here's what I ordered:");
   for (const item of details.items) {
     const amount = formatPrice(lineTotal(item.unitPrice, item.quantity));
+    const opts = cartOptionsLabel(item);
     lines.push(
-      `• ${item.name} (${item.color}, ${item.size}) ×${item.quantity} — ${amount}`,
+      opts
+        ? `• ${item.name} (${opts}) ×${item.quantity} — ${amount}`
+        : `• ${item.name} ×${item.quantity} — ${amount}`,
     );
   }
 

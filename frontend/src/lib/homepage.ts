@@ -10,9 +10,6 @@ import type {
   PromoBanner,
 } from "@/types/homepage";
 
-const HOMEPAGE_POPULATE =
-  "populate[hero_slides][populate]=image&populate[features]=true&populate[promo_banners]=true";
-
 function mapHeroSlide(entity: StrapiEntity): HeroSlide | null {
   const title = entity.title ? String(entity.title) : "";
   if (!title) return null;
@@ -114,9 +111,7 @@ function mergeWithDefaults(entity: StrapiEntity | null): HomepageContent {
 }
 
 const fetchStrapiHomepage = cache(async (): Promise<HomepageContent> => {
-  const json = await strapiFetch<{ data: StrapiEntity | null }>(
-    `/api/homepage?${HOMEPAGE_POPULATE}`,
-  );
+  const json = await strapiFetch<{ data: StrapiEntity | null }>(`/api/homepage`);
   return mergeWithDefaults(json.data);
 });
 

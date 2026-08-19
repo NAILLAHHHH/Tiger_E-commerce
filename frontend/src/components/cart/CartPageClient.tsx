@@ -215,7 +215,16 @@ export default function CartPageClient() {
                 {item.name}
               </Link>
               <p className="text-xs text-muted">
-                {item.color} · Size {item.size} · Code {item.sku}
+                {[
+                  item.options?.length
+                    ? item.options.map((o) => o.value).join(" · ")
+                    : [item.color, item.size ? `Size ${item.size}` : null]
+                        .filter(Boolean)
+                        .join(" · "),
+                  item.sku ? `Code ${item.sku}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
               </p>
               <p className="text-xs text-muted capitalize">
                 {item.pricingMode} · {formatPrice(item.unitPrice)}/unit

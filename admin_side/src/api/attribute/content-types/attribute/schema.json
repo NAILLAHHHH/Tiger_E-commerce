@@ -1,0 +1,51 @@
+{
+  "kind": "collectionType",
+  "collectionName": "attributes",
+  "info": {
+    "singularName": "attribute",
+    "pluralName": "attributes",
+    "displayName": "Options",
+    "description": "What customers can pick — Size, Color, Storage, Pack, Weight…"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true,
+      "description": "Label customers see, e.g. Size, Color, Storage"
+    },
+    "code": {
+      "type": "uid",
+      "targetField": "name",
+      "required": true,
+      "description": "Stable key used by the website, e.g. size, color, storage"
+    },
+    "display_type": {
+      "type": "enumeration",
+      "enum": ["select", "swatch", "text"],
+      "default": "select",
+      "required": true,
+      "description": "How the website shows this option — buttons, color dots, or plain text"
+    },
+    "list_position": {
+      "type": "integer",
+      "default": 0,
+      "description": "Order on the product page (1 = first picker)"
+    },
+    "values": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::attribute-value.attribute-value",
+      "mappedBy": "attribute",
+      "description": "Managed under Options value"
+    },
+    "attribute_sets": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::attribute-set.attribute-set",
+      "mappedBy": "attributes"
+    }
+  }
+}

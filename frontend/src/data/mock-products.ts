@@ -52,7 +52,10 @@ const categories: Category[] = [
 ];
 
 const variants: Array<
-  Omit<ProductVariant, "per_piece_price" | "bulk_price" | "bulk_minimum" | "image_url">
+  Omit<
+    ProductVariant,
+    "per_piece_price" | "bulk_price" | "bulk_minimum" | "image_url" | "options"
+  >
 > = [
   { id: "v-1", product_id: "p-1", sku: "GZ-HGY-M", size: "M", color: "Heather Grey", color_hex: "#A8A29E", stock_quantity: 28 },
   { id: "v-2", product_id: "p-2", sku: "WT-WHT-32", size: "32", color: "White", color_hex: "#FAFAFA", stock_quantity: 20 },
@@ -449,8 +452,36 @@ function attachRelations(items: Omit<Product, "variants" | "total_stock">[]): Pr
     const productMedia = colorMedia[product.id];
     const mappedVariants = productVariants.map((v) => {
       const media = productMedia?.[v.color];
+      const options = [
+        ...(v.size
+          ? [
+              {
+                code: "size" as const,
+                name: "Size",
+                value: v.size,
+                value_code: v.size.toLowerCase(),
+                display_type: "select" as const,
+                list_position: 1,
+              },
+            ]
+          : []),
+        ...(v.color
+          ? [
+              {
+                code: "color" as const,
+                name: "Color",
+                value: v.color,
+                value_code: v.color.toLowerCase(),
+                meta: v.color_hex ? { hex: v.color_hex } : null,
+                display_type: "swatch" as const,
+                list_position: 2,
+              },
+            ]
+          : []),
+      ];
       return {
         ...v,
+        options,
         image_url: media?.main ?? product.image_url,
         color_images: media?.extras?.length ? media.extras : undefined,
         per_piece_price: roundMoney(

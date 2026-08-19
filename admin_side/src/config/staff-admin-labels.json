@@ -27,9 +27,13 @@
       "label": "Shop section",
       "description": "Pick an existing section from the list"
     },
+    "attribute_set": {
+      "label": "Product kind",
+      "description": "Optional — Apparel, Grocery, or Electronics"
+    },
     "sizes_and_colors": {
-      "label": "Sizes & colors",
-      "description": "Add these under Content → Size & color (pick this product there)",
+      "label": "Variants",
+      "description": "Add these under Content → Product variant (pick this product there)",
       "visible": false
     },
     "reviews": {
@@ -37,6 +41,34 @@
       "description": "Managed under Content → Customer review",
       "visible": false
     }
+  },
+  "plugin_content_manager_configuration_content_types::api::attribute.attribute": {
+    "name": { "label": "Name", "description": "e.g. Size, Color, Storage" },
+    "code": { "label": "Code", "description": "Stable key for the website, e.g. size" },
+    "display_type": {
+      "label": "How it looks",
+      "description": "select = buttons, swatch = color dots, text = plain"
+    },
+    "list_position": { "label": "Order on product page" },
+    "values": { "label": "Values", "description": "Managed under Options value" },
+    "attribute_sets": { "label": "Used in product kinds", "visible": false }
+  },
+  "plugin_content_manager_configuration_content_types::api::attribute-value.attribute-value": {
+    "label": { "label": "Label", "description": "What customers see, e.g. M, Black" },
+    "code": { "label": "Code", "description": "Stable key, e.g. m, black" },
+    "meta": {
+      "label": "Extra data",
+      "description": "For Color use {\"hex\":\"#1E3A5F\"}"
+    },
+    "list_position": { "label": "Order in pickers" },
+    "attribute": { "label": "Belongs to options", "description": "Size, Color, Storage…" },
+    "product_variants": { "label": "Used on variants", "visible": false }
+  },
+  "plugin_content_manager_configuration_content_types::api::attribute-set.attribute-set": {
+    "name": { "label": "Name", "description": "e.g. Apparel, Grocery, Electronics" },
+    "code": { "label": "Code" },
+    "attributes": { "label": "Options for this kind", "description": "e.g. Size + Color for Apparel" },
+    "products": { "label": "Products", "visible": false }
   },
   "plugin_content_manager_configuration_components::product.size-and-color": {
     "item_code": {
@@ -71,21 +103,35 @@
   "plugin_content_manager_configuration_content_types::api::product-variant.product-variant": {
     "item_code": {
       "label": "Product code",
-      "description": "Short name to recognise this item, e.g. Grey-Hoodie-M"
+      "description": "Short name to recognise this SKU, e.g. Grey-Hoodie-M"
     },
-    "size": { "label": "Size", "description": "e.g. M, L, 32" },
-    "color": { "label": "Color", "description": "e.g. Navy, Black" },
-    "photo": { "label": "Picture", "description": "Upload a photo for this size and color" },
+    "option_values": {
+      "label": "Options values",
+      "description": "What makes this SKU unique — Size M, Color Black, Storage 256GB, etc."
+    },
+    "size": {
+      "label": "Size (legacy)",
+      "description": "Optional shortcut — prefer Options values. Still works for CSV import"
+    },
+    "color": {
+      "label": "Color (legacy)",
+      "description": "Optional shortcut — prefer Options values. Still works for CSV import"
+    },
+    "color_dot": {
+      "label": "Color hex (legacy)",
+      "description": "Prefer Options value meta.hex"
+    },
+    "photo": { "label": "Picture", "description": "Upload a photo for this variant" },
     "color_photos": {
       "label": "More photos",
-      "description": "Extra angles for this color"
+      "description": "Extra angles for this look"
     },
     "price_for_one": {
-      "label": "Price for 1 piece (RWF)",
+      "label": "Price for 1 unit (RWF)",
       "description": "Changing this requires a reason when you save"
     },
     "price_for_bulk": {
-      "label": "Price per piece when buying many (RWF)",
+      "label": "Price per unit when buying many (RWF)",
       "description": "Leave empty if there is no discount for large orders. Changing this requires a reason when you save"
     },
     "min_quantity_for_bulk": {
@@ -94,7 +140,7 @@
     },
     "how_many_left": {
       "label": "How many we have",
-      "description": "Count how many of this size/color are available to sell. Changing this requires a reason when you save"
+      "description": "Count how many of this SKU are available to sell. Changing this requires a reason when you save"
     },
     "product": {
       "label": "Belongs to product",

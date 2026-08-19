@@ -4,6 +4,7 @@ export type OrderLineItem = {
   product_name: string;
   size: string | null;
   color: string | null;
+  options_snapshot?: Array<{ name: string; value: string; code?: string }> | null;
   item_code: string | null;
   how_many: number;
   price_each: number;
