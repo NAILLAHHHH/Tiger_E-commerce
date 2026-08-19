@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "prisma generate && tsc",
     "start": "node dist/server.js",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
@@ -14,33 +14,34 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:setup": "npm run db:up && sleep 2 && npm run db:ensure && npm run db:push && npm run db:seed",
     "db:ensure": "tsx scripts/ensure-db.ts",
-    "prisma:generate": "prisma generate"
+    "prisma:generate": "prisma generate",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@fastify/cors": "^11.0.1",
     "@fastify/jwt": "^9.1.0",
     "@fastify/multipart": "^9.0.3",
     "@fastify/static": "^8.2.0",
-    "@prisma/client": "^6.14.0",
+    "@prisma/client": "6.19.3",
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.7.0",
     "dotenv": "^17.2.1",
     "fastify": "^5.4.0",
-    "zod": "^4.0.17",
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "prisma": "6.19.3",
+    "tsx": "^4.20.4",
+    "typescript": "^5.9.2",
+    "zod": "^4.0.17"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.19.11",
-    "@types/pg": "^8.15.5",
-    "prisma": "^6.14.0",
-    "tsx": "^4.20.4",
-    "typescript": "^5.9.2"
+    "@types/pg": "^8.15.5"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "engines": {
-    "node": ">=20"
+    "node": "20.x"
   }
 }
