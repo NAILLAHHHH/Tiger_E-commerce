@@ -50,21 +50,77 @@
     prices: "price-histories",
   };
 
-  function toast(msg) {
+  function toast(msg, kind = "ok") {
     const el = document.createElement("div");
-    el.className = "toast";
+    el.className = kind === "error" ? "toast toast-error" : "toast";
     el.textContent = msg;
     document.body.appendChild(el);
-    setTimeout(() => el.remove(), 2800);
+    setTimeout(() => el.remove(), kind === "error" ? 6000 : 2800);
+  }
+
+  function apiErrorMessage(json, fallback) {
+    if (typeof json?.error === "string" && json.error && json.error !== "Bad Request") {
+      return json.error;
+    }
+    if (typeof json?.message === "string" && json.message) return json.message;
+    if (typeof json?.error?.message === "string") return json.error.message;
+    if (Array.isArray(json?.issues) && json.issues[0]?.message) {
+      const issue = json.issues[0];
+      const path = Array.isArray(issue.path) ? issue.path.join(".") : "";
+      return path ? `${path}: ${issue.message}` : issue.message;
+    }
+    return fallback || "Could not save. Check the form and try again.";
+  }
+
+  function clearFormError() {
+    const box = $("#formError");
+    if (box) {
+      box.textContent = "";
+      box.classList.add("hidden");
+    }
+  }
+
+  function showFormError(message) {
+    const text = message || "Could not save. Check the form and try again.";
+    toast(text, "error");
+    let box = $("#formError");
+    if (!box) {
+      box = document.createElement("div");
+      box.id = "formError";
+      box.className = "form-error";
+      box.setAttribute("role", "alert");
+      const host =
+        document.querySelector(".entry-body") ||
+        document.querySelector(".content") ||
+        $("#contentRoot");
+      host?.prepend(box);
+    }
+    box.textContent = text;
+    box.classList.remove("hidden");
+    box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  async function runSave(action) {
+    clearFormError();
+    try {
+      await action();
+    } catch (e) {
+      showFormError(e?.message || "Could not save. Check the form and try again.");
+    }
   }
 
   async function api(path, opts = {}) {
     const headers = { ...(opts.headers || {}) };
     if (!(opts.body instanceof FormData)) headers["Content-Type"] = "application/json";
     if (token) headers.Authorization = `Bearer ${token}`;
-    const res = await fetch(path, { ...opts, headers });
+    let res;
+    try {
+      res = await fetch(path, { ...opts, headers });
+    } catch {
+      throw new Error("Could not reach the server. Is the admin API running?");
+    }
     const json = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(json.error || res.statusText);
+    if (!res.ok) throw new Error(apiErrorMessage(json, res.statusText));
     return json;
   }
 
@@ -137,6 +193,9 @@
     navigate("home");
   }
 
+  const req = (text) =>
+    `${text} <span class="req" aria-hidden="true">*</span>`;
+
   function header(title, desc, actions = "") {
     return `<div class="page-header">
       <div><h1>${title}</h1><p>${desc}</p></div>
@@ -187,6 +246,7 @@
             : ""
         }
         <div class="entry-actions">
+          <div id="formError" class="form-error hidden" role="alert"></div>
           ${
             showPublish
               ? published
@@ -242,169 +302,188 @@
 
   // —— API actions ——
   async function saveProduct(id, forcePublished) {
-    const payload = {
-      name: $("#fName").value,
-      description: $("#fDesc").value || null,
-      categoryId: $("#fCategory").value || null,
-      attributeSetId: $("#fKind").value || null,
-      photoUrl: $("#fPhoto").value || null,
-      highlightOnHomepage: $("#fFeatured").checked,
-      markAsNew: $("#fNew").checked,
-      published:
-        forcePublished !== undefined
-          ? forcePublished
-          : $("#fPublished")?.value === "1",
-    };
-    if (id) await api(`/api/admin/products/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
-    else {
-      const created = await api("/api/admin/products", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-      id = created.data.id;
-    }
-    await refreshAll();
-    toast(forcePublished === true ? "Published" : forcePublished === false ? "Unpublished" : "Saved");
-    editing = { type: "product", id };
-    await render();
+    await runSave(async () => {
+      if (!$("#fName")?.value?.trim()) {
+        throw new Error("Name is required.");
+      }
+      const payload = {
+        name: $("#fName").value,
+        description: $("#fDesc").value || null,
+        categoryId: $("#fCategory").value || null,
+        attributeSetId: $("#fKind").value || null,
+        photoUrl: $("#fPhoto").value || null,
+        highlightOnHomepage: $("#fFeatured").checked,
+        markAsNew: $("#fNew").checked,
+        published:
+          forcePublished !== undefined
+            ? forcePublished
+            : $("#fPublished")?.value === "1",
+      };
+      if (id) await api(`/api/admin/products/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+      else {
+        const created = await api("/api/admin/products", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        id = created.data.id;
+      }
+      await refreshAll();
+      toast(forcePublished === true ? "Published" : forcePublished === false ? "Unpublished" : "Saved");
+      editing = { type: "product", id };
+      await render();
+    });
   }
 
   async function deleteProduct(id) {
     if (!confirm("Delete this product and its variants?")) return;
-    await api(`/api/admin/products/${id}`, { method: "DELETE" });
-    await refreshAll();
-    toast("Deleted");
-    navigate("products");
+    await runSave(async () => {
+      await api(`/api/admin/products/${id}`, { method: "DELETE" });
+      await refreshAll();
+      toast("Deleted");
+      navigate("products");
+    });
   }
 
   async function saveVariant(id) {
-    const priceForOne = Number($("#vPrice").value);
-    const bulkRaw = $("#vBulk").value;
-    const priceForBulk = bulkRaw === "" ? null : Number(bulkRaw);
-    if (!Number.isFinite(priceForOne) || priceForOne < 1) {
-      alert("Price for one must be at least 1 (cannot be 0).");
-      return;
-    }
-    if (priceForBulk != null && (!Number.isFinite(priceForBulk) || priceForBulk < 1)) {
-      alert("Bulk price must be at least 1, or leave it empty.");
-      return;
-    }
-    const payload = {
-      productId: $("#vProduct").value,
-      itemCode: $("#vCode").value,
-      priceForOne,
-      priceForBulk,
-      minQuantityForBulk: Number($("#vBulkMin").value || 10),
-      howManyLeft: Number($("#vStock").value || 0),
-      size: $("#vSize").value || null,
-      color: $("#vColor").value || null,
-      colorDot: $("#vHex").value || null,
-      photoUrl: $("#vPhoto").value || null,
-      attributeValueIds: [...document.querySelectorAll(".v-opt:checked")].map((el) => el.value),
-    };
-    if (id) {
-      const prev = cache.variants.find((v) => v.id === id);
-      const stockOrPrice =
-        prev &&
-        (payload.howManyLeft !== prev.howManyLeft ||
-          payload.priceForOne !== prev.priceForOne ||
-          payload.priceForBulk !== prev.priceForBulk);
-      if (stockOrPrice) {
-        const reason = await reasonPrompt("Reason for stock/price change?");
-        if (!reason) return;
-        payload.reason = reason;
+    await runSave(async () => {
+      if (!$("#vProduct")?.value) throw new Error("Choose a product.");
+      if (!$("#vCode")?.value?.trim()) throw new Error("Item code is required.");
+      const priceForOne = Number($("#vPrice").value);
+      const bulkRaw = $("#vBulk").value;
+      const priceForBulk = bulkRaw === "" ? null : Number(bulkRaw);
+      if (!Number.isFinite(priceForOne) || priceForOne < 1) {
+        throw new Error("Price for one must be at least 1 (cannot be 0).");
       }
-      delete payload.productId;
-      await api(`/api/admin/variants/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
-    } else {
-      await api("/api/admin/variants", { method: "POST", body: JSON.stringify(payload) });
-    }
-    await refreshAll();
-    toast("Saved");
-    navigate("variants");
+      if (priceForBulk != null && (!Number.isFinite(priceForBulk) || priceForBulk < 1)) {
+        throw new Error("Bulk price must be at least 1, or leave it empty.");
+      }
+      const payload = {
+        productId: $("#vProduct").value,
+        itemCode: $("#vCode").value,
+        priceForOne,
+        priceForBulk,
+        minQuantityForBulk: Number($("#vBulkMin").value || 10),
+        howManyLeft: Number($("#vStock").value || 0),
+        size: $("#vSize").value || null,
+        color: $("#vColor").value || null,
+        photoUrl: $("#vPhoto").value || null,
+        attributeValueIds: [...document.querySelectorAll(".v-opt:checked")].map((el) => el.value),
+      };
+      if (id) {
+        const prev = cache.variants.find((v) => v.id === id);
+        const stockOrPrice =
+          prev &&
+          (payload.howManyLeft !== prev.howManyLeft ||
+            payload.priceForOne !== prev.priceForOne ||
+            payload.priceForBulk !== prev.priceForBulk);
+        if (stockOrPrice) {
+          const reason = await reasonPrompt("Reason for stock/price change?");
+          if (!reason) throw new Error("A reason is required when changing stock or price.");
+          payload.reason = reason;
+        }
+        delete payload.productId;
+        await api(`/api/admin/variants/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+      } else {
+        await api("/api/admin/variants", { method: "POST", body: JSON.stringify(payload) });
+      }
+      await refreshAll();
+      toast("Saved");
+      navigate("variants");
+    });
   }
 
   async function deleteVariant(id) {
     if (!confirm("Delete this variant?")) return;
-    await api(`/api/admin/variants/${id}`, { method: "DELETE" });
-    await refreshAll();
-    navigate("variants");
+    await runSave(async () => {
+      await api(`/api/admin/variants/${id}`, { method: "DELETE" });
+      await refreshAll();
+      navigate("variants");
+    });
   }
 
   async function saveCategory(id, forcePublished) {
-    const payload = {
-      name: $("#cName").value,
-      listPosition: Number($("#cPos").value || 0),
-      photoUrl: $("#cPhoto").value || null,
-      published:
-        forcePublished !== undefined
-          ? forcePublished
-          : $("#cPublished")?.value === "1",
-    };
-    if (id) await api(`/api/admin/categories/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
-    else {
-      const created = await api("/api/admin/categories", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-      id = created.data.id;
-    }
-    await refreshAll();
-    toast(forcePublished === true ? "Published" : forcePublished === false ? "Unpublished" : "Saved");
-    editing = { type: "category", id };
-    await render();
+    await runSave(async () => {
+      if (!$("#cName")?.value?.trim()) throw new Error("Name is required.");
+      const payload = {
+        name: $("#cName").value,
+        listPosition: Number($("#cPos").value || 0),
+        photoUrl: $("#cPhoto").value || null,
+        published:
+          forcePublished !== undefined
+            ? forcePublished
+            : $("#cPublished")?.value === "1",
+      };
+      if (id) await api(`/api/admin/categories/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+      else {
+        const created = await api("/api/admin/categories", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        id = created.data.id;
+      }
+      await refreshAll();
+      toast(forcePublished === true ? "Published" : forcePublished === false ? "Unpublished" : "Saved");
+      editing = { type: "category", id };
+      await render();
+    });
   }
 
   async function deleteCategory(id) {
     if (!confirm("Delete this category?")) return;
-    await api(`/api/admin/categories/${id}`, { method: "DELETE" });
-    await refreshAll();
-    navigate("categories");
+    await runSave(async () => {
+      await api(`/api/admin/categories/${id}`, { method: "DELETE" });
+      await refreshAll();
+      navigate("categories");
+    });
   }
 
   async function saveAttribute(id) {
-    const values = [...document.querySelectorAll(".opt-value-row")]
-      .map((row, i) => {
-        const label = row.querySelector(".opt-val-label")?.value?.trim();
-        const hex = row.querySelector(".opt-val-hex")?.value?.trim();
-        const vid = row.dataset.valueId;
-        return {
-          id: vid || undefined,
-          label,
-          listPosition: Number(row.querySelector(".opt-val-pos")?.value || i),
-          meta: hex ? { hex } : null,
-        };
-      })
-      .filter((v) => v.label);
-    if (!values.length) {
-      alert("Add at least one value for this option (for example S, M, L).");
-      return;
-    }
-    const payload = {
-      name: $("#aName").value,
-      displayType: $("#aType").value,
-      listPosition: Number($("#aPos").value || 0),
-      values,
-    };
-    if (id) await api(`/api/admin/attributes/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
-    else await api("/api/admin/attributes", { method: "POST", body: JSON.stringify(payload) });
-    await refreshAll();
-    toast("Saved");
-    navigate("attributes");
+    await runSave(async () => {
+      if (!$("#aName")?.value?.trim()) throw new Error("Name is required.");
+      const values = [...document.querySelectorAll(".opt-value-row")]
+        .map((row, i) => {
+          const label = row.querySelector(".opt-val-label")?.value?.trim();
+          const hex = row.querySelector(".opt-val-hex")?.value?.trim();
+          const vid = row.dataset.valueId;
+          return {
+            id: vid || undefined,
+            label,
+            listPosition: Number(row.querySelector(".opt-val-pos")?.value || i),
+            meta: hex ? { hex } : null,
+          };
+        })
+        .filter((v) => v.label);
+      if (!values.length) {
+        throw new Error("Add at least one value for this option (for example S, M, L).");
+      }
+      const payload = {
+        name: $("#aName").value,
+        displayType: $("#aType").value,
+        listPosition: Number($("#aPos").value || 0),
+        values,
+      };
+      if (id) await api(`/api/admin/attributes/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+      else await api("/api/admin/attributes", { method: "POST", body: JSON.stringify(payload) });
+      await refreshAll();
+      toast("Saved");
+      navigate("attributes");
+    });
   }
 
   async function deleteAttribute(id) {
     if (!confirm("Delete this option and its values?")) return;
-    await api(`/api/admin/attributes/${id}`, { method: "DELETE" });
-    await refreshAll();
-    navigate("attributes");
+    await runSave(async () => {
+      await api(`/api/admin/attributes/${id}`, { method: "DELETE" });
+      await refreshAll();
+      navigate("attributes");
+    });
   }
 
   function optionValueRow(v, index) {
     const hex = v?.meta && typeof v.meta === "object" ? v.meta.hex || "" : "";
     const color = /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : "#cccccc";
     return `<div class="opt-value-row" data-value-id="${v?.id || ""}">
-      <input class="opt-val-label strapi-input" placeholder="Value (e.g. Medium)" value="${esc(v?.label || "")}" />
+      <input class="opt-val-label strapi-input" placeholder="Value (e.g. Medium)" value="${esc(v?.label || "")}" required />
       <span class="opt-hex-wrap">
         <input type="color" class="opt-val-color" value="${esc(color)}" oninput="this.nextElementSibling.value=this.value" />
         <input class="opt-val-hex strapi-input" placeholder="#hex" value="${esc(hex)}" oninput="if(/^#[0-9a-fA-F]{6}$/.test(this.value)) this.previousElementSibling.value=this.value" />
@@ -432,98 +511,116 @@
     const list = $("#optValuesList");
     const rows = list?.querySelectorAll(".opt-value-row") || [];
     if (rows.length <= 1) {
-      alert("An option needs at least one value.");
+      showFormError("An option needs at least one value.");
       return;
     }
     btn.closest(".opt-value-row")?.remove();
   }
 
   async function saveKind(id) {
-    const payload = {
-      name: $("#kName").value,
-      attributeIds: [...document.querySelectorAll(".kind-attr:checked")].map((el) => el.value),
-    };
-    if (id) await api(`/api/admin/attribute-sets/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
-    else await api("/api/admin/attribute-sets", { method: "POST", body: JSON.stringify(payload) });
-    await refreshAll();
-    toast("Saved");
-    navigate("kinds");
+    await runSave(async () => {
+      if (!$("#kName")?.value?.trim()) throw new Error("Name is required.");
+      const payload = {
+        name: $("#kName").value,
+        attributeIds: [...document.querySelectorAll(".kind-attr:checked")].map((el) => el.value),
+      };
+      if (id) await api(`/api/admin/attribute-sets/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+      else await api("/api/admin/attribute-sets", { method: "POST", body: JSON.stringify(payload) });
+      await refreshAll();
+      toast("Saved");
+      navigate("kinds");
+    });
   }
 
   async function deleteKind(id) {
     if (!confirm("Delete this product kind?")) return;
-    await api(`/api/admin/attribute-sets/${id}`, { method: "DELETE" });
-    await refreshAll();
-    navigate("kinds");
+    await runSave(async () => {
+      await api(`/api/admin/attribute-sets/${id}`, { method: "DELETE" });
+      await refreshAll();
+      navigate("kinds");
+    });
   }
 
   async function setOrderStatus(id, orderStatus) {
-    await api(`/api/admin/orders/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify({ orderStatus }),
+    await runSave(async () => {
+      await api(`/api/admin/orders/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ orderStatus }),
+      });
+      await refreshAll();
+      toast("Order updated");
+      navigate("orders");
     });
-    await refreshAll();
-    toast("Order updated");
-    navigate("orders");
   }
 
   async function toggleReview(id, show) {
-    await api(`/api/admin/reviews/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify({ showOnWebsite: show }),
+    await runSave(async () => {
+      await api(`/api/admin/reviews/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ showOnWebsite: show }),
+      });
+      await refreshAll();
+      navigate("reviews");
     });
-    await refreshAll();
-    navigate("reviews");
   }
 
   async function deleteReview(id) {
     if (!confirm("Delete this review?")) return;
-    await api(`/api/admin/reviews/${id}`, { method: "DELETE" });
-    await refreshAll();
-    navigate("reviews");
+    await runSave(async () => {
+      await api(`/api/admin/reviews/${id}`, { method: "DELETE" });
+      await refreshAll();
+      navigate("reviews");
+    });
   }
 
   async function createStaffUser() {
-    const email = $("#staffEmail")?.value?.trim();
-    const name = $("#staffName")?.value?.trim() || null;
-    const password = $("#staffPassword")?.value || "";
-    if (!email || password.length < 8) {
-      alert("Email and a password of at least 8 characters are required.");
-      return;
-    }
-    await api("/api/admin/users", {
-      method: "POST",
-      body: JSON.stringify({ email, name, password }),
+    await runSave(async () => {
+      const email = $("#staffEmail")?.value?.trim();
+      const name = $("#staffName")?.value?.trim() || null;
+      const password = $("#staffPassword")?.value || "";
+      if (!email) throw new Error("Email is required.");
+      if (password.length < 8) throw new Error("Password must be at least 8 characters.");
+      await api("/api/admin/users", {
+        method: "POST",
+        body: JSON.stringify({ email, name, password }),
+      });
+      await refreshAll();
+      toast("Staff user created");
+      navigate("staff");
     });
-    await refreshAll();
-    toast("Staff user created");
-    navigate("staff");
   }
 
   async function resetStaffPassword(id) {
     const password = prompt("New password (min 8 characters)");
-    if (!password || password.length < 8) return;
-    await api(`/api/admin/users/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify({ password }),
+    if (!password) return;
+    await runSave(async () => {
+      if (password.length < 8) throw new Error("Password must be at least 8 characters.");
+      await api(`/api/admin/users/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ password }),
+      });
+      toast("Password updated");
     });
-    toast("Password updated");
   }
 
   async function deleteStaffUser(id) {
     if (!confirm("Remove this staff user? They will no longer be able to sign in.")) return;
-    await api(`/api/admin/users/${id}`, { method: "DELETE" });
-    await refreshAll();
-    toast("User removed");
-    navigate("staff");
+    await runSave(async () => {
+      await api(`/api/admin/users/${id}`, { method: "DELETE" });
+      await refreshAll();
+      toast("User removed");
+      navigate("staff");
+    });
   }
 
   async function saveHomepage() {
-    const data = collectHomepageForm();
-    await api("/api/admin/homepage", { method: "PATCH", body: JSON.stringify({ data }) });
-    await refreshAll();
-    toast("Homepage saved");
-    await render();
+    await runSave(async () => {
+      const data = collectHomepageForm();
+      await api("/api/admin/homepage", { method: "PATCH", body: JSON.stringify({ data }) });
+      await refreshAll();
+      toast("Homepage saved");
+      await render();
+    });
   }
 
   function defaultHomepage() {
@@ -550,7 +647,7 @@
         },
       ],
       features: [
-        { title: "Bulk Pricing", description: "Tiered rates from 10+ pcs", icon: "📦" },
+        { title: "Bulk Pricing", description: "Tiered rates from 10+ pcs", icon: "bulk" },
       ],
       promo_banners: [
         {
@@ -787,57 +884,70 @@
   async function uploadHomepageImage(fileInput, targetId) {
     const file = fileInput.files?.[0];
     if (!file) return;
-    const url = await uploadFile(file);
-    const target = document.getElementById(targetId);
-    if (target) {
-      target.value = url;
-      refreshHeroPreview(target);
-    }
-    toast("Image uploaded");
+    await runSave(async () => {
+      const url = await uploadFile(file);
+      const target = document.getElementById(targetId);
+      if (target) {
+        target.value = url;
+        refreshHeroPreview(target);
+      }
+      toast("Image uploaded");
+    });
   }
 
   async function exportCsv(key) {
-    const json = await api(`/api/admin/data-transfer/export/${key}`);
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([json.data.content], { type: "text/csv" }));
-    a.download = json.data.filename;
-    a.click();
-    toast(`Exported ${json.data.count} rows`);
+    await runSave(async () => {
+      const json = await api(`/api/admin/data-transfer/export/${key}`);
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([json.data.content], { type: "text/csv" }));
+      a.download = json.data.filename;
+      a.click();
+      toast(`Exported ${json.data.count} rows`);
+    });
   }
 
   async function downloadTemplate(key) {
-    const res = await fetch(`/api/admin/data-transfer/template/${key}`, {
-      headers: { Authorization: `Bearer ${token}` },
+    await runSave(async () => {
+      const res = await fetch(`/api/admin/data-transfer/template/${key}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("No template for this type.");
+      const text = await res.text();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([text], { type: "text/csv" }));
+      a.download = `${key}-template.csv`;
+      a.click();
     });
-    if (!res.ok) return toast("No template for this type");
-    const text = await res.text();
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([text], { type: "text/csv" }));
-    a.download = `${key}-template.csv`;
-    a.click();
   }
 
   async function importCsv(key) {
     const file = $(`#import-${key}`)?.files?.[0];
     if (!file) return;
-    const csv = await file.text();
-    const json = await api(`/api/admin/data-transfer/import/${key}`, {
-      method: "POST",
-      body: JSON.stringify({ csv }),
+    await runSave(async () => {
+      const csv = await file.text();
+      const json = await api(`/api/admin/data-transfer/import/${key}`, {
+        method: "POST",
+        body: JSON.stringify({ csv }),
+      });
+      await refreshAll();
+      await render();
+      toast(
+        `Import: +${json.data.created} / ~${json.data.updated} / skip ${json.data.skipped}` +
+          (json.data.errors?.length ? ` (${json.data.errors.length} errors)` : ""),
+      );
+      if (json.data.errors?.length) {
+        showFormError(json.data.errors.slice(0, 5).join(" · "));
+      }
     });
-    await refreshAll();
-    toast(
-      `Import: +${json.data.created} / ~${json.data.updated} / skip ${json.data.skipped}` +
-        (json.data.errors?.length ? ` (${json.data.errors.length} errors)` : ""),
-    );
-    await render();
   }
 
   async function onUpload(inputId, targetId) {
     const file = $(`#${inputId}`)?.files?.[0];
     if (!file) return;
-    $(`#${targetId}`).value = await uploadFile(file);
-    toast("Uploaded");
+    await runSave(async () => {
+      $(`#${targetId}`).value = await uploadFile(file);
+      toast("Uploaded");
+    });
   }
 
   Object.assign(window, {
@@ -920,7 +1030,7 @@
     return `<div class="edit-layout">
       <div class="panel">
         <div class="form-grid">
-          <div class="full field"><label>Name</label><input id="fName" value="${esc(p?.name || "")}" /></div>
+          <div class="full field"><label>${req("Name")}</label><input id="fName" value="${esc(p?.name || "")}" required /></div>
           <div class="full field"><label>Description</label><textarea id="fDesc" rows="4">${esc(p?.description || "")}</textarea></div>
           <div class="field"><label>Category</label>
             <select id="fCategory"><option value="">—</option>
@@ -961,19 +1071,18 @@
     return `<div class="edit-layout">
       <div class="panel">
         <div class="form-grid">
-          <div class="field"><label>Product</label>
-            <select id="vProduct" ${v ? "disabled" : ""}>
+          <div class="field"><label>${req("Product")}</label>
+            <select id="vProduct" ${v ? "disabled" : ""} required>
               ${cache.products.map((p) => `<option value="${p.id}" ${v?.productId === p.id || v?.product?.id === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}
             </select>
           </div>
-          <div class="field"><label>Item code</label><input id="vCode" value="${esc(v?.itemCode || "")}" /></div>
-          <div class="field"><label>Price for one</label><input id="vPrice" type="number" min="1" step="1" value="${v?.priceForOne ?? 1}" /></div>
+          <div class="field"><label>${req("Item code")}</label><input id="vCode" value="${esc(v?.itemCode || "")}" required /></div>
+          <div class="field"><label>${req("Price for one")}</label><input id="vPrice" type="number" min="1" step="1" value="${v?.priceForOne ?? 1}" required /></div>
           <div class="field"><label>Bulk price</label><input id="vBulk" type="number" min="1" step="1" value="${v?.priceForBulk ?? ""}" placeholder="Optional" /></div>
           <div class="field"><label>Bulk minimum</label><input id="vBulkMin" type="number" value="${v?.minQuantityForBulk ?? 10}" /></div>
           <div class="field"><label>Stock</label><input id="vStock" type="number" value="${v?.howManyLeft ?? 0}" /></div>
           <div class="field"><label>Size (shortcut)</label><input id="vSize" value="${esc(v?.size || "")}" /></div>
           <div class="field"><label>Color (shortcut)</label><input id="vColor" value="${esc(v?.color || "")}" /></div>
-          <div class="field"><label>Color hex</label><input id="vHex" value="${esc(v?.colorDot || "")}" /></div>
           <div class="full field"><label>Photo</label>
             <input type="file" id="vPhotoFile" accept="image/*" onchange="onUpload('vPhotoFile','vPhoto')" />
             <input id="vPhoto" value="${esc(v?.photoUrl || "")}" style="margin-top:.5rem" />
@@ -985,10 +1094,14 @@
                   (a) =>
                     `<div style="min-width:100%"><strong>${esc(a.name)}</strong></div>` +
                     (a.values || [])
-                      .map(
-                        (val) =>
-                          `<label><input class="v-opt" type="checkbox" value="${val.id}" ${selectedIds.has(val.id) ? "checked" : ""} /> ${esc(val.label)}</label>`,
-                      )
+                      .map((val) => {
+                        const hex =
+                          val.meta && typeof val.meta === "object" ? val.meta.hex : "";
+                        const swatch = hex
+                          ? `<span class="opt-swatch" style="background:${esc(hex)}"></span>`
+                          : "";
+                        return `<label><input class="v-opt" type="checkbox" value="${val.id}" ${selectedIds.has(val.id) ? "checked" : ""} /> ${swatch}${esc(val.label)}</label>`;
+                      })
                       .join(""),
                 )
                 .join("")}
@@ -1009,7 +1122,7 @@
     return `<div class="edit-layout">
       <div class="panel">
         <div class="form-grid">
-          <div class="field"><label>Name</label><input id="cName" value="${esc(c?.name || "")}" /></div>
+          <div class="field"><label>${req("Name")}</label><input id="cName" value="${esc(c?.name || "")}" required /></div>
           <div class="field"><label>List position</label><input id="cPos" type="number" value="${c?.listPosition ?? 0}" /></div>
           <div class="full field"><label>Photo</label>
             <input type="file" id="cPhotoFile" accept="image/*" onchange="onUpload('cPhotoFile','cPhoto')" />
@@ -1039,7 +1152,7 @@
     return `<div class="edit-layout">
       <div class="panel">
         <div class="form-grid">
-          <div class="field"><label>Name</label><input id="aName" value="${esc(a?.name || "")}" placeholder="Size, Color, Storage…" /></div>
+          <div class="field"><label>${req("Name")}</label><input id="aName" value="${esc(a?.name || "")}" placeholder="Size, Color, Storage…" required /></div>
           <div class="field"><label>Display type</label>
             <select id="aType" onchange="syncOptionValueHexVisibility()">
               ${["select", "swatch", "text"]
@@ -1049,7 +1162,7 @@
           </div>
           <div class="field"><label>List position</label><input id="aPos" type="number" value="${a?.listPosition ?? 0}" /></div>
           <div class="full field">
-            <label>Values</label>
+            <label>${req("Values")}</label>
             <p class="muted" style="margin:0 0 .65rem">Add every choice for this option at once. Swatch types can include a hex color.</p>
             <div id="optValuesList" class="opt-values">${values.map(optionValueRow).join("")}</div>
             <button type="button" class="btn btn-secondary btn-sm" onclick="addOptionValueRow()">Add value</button>
@@ -1069,7 +1182,7 @@
     return `<div class="edit-layout">
       <div class="panel">
         <div class="form-grid">
-          <div class="full field"><label>Name</label><input id="kName" value="${esc(s?.name || "")}" /></div>
+          <div class="full field"><label>${req("Name")}</label><input id="kName" value="${esc(s?.name || "")}" required /></div>
           <div class="full field"><label>Options in this kind</label>
             <div class="check-row">
               ${cache.attributes
@@ -1589,11 +1702,12 @@
       const users = cache.users || [];
       root.innerHTML = `
         ${header("Staff users", "Add people who can sign in to the Content Manager.")}
+        <div id="formError" class="form-error hidden" role="alert"></div>
         <div class="panel" style="margin-bottom:1rem">
           <div class="form-grid">
             <div class="field"><label>Name</label><input id="staffName" placeholder="Optional" /></div>
-            <div class="field"><label>Email</label><input id="staffEmail" type="email" placeholder="colleague@tygamart.com" /></div>
-            <div class="full field"><label>Temporary password</label><input id="staffPassword" type="password" placeholder="Min 8 characters" /></div>
+            <div class="field"><label>${req("Email")}</label><input id="staffEmail" type="email" placeholder="colleague@tygamart.com" required /></div>
+            <div class="full field"><label>${req("Temporary password")}</label><input id="staffPassword" type="password" placeholder="Min 8 characters" required /></div>
           </div>
           <div class="form-actions">
             <button class="btn btn-primary" onclick="createStaffUser()">Add staff user</button>

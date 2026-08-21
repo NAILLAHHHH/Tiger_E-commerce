@@ -714,7 +714,6 @@ export async function registerAdminRoutes(app: FastifyInstance) {
         attributeValueIds: z.array(z.string()).optional(),
         size: z.string().optional().nullable(),
         color: z.string().optional().nullable(),
-        colorDot: z.string().optional().nullable(),
         reason: z.string().optional(),
       })
       .parse(request.body);
@@ -754,13 +753,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
         valueIds.push(value.id);
       };
       if (body.size) await ensure("size", "Size", body.size);
-      if (body.color)
-        await ensure(
-          "color",
-          "Color",
-          body.color,
-          body.colorDot ? { hex: body.colorDot } : undefined,
-        );
+      if (body.color) await ensure("color", "Color", body.color);
     }
 
     const uniqueIds = [...new Set(valueIds)];
@@ -789,7 +782,6 @@ export async function registerAdminRoutes(app: FastifyInstance) {
         photoUrl: body.photoUrl ?? null,
         size: body.size ?? null,
         color: body.color ?? null,
-        colorDot: body.colorDot ?? null,
         optionValues: {
           create: uniqueIds.map((attributeValueId) => ({ attributeValueId })),
         },
@@ -821,7 +813,6 @@ export async function registerAdminRoutes(app: FastifyInstance) {
         attributeValueIds: z.array(z.string()).optional(),
         size: z.string().optional().nullable(),
         color: z.string().optional().nullable(),
-        colorDot: z.string().optional().nullable(),
         itemCode: z.string().min(1).optional(),
         reason: z.string().optional(),
       })
@@ -898,16 +889,8 @@ export async function registerAdminRoutes(app: FastifyInstance) {
       };
       const size = body.size !== undefined ? body.size : previous.size;
       const color = body.color !== undefined ? body.color : previous.color;
-      const colorDot =
-        body.colorDot !== undefined ? body.colorDot : previous.colorDot;
       if (size) await ensure("size", "Size", size);
-      if (color)
-        await ensure(
-          "color",
-          "Color",
-          color,
-          colorDot ? { hex: colorDot } : undefined,
-        );
+      if (color) await ensure("color", "Color", color);
     }
 
     if (body.attributeValueIds || body.size !== undefined || body.color !== undefined) {
@@ -940,7 +923,6 @@ export async function registerAdminRoutes(app: FastifyInstance) {
         ...(body.photoUrl !== undefined ? { photoUrl: body.photoUrl } : {}),
         ...(body.size !== undefined ? { size: body.size } : {}),
         ...(body.color !== undefined ? { color: body.color } : {}),
-        ...(body.colorDot !== undefined ? { colorDot: body.colorDot } : {}),
       },
     });
 
