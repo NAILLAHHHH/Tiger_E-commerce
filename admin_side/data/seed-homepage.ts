@@ -83,17 +83,17 @@ export const seedFeatures: SeedFeatureItem[] = [
   {
     title: "Bulk Pricing",
     description: "Tiered rates from 10+ pcs",
-    icon: "📦",
+    icon: "bulk",
   },
   {
     title: "Live Inventory",
     description: "Stock synced per size & color",
-    icon: "✓",
+    icon: "stock",
   },
   {
     title: "Dedicated Support",
     description: "Retail & wholesale help",
-    icon: "💬",
+    icon: "support",
   },
 ];
 
