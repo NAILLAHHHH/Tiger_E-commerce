@@ -74,8 +74,15 @@ function fieldLabel(path: string) {
   return FIELD_LABELS[key] || key.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase());
 }
 
+function isZodError(error: unknown): error is ZodError {
+  if (error instanceof ZodError) return true;
+  if (typeof error !== "object" || error === null) return false;
+  const candidate = error as { name?: string; issues?: unknown };
+  return candidate.name === "ZodError" && Array.isArray(candidate.issues);
+}
+
 app.setErrorHandler((error, request, reply) => {
-  if (error instanceof ZodError || error?.name === "ZodError") {
+  if (isZodError(error)) {
     const issue = error.issues[0];
     const path = issue?.path?.length ? String(issue.path.join(".")) : "";
     const detail = issue?.message || "Invalid value";
