@@ -4,7 +4,14 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../db.js";
 import { requireAdmin } from "../lib/auth.js";
-import { slugify, roundMoney, requirePositivePrice, requireOptionalPositivePrice } from "../lib/utils.js";
+import { slugify, roundMoney, requirePositivePrice, requireOptionalPositivePrice, requirePositiveStock } from "../lib/utils.js";
+import {
+  assertOptionValuesMatchKind,
+  kindHasAttributeCode,
+  requireCategoryKind,
+  syncProductsKindForCategory,
+  allowedAttributeIdsForProduct,
+} from "../lib/catalog.js";
 import { logPriceChanges, logStockChange, syncOrderStock } from "../services/orders.js";
 import { saveUpload } from "../services/upload.js";
 import { mapProduct, productInclude } from "../mappers.js";
@@ -314,7 +321,10 @@ export async function registerAdminRoutes(app: FastifyInstance) {
 
   // —— Categories ——
   app.get("/api/admin/categories", { preHandler: requireAdmin }, async () => {
-    const rows = await prisma.category.findMany({ orderBy: { listPosition: "asc" } });
+    const rows = await prisma.category.findMany({
+      include: { attributeSet: true },
+      orderBy: { listPosition: "asc" },
+    });
     return { data: rows };
   });
 
@@ -325,6 +335,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
         listPosition: z.number().int().optional(),
         photoUrl: z.string().optional().nullable(),
         published: z.boolean().optional(),
+        attributeSetId: z.string().min(1),
       })
       .parse(request.body);
 
@@ -335,7 +346,9 @@ export async function registerAdminRoutes(app: FastifyInstance) {
         listPosition: body.listPosition ?? 0,
         photoUrl: body.photoUrl ?? null,
         published: body.published ?? false,
+        attributeSetId: body.attributeSetId,
       },
+      include: { attributeSet: true },
     });
     return { data: row };
   });
@@ -348,6 +361,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
         listPosition: z.number().int().optional(),
         photoUrl: z.string().optional().nullable(),
         published: z.boolean().optional(),
+        attributeSetId: z.string().min(1).optional(),
       })
       .parse(request.body);
     try {
@@ -357,7 +371,11 @@ export async function registerAdminRoutes(app: FastifyInstance) {
           ...body,
           ...(body.name ? { linkName: slugify(body.name) } : {}),
         },
+        include: { attributeSet: true },
       });
+      if (body.attributeSetId) {
+        await syncProductsKindForCategory(id, body.attributeSetId);
+      }
       return { data: row };
     } catch {
       return reply.code(404).send({ error: "Not found" });
@@ -602,6 +620,13 @@ export async function registerAdminRoutes(app: FastifyInstance) {
     { preHandler: requireAdmin },
     async (request, reply) => {
       const { id } = request.params as { id: string };
+      const inUse = await prisma.category.count({ where: { attributeSetId: id } });
+      if (inUse) {
+        return reply.code(400).send({
+          error:
+            "Reassign or delete categories that use this product kind first.",
+        });
+      }
       try {
         await prisma.attributeSet.delete({ where: { id } });
         return { ok: true };
@@ -620,19 +645,25 @@ export async function registerAdminRoutes(app: FastifyInstance) {
     return { data: rows.map(mapProduct) };
   });
 
-  app.post("/api/admin/products", { preHandler: requireAdmin }, async (request) => {
+  app.post("/api/admin/products", { preHandler: requireAdmin }, async (request, reply) => {
     const body = z
       .object({
         name: z.string().min(1),
         description: z.string().optional().nullable(),
         photoUrl: z.string().optional().nullable(),
-        categoryId: z.string().optional().nullable(),
-        attributeSetId: z.string().optional().nullable(),
+        categoryId: z.string().min(1),
         highlightOnHomepage: z.boolean().optional(),
         markAsNew: z.boolean().optional(),
         published: z.boolean().optional(),
       })
       .parse(request.body);
+
+    let attributeSetId: string;
+    try {
+      attributeSetId = await requireCategoryKind(body.categoryId);
+    } catch (e) {
+      return reply.code(400).send({ error: (e as Error).message });
+    }
 
     const row = await prisma.product.create({
       data: {
@@ -640,8 +671,8 @@ export async function registerAdminRoutes(app: FastifyInstance) {
         linkName: slugify(body.name),
         description: body.description ?? null,
         photoUrl: body.photoUrl ?? null,
-        categoryId: body.categoryId ?? null,
-        attributeSetId: body.attributeSetId ?? null,
+        categoryId: body.categoryId,
+        attributeSetId,
         highlightOnHomepage: body.highlightOnHomepage ?? false,
         markAsNew: body.markAsNew ?? false,
         published: body.published ?? false,
@@ -651,26 +682,35 @@ export async function registerAdminRoutes(app: FastifyInstance) {
     return { data: mapProduct(row) };
   });
 
-  app.patch("/api/admin/products/:id", { preHandler: requireAdmin }, async (request) => {
+  app.patch("/api/admin/products/:id", { preHandler: requireAdmin }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const body = z
       .object({
         name: z.string().min(1).optional(),
         description: z.string().optional().nullable(),
         photoUrl: z.string().optional().nullable(),
-        categoryId: z.string().optional().nullable(),
-        attributeSetId: z.string().optional().nullable(),
+        categoryId: z.string().min(1).optional(),
         highlightOnHomepage: z.boolean().optional(),
         markAsNew: z.boolean().optional(),
         published: z.boolean().optional(),
       })
       .parse(request.body);
 
+    let attributeSetId: string | undefined;
+    try {
+      attributeSetId = body.categoryId
+        ? await requireCategoryKind(body.categoryId)
+        : undefined;
+    } catch (e) {
+      return reply.code(400).send({ error: (e as Error).message });
+    }
+
     const row = await prisma.product.update({
       where: { id },
       data: {
         ...body,
         ...(body.name ? { linkName: slugify(body.name) } : {}),
+        ...(attributeSetId ? { attributeSetId } : {}),
       },
       include: productInclude,
     });
@@ -720,7 +760,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
 
     const valueIds = [...(body.attributeValueIds ?? [])];
 
-    // Auto-link size/color shortcuts into Options values
+    // Auto-link size/color shortcuts only when this product's kind includes them
     if (body.size || body.color) {
       const ensure = async (
         attrCode: string,
@@ -752,21 +792,28 @@ export async function registerAdminRoutes(app: FastifyInstance) {
         });
         valueIds.push(value.id);
       };
-      if (body.size) await ensure("size", "Size", body.size);
-      if (body.color) await ensure("color", "Color", body.color);
+      if (body.size && (await kindHasAttributeCode(body.productId, "size"))) {
+        await ensure("size", "Size", body.size);
+      }
+      if (body.color && (await kindHasAttributeCode(body.productId, "color"))) {
+        await ensure("color", "Color", body.color);
+      }
     }
 
     const uniqueIds = [...new Set(valueIds)];
-    const stock = body.howManyLeft ?? 0;
 
     let priceForOne: number;
     let priceForBulk: number | null;
+    let stock: number;
     try {
       priceForOne = requirePositivePrice(body.priceForOne, "Price for one");
       priceForBulk = requireOptionalPositivePrice(
         body.priceForBulk,
         "Bulk price",
       );
+      stock = requirePositiveStock(body.howManyLeft ?? 1);
+      await allowedAttributeIdsForProduct(body.productId);
+      await assertOptionValuesMatchKind(body.productId, uniqueIds);
     } catch (e) {
       return reply.code(400).send({ error: (e as Error).message });
     }
@@ -823,6 +870,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
 
     const stockChanging =
       body.howManyLeft != null && body.howManyLeft !== previous.howManyLeft;
+    let nextStock: number | undefined;
     const priceChanging =
       (body.priceForOne != null &&
         roundMoney(body.priceForOne) !== previous.priceForOne) ||
@@ -848,6 +896,9 @@ export async function registerAdminRoutes(app: FastifyInstance) {
           body.priceForBulk,
           "Bulk price",
         );
+      }
+      if (stockChanging) {
+        nextStock = requirePositiveStock(body.howManyLeft!);
       }
     } catch (e) {
       return reply.code(400).send({ error: (e as Error).message });
@@ -889,12 +940,21 @@ export async function registerAdminRoutes(app: FastifyInstance) {
       };
       const size = body.size !== undefined ? body.size : previous.size;
       const color = body.color !== undefined ? body.color : previous.color;
-      if (size) await ensure("size", "Size", size);
-      if (color) await ensure("color", "Color", color);
+      if (size && (await kindHasAttributeCode(previous.productId, "size"))) {
+        await ensure("size", "Size", size);
+      }
+      if (color && (await kindHasAttributeCode(previous.productId, "color"))) {
+        await ensure("color", "Color", color);
+      }
     }
 
     if (body.attributeValueIds || body.size !== undefined || body.color !== undefined) {
       const uniqueIds = [...new Set(valueIds)];
+      try {
+        await assertOptionValuesMatchKind(previous.productId, uniqueIds);
+      } catch (e) {
+        return reply.code(400).send({ error: (e as Error).message });
+      }
       if (uniqueIds.length || body.attributeValueIds) {
         await prisma.productVariantOptionValue.deleteMany({ where: { variantId: id } });
         if (uniqueIds.length) {
@@ -919,7 +979,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
         ...(body.minQuantityForBulk != null
           ? { minQuantityForBulk: body.minQuantityForBulk }
           : {}),
-        ...(body.howManyLeft != null ? { howManyLeft: body.howManyLeft } : {}),
+        ...(nextStock != null ? { howManyLeft: nextStock } : {}),
         ...(body.photoUrl !== undefined ? { photoUrl: body.photoUrl } : {}),
         ...(body.size !== undefined ? { size: body.size } : {}),
         ...(body.color !== undefined ? { color: body.color } : {}),

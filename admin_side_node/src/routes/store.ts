@@ -14,6 +14,7 @@ export async function registerStoreRoutes(app: FastifyInstance) {
   app.get("/api/categories", async () => {
     const rows = await prisma.category.findMany({
       where: { published: true },
+      include: { attributeSet: true },
       orderBy: { listPosition: "asc" },
     });
     return { data: rows.map(mapCategory) };

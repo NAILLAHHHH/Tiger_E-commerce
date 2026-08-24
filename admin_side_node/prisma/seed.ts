@@ -88,6 +88,25 @@ async function main() {
     }
   }
 
+  const orphanCategories = await prisma.category.updateMany({
+    where: { attributeSetId: null },
+    data: { attributeSetId: apparel.id },
+  });
+  if (orphanCategories.count) {
+    console.log(`Assigned Apparel kind to ${orphanCategories.count} categories`);
+  }
+
+  const categoriesWithKind = await prisma.category.findMany({
+    where: { attributeSetId: { not: null } },
+    select: { id: true, attributeSetId: true },
+  });
+  for (const cat of categoriesWithKind) {
+    await prisma.product.updateMany({
+      where: { categoryId: cat.id },
+      data: { attributeSetId: cat.attributeSetId },
+    });
+  }
+
   if (process.env.SEED_DATA === "false") {
     console.log("SEED_DATA=false — skipped catalog seed");
     return;
@@ -106,6 +125,7 @@ async function main() {
           photoUrl: cat.photo,
           listPosition: cat.list_position,
           published: true,
+          attributeSetId: apparel.id,
         },
       });
       categoryMap.set(cat.link_name, row.id);
