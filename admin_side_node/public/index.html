@@ -19,12 +19,12 @@
         <h2>Welcome back!</h2>
         <p class="muted">Log in to your TygaMart account</p>
         <div class="field">
-          <label for="email">Email</label>
-          <input id="email" type="email" value="admin@tygamart.com" autocomplete="username" />
+          <label for="email">Email <span class="req" aria-hidden="true">*</span></label>
+          <input id="email" type="email" value="admin@tygamart.com" autocomplete="username" required />
         </div>
         <div class="field">
-          <label for="password">Password</label>
-          <input id="password" type="password" value="" placeholder="Owner password from env" autocomplete="current-password" />
+          <label for="password">Password <span class="req" aria-hidden="true">*</span></label>
+          <input id="password" type="password" value="" placeholder="Password" autocomplete="current-password" required />
         </div>
         <button class="btn btn-primary" style="width:100%" id="loginBtn">Login</button>
         <div id="loginError" class="error"></div>
