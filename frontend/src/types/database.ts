@@ -1,9 +1,16 @@
+export type AttributeSetRef = {
+  id: string;
+  name: string;
+  code: string;
+};
+
 export type Category = {
   id: string;
   name: string;
   slug: string;
   image_url: string | null;
   sort_order: number;
+  attribute_set?: AttributeSetRef | null;
 };
 
 export type GalleryItem = {
@@ -64,7 +71,7 @@ export type Product = {
   is_new: boolean;
   category_id: string | null;
   category?: Category | null;
-  attribute_set?: { id: string; name: string; code: string } | null;
+  attribute_set?: AttributeSetRef | null;
   variants?: ProductVariant[];
   total_stock?: number;
   /** Average star rating (1–5) when reviews exist */

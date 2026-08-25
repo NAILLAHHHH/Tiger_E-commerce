@@ -13,6 +13,12 @@ type WholesaleTier = {
   unit_price: number;
 };
 
+const apparelKind = {
+  id: "kind-apparel",
+  name: "Apparel",
+  code: "apparel",
+};
+
 const categories: Category[] = [
   {
     id: "cat-1",
@@ -20,6 +26,7 @@ const categories: Category[] = [
     slug: "t-shirts",
     image_url: img.tygaStyleTeeSet,
     sort_order: 1,
+    attribute_set: apparelKind,
   },
   {
     id: "cat-2",
@@ -27,6 +34,7 @@ const categories: Category[] = [
     slug: "hoodies",
     image_url: img.greyZipHoodie,
     sort_order: 2,
+    attribute_set: apparelKind,
   },
   {
     id: "cat-3",
@@ -34,6 +42,7 @@ const categories: Category[] = [
     slug: "pants",
     image_url: img.navyChinoPants,
     sort_order: 3,
+    attribute_set: apparelKind,
   },
   {
     id: "cat-4",
@@ -41,6 +50,7 @@ const categories: Category[] = [
     slug: "formal",
     image_url: img.suitCollection,
     sort_order: 4,
+    attribute_set: apparelKind,
   },
   {
     id: "cat-5",
@@ -48,6 +58,7 @@ const categories: Category[] = [
     slug: "jackets",
     image_url: img.bomberJacket,
     sort_order: 5,
+    attribute_set: apparelKind,
   },
 ];
 
@@ -505,9 +516,13 @@ function attachRelations(items: Omit<Product, "variants" | "total_stock">[]): Pr
       0,
     );
 
+    const category =
+      categories.find((c) => c.id === product.category_id) ?? null;
+
     return {
       ...product,
-      category: categories.find((c) => c.id === product.category_id) ?? null,
+      category,
+      attribute_set: product.attribute_set ?? category?.attribute_set ?? null,
       variants: mappedVariants,
       total_stock,
       video_url: product.video_url ?? null,
