@@ -16,6 +16,7 @@
     </div>
     <div class="login-form-wrap">
       <div class="login-card">
+        <img class="login-card-logo" src="/tigerwear-logo.png" alt="TygaMart" />
         <h2>Welcome back!</h2>
         <p class="muted">Log in to your TygaMart account</p>
         <div class="field">
@@ -33,13 +34,19 @@
   </div>
 
   <div id="appView" class="hidden">
-    <aside class="sidebar">
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <aside class="sidebar" id="adminSidebar">
       <div class="sidebar-brand">
         <img src="/tigerwear-logo.png" alt="" />
         <div>
           <div class="title">TygaMart</div>
           <div class="sub">Content Manager</div>
         </div>
+        <button type="button" class="icon-btn sidebar-close" id="sidebarClose" aria-label="Close menu">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+            <path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
       </div>
 
       <div class="nav-section">General</div>
@@ -64,7 +71,12 @@
     </aside>
     <div class="main">
       <div class="topbar">
-        <div id="breadcrumb">Content Manager</div>
+        <button type="button" class="icon-btn menu-btn" id="menuBtn" aria-label="Open menu" aria-controls="adminSidebar" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+            <path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16" />
+          </svg>
+        </button>
+        <div id="breadcrumb" class="breadcrumb">Content Manager</div>
         <button class="btn btn-secondary" id="logoutBtn">Log out</button>
       </div>
       <div class="content" id="contentRoot"></div>

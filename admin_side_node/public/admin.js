@@ -281,6 +281,7 @@
   }
 
   async function navigate(view) {
+    setSidebarOpen(false);
     currentView = view;
     editing = null;
     document.querySelectorAll(".nav-item").forEach((el) => {
@@ -306,11 +307,13 @@
       if (!$("#fName")?.value?.trim()) {
         throw new Error("Name is required.");
       }
+      if (!$("#fCategory")?.value) {
+        throw new Error("Choose a category. Product kind comes from the category.");
+      }
       const payload = {
         name: $("#fName").value,
         description: $("#fDesc").value || null,
         categoryId: $("#fCategory").value || null,
-        attributeSetId: $("#fKind").value || null,
         photoUrl: $("#fPhoto").value || null,
         highlightOnHomepage: $("#fFeatured").checked,
         markAsNew: $("#fNew").checked,
@@ -357,20 +360,31 @@
       if (priceForBulk != null && (!Number.isFinite(priceForBulk) || priceForBulk < 1)) {
         throw new Error("Bulk price must be at least 1, or leave it empty.");
       }
+      const howManyLeft = Number($("#vStock").value);
+      const prev = id ? cache.variants.find((v) => v.id === id) : null;
+      if (!id && (!Number.isFinite(howManyLeft) || howManyLeft < 1)) {
+        throw new Error("Stock must be at least 1 (cannot be 0).");
+      }
+      if (
+        prev &&
+        howManyLeft !== prev.howManyLeft &&
+        (!Number.isFinite(howManyLeft) || howManyLeft < 1)
+      ) {
+        throw new Error("Stock must be at least 1 (cannot be 0). Sold-out items stay at 0 until you restock.");
+      }
       const payload = {
         productId: $("#vProduct").value,
         itemCode: $("#vCode").value,
         priceForOne,
         priceForBulk,
         minQuantityForBulk: Number($("#vBulkMin").value || 10),
-        howManyLeft: Number($("#vStock").value || 0),
-        size: $("#vSize").value || null,
-        color: $("#vColor").value || null,
+        howManyLeft,
+        size: $("#vSize")?.closest(".field")?.style.display === "none" ? null : ($("#vSize").value || null),
+        color: $("#vColor")?.closest(".field")?.style.display === "none" ? null : ($("#vColor").value || null),
         photoUrl: $("#vPhoto").value || null,
         attributeValueIds: [...document.querySelectorAll(".v-opt:checked")].map((el) => el.value),
       };
       if (id) {
-        const prev = cache.variants.find((v) => v.id === id);
         const stockOrPrice =
           prev &&
           (payload.howManyLeft !== prev.howManyLeft ||
@@ -404,10 +418,12 @@
   async function saveCategory(id, forcePublished) {
     await runSave(async () => {
       if (!$("#cName")?.value?.trim()) throw new Error("Name is required.");
+      if (!$("#cKind")?.value) throw new Error("Choose a product kind for this category.");
       const payload = {
         name: $("#cName").value,
         listPosition: Number($("#cPos").value || 0),
         photoUrl: $("#cPhoto").value || null,
+        attributeSetId: $("#cKind").value,
         published:
           forcePublished !== undefined
             ? forcePublished
@@ -996,6 +1012,7 @@
     addOptionValueRow,
     removeOptionValueRow,
     syncOptionValueHexVisibility,
+    syncVariantKindOptions,
     saveKind,
     deleteKind,
     editKind: (id) => {
@@ -1025,6 +1042,81 @@
     onUpload,
   });
 
+  function kindNameForCategory(c) {
+    if (!c) return "";
+    return (
+      c.attributeSet?.name ||
+      cache.sets.find((s) => s.id === c.attributeSetId)?.name ||
+      ""
+    );
+  }
+
+  function kindForProduct(productId) {
+    const p = cache.products.find((x) => x.id === productId);
+    if (!p) return null;
+    const cat = cache.categories.find(
+      (c) => c.id === p.category_id || c.id === p.category?.id,
+    );
+    const setId =
+      p.attribute_set_id ||
+      p.attribute_set?.id ||
+      cat?.attributeSetId ||
+      cat?.attributeSet?.id;
+    return cache.sets.find((s) => s.id === setId) || null;
+  }
+
+  function kindAttributeIds(kind) {
+    return new Set(
+      (kind?.attributes || []).map((m) => m.attributeId || m.attribute?.id),
+    );
+  }
+
+  function variantOptionsHtml(productId, selectedIds) {
+    const kind = kindForProduct(productId);
+    if (!kind) {
+      return `<p class="muted">This product needs a category with a product kind before you can set options.</p>`;
+    }
+    const allowed = kindAttributeIds(kind);
+    const attrs = cache.attributes.filter((a) => allowed.has(a.id));
+    if (!attrs.length) {
+      return `<p class="muted">${esc(kind.name)} has no options yet. Add them under Product kind.</p>`;
+    }
+    return attrs
+      .map(
+        (a) =>
+          `<div style="min-width:100%"><strong>${esc(a.name)}</strong></div>` +
+          (a.values || [])
+            .map((val) => {
+              const hex =
+                val.meta && typeof val.meta === "object" ? val.meta.hex : "";
+              const swatch = hex
+                ? `<span class="opt-swatch" style="background:${esc(hex)}"></span>`
+                : "";
+              return `<label><input class="v-opt" type="checkbox" value="${val.id}" ${selectedIds.has(val.id) ? "checked" : ""} /> ${swatch}${esc(val.label)}</label>`;
+            })
+            .join(""),
+      )
+      .join("");
+  }
+
+  function syncVariantKindOptions() {
+    const wrap = $("#vKindOptions");
+    if (!wrap) return;
+    const productId = $("#vProduct")?.value;
+    const selected = new Set(
+      [...document.querySelectorAll(".v-opt:checked")].map((el) => el.value),
+    );
+    wrap.innerHTML = variantOptionsHtml(productId, selected);
+    const kind = kindForProduct(productId);
+    const codes = new Set(
+      (kind?.attributes || []).map((m) => (m.attribute?.code || "").toLowerCase()),
+    );
+    const sizeField = $("#vSize")?.closest(".field");
+    const colorField = $("#vColor")?.closest(".field");
+    if (sizeField) sizeField.style.display = codes.has("size") ? "" : "none";
+    if (colorField) colorField.style.display = codes.has("color") ? "" : "none";
+  }
+
   function productForm(p) {
     const published = p ? p.published !== false : false;
     return `<div class="edit-layout">
@@ -1032,14 +1124,15 @@
         <div class="form-grid">
           <div class="full field"><label>${req("Name")}</label><input id="fName" value="${esc(p?.name || "")}" required /></div>
           <div class="full field"><label>Description</label><textarea id="fDesc" rows="4">${esc(p?.description || "")}</textarea></div>
-          <div class="field"><label>Category</label>
-            <select id="fCategory"><option value="">—</option>
-              ${cache.categories.map((c) => `<option value="${c.id}" ${p?.category_id === c.id ? "selected" : ""}>${esc(c.name)}</option>`).join("")}
-            </select>
-          </div>
-          <div class="field"><label>Product kind</label>
-            <select id="fKind"><option value="">—</option>
-              ${cache.sets.map((s) => `<option value="${s.id}" ${p?.attribute_set_id === s.id || p?.attribute_set?.id === s.id ? "selected" : ""}>${esc(s.name)}</option>`).join("")}
+          <div class="field"><label>${req("Category")}</label>
+            <select id="fCategory" required>
+              <option value="">Choose a category</option>
+              ${cache.categories
+                .map((c) => {
+                  const kind = kindNameForCategory(c);
+                  return `<option value="${c.id}" ${p?.category_id === c.id || p?.category?.id === c.id ? "selected" : ""}>${esc(c.name)}${kind ? ` (${esc(kind)})` : ""}</option>`;
+                })
+                .join("")}
             </select>
           </div>
           <div class="full field"><label>Photo</label>
@@ -1072,7 +1165,7 @@
       <div class="panel">
         <div class="form-grid">
           <div class="field"><label>${req("Product")}</label>
-            <select id="vProduct" ${v ? "disabled" : ""} required>
+            <select id="vProduct" ${v ? "disabled" : ""} required onchange="syncVariantKindOptions()">
               ${cache.products.map((p) => `<option value="${p.id}" ${v?.productId === p.id || v?.product?.id === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}
             </select>
           </div>
@@ -1080,7 +1173,7 @@
           <div class="field"><label>${req("Price for one")}</label><input id="vPrice" type="number" min="1" step="1" value="${v?.priceForOne ?? 1}" required /></div>
           <div class="field"><label>Bulk price</label><input id="vBulk" type="number" min="1" step="1" value="${v?.priceForBulk ?? ""}" placeholder="Optional" /></div>
           <div class="field"><label>Bulk minimum</label><input id="vBulkMin" type="number" value="${v?.minQuantityForBulk ?? 10}" /></div>
-          <div class="field"><label>Stock</label><input id="vStock" type="number" value="${v?.howManyLeft ?? 0}" /></div>
+          <div class="field"><label>${req("Stock")}</label><input id="vStock" type="number" min="1" step="1" value="${v?.howManyLeft ?? 1}" required /></div>
           <div class="field"><label>Size (shortcut)</label><input id="vSize" value="${esc(v?.size || "")}" /></div>
           <div class="field"><label>Color (shortcut)</label><input id="vColor" value="${esc(v?.color || "")}" /></div>
           <div class="full field"><label>Photo</label>
@@ -1088,23 +1181,8 @@
             <input id="vPhoto" value="${esc(v?.photoUrl || "")}" style="margin-top:.5rem" />
           </div>
           <div class="full field"><label>Options values</label>
-            <div class="check-row">
-              ${cache.attributes
-                .map(
-                  (a) =>
-                    `<div style="min-width:100%"><strong>${esc(a.name)}</strong></div>` +
-                    (a.values || [])
-                      .map((val) => {
-                        const hex =
-                          val.meta && typeof val.meta === "object" ? val.meta.hex : "";
-                        const swatch = hex
-                          ? `<span class="opt-swatch" style="background:${esc(hex)}"></span>`
-                          : "";
-                        return `<label><input class="v-opt" type="checkbox" value="${val.id}" ${selectedIds.has(val.id) ? "checked" : ""} /> ${swatch}${esc(val.label)}</label>`;
-                      })
-                      .join(""),
-                )
-                .join("")}
+            <div class="check-row" id="vKindOptions">
+              ${variantOptionsHtml(v?.productId || v?.product?.id || cache.products[0]?.id, selectedIds)}
             </div>
           </div>
         </div>
@@ -1123,6 +1201,17 @@
       <div class="panel">
         <div class="form-grid">
           <div class="field"><label>${req("Name")}</label><input id="cName" value="${esc(c?.name || "")}" required /></div>
+          <div class="field"><label>${req("Product kind")}</label>
+            <select id="cKind" required>
+              <option value="">Choose a kind</option>
+              ${cache.sets
+                .map(
+                  (s) =>
+                    `<option value="${s.id}" ${c?.attributeSetId === s.id || c?.attributeSet?.id === s.id ? "selected" : ""}>${esc(s.name)}</option>`,
+                )
+                .join("")}
+            </select>
+          </div>
           <div class="field"><label>List position</label><input id="cPos" type="number" value="${c?.listPosition ?? 0}" /></div>
           <div class="full field"><label>Photo</label>
             <input type="file" id="cPhotoFile" accept="image/*" onchange="onUpload('cPhotoFile','cPhoto')" />
@@ -1442,7 +1531,7 @@
               .map(
                 (p) => `<tr class="clickable" onclick="editProduct('${p.id}')">
               <td><strong>${esc(p.name)}</strong></td>
-              <td>${esc(p.category?.name || "—")}</td>
+              <td>${esc(p.category?.name || "—")}${p.attribute_set?.name || p.category?.attribute_set?.name ? ` · ${esc(p.attribute_set?.name || p.category?.attribute_set?.name)}` : ""}</td>
               <td>${p.variants?.length || 0}</td>
               <td>${statusPill(p.published !== false)}</td>
             </tr>`,
@@ -1459,6 +1548,7 @@
         root.innerHTML =
           header(v ? v.itemCode : "Create an entry", "Changing stock or price asks for a reason.") +
           variantForm(v);
+        syncVariantKindOptions();
         return;
       }
       root.innerHTML = `
@@ -1502,12 +1592,13 @@
         ${header("Category", `${cache.categories.length} entries found`, `<button class="btn btn-primary" onclick="newCategory()">Create new entry</button>`)}
         <div class="panel">
           ${listToolbar("categoriesBody", cache.categories.length, "categories")}
-          <table class="cm"><thead><tr><th>Name</th><th>Position</th><th>Status</th></tr></thead>
+          <table class="cm"><thead><tr><th>Name</th><th>Kind</th><th>Position</th><th>Status</th></tr></thead>
           <tbody id="categoriesBody">
             ${cache.categories
               .map(
                 (c) => `<tr class="clickable" onclick="editCategory('${c.id}')">
               <td><strong>${esc(c.name)}</strong></td>
+              <td>${esc(kindNameForCategory(c) || "—")}</td>
               <td>${c.listPosition}</td>
               <td>${statusPill(!!c.published)}</td>
             </tr>`,
@@ -1743,6 +1834,28 @@
 
   $("#loginBtn").addEventListener("click", login);
   $("#logoutBtn").addEventListener("click", logout);
+
+  function setSidebarOpen(open) {
+    const sidebar = $("#adminSidebar");
+    const overlay = $("#sidebarOverlay");
+    if (!sidebar) return;
+    sidebar.classList.toggle("open", open);
+    overlay?.classList.toggle("open", open);
+    document.body.classList.toggle("nav-open", open);
+    const menuBtn = $("#menuBtn");
+    if (menuBtn) menuBtn.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
+  $("#menuBtn")?.addEventListener("click", () => setSidebarOpen(true));
+  $("#sidebarClose")?.addEventListener("click", () => setSidebarOpen(false));
+  $("#sidebarOverlay")?.addEventListener("click", () => setSidebarOpen(false));
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") setSidebarOpen(false);
+  });
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 960) setSidebarOpen(false);
+  });
+
   document.querySelectorAll(".nav-item").forEach((btn) => {
     btn.addEventListener("click", () => navigate(btn.dataset.view));
   });
