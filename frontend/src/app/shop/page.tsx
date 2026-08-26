@@ -35,7 +35,7 @@ export default async function ShopPage({ searchParams }: Props) {
   const pageDescription = query
     ? `Products matching “${query}”.`
     : activeCategory
-      ? `Products in ${activeCategory.name} — pick your options and quantity.`
+      ? `Products in ${activeCategory.name}${activeCategory.attribute_set?.name ? ` · ${activeCategory.attribute_set.name}` : ""} — pick your options and quantity.`
       : "Every product can have its own options (size, color, pack, storage…). Buy one or order many at a lower price.";
 
   return (
@@ -78,43 +78,45 @@ export default async function ShopPage({ searchParams }: Props) {
         </div>
       </div>
 
-      <div className="mb-8">
+      <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-8 lg:gap-10">
         <ShopCategoryNav
           categories={categories}
           activeSlug={categorySlug}
           searchQuery={query}
         />
-      </div>
 
-      {products.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-gray-3 bg-gray-1 px-6 py-16 text-center">
-          <p className="text-lg font-medium text-dark">
-            {query ? "No matches" : "Nothing here yet"}
-          </p>
-          <p className="mt-2 text-sm text-muted">
-            {query
-              ? `Nothing matched “${query}”. Try another word or browse categories.`
-              : activeCategory
-                ? `No products in ${activeCategory.name} right now.`
-                : "Check back soon — new items are added regularly."}
-          </p>
-          {(activeCategory || query) && (
-            <Link href="/shop" className="btn-primary mt-6 inline-flex">
-              View all products
-            </Link>
+        <div className="min-w-0 flex-1">
+          {products.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-gray-3 bg-gray-1 px-6 py-16 text-center">
+              <p className="text-lg font-medium text-dark">
+                {query ? "No matches" : "Nothing here yet"}
+              </p>
+              <p className="mt-2 text-sm text-muted">
+                {query
+                  ? `Nothing matched “${query}”. Try another word or browse categories.`
+                  : activeCategory
+                    ? `No products in ${activeCategory.name} right now.`
+                    : "Check back soon — new items are added regularly."}
+              </p>
+              {(activeCategory || query) && (
+                <Link href="/shop" className="btn-primary mt-6 inline-flex">
+                  View all products
+                </Link>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {products.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  rating={ratings[product.id]}
+                />
+              ))}
+            </div>
           )}
         </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-          {products.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              rating={ratings[product.id]}
-            />
-          ))}
-        </div>
-      )}
+      </div>
     </div>
   );
 }
