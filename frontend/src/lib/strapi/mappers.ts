@@ -68,6 +68,19 @@ export function resolveStrapiMediaList(value: unknown): string[] {
   return single ? [single] : [];
 }
 
+function mapKind(value: unknown): Category["attribute_set"] {
+  if (!value || typeof value !== "object") return null;
+  const entity = value as StrapiEntity;
+  const name = entity.name ? String(entity.name) : "";
+  const code = entity.code ? String(entity.code) : "";
+  if (!name && !code) return null;
+  return {
+    id: entityId(entity),
+    name,
+    code,
+  };
+}
+
 function mapCategory(entity: StrapiEntity): Category {
   const slug = readSlug(entity);
   const image =
@@ -80,6 +93,9 @@ function mapCategory(entity: StrapiEntity): Category {
     slug,
     image_url: image,
     sort_order: Number(entity.list_position ?? entity.sort_order ?? 0),
+    attribute_set: mapKind(
+      entity.attribute_set ?? entity.attributeSet ?? null,
+    ),
   };
 }
 
@@ -259,6 +275,10 @@ export function mapStrapiProduct(entity: StrapiEntity): Product {
 
   const videoUrl = resolveStrapiImage(entity.video ?? entity.video_url ?? null);
 
+  const category = categoryEntity ? mapCategory(categoryEntity) : null;
+  const attributeSet =
+    mapKind(attributeSetEntity) ?? category?.attribute_set ?? null;
+
   return {
     id: productId,
     name: String(entity.name ?? ""),
@@ -276,14 +296,8 @@ export function mapStrapiProduct(entity: StrapiEntity): Product {
       entity.mark_as_new ?? entity.is_new_arrival ?? entity.is_new ?? false,
     ),
     category_id: categoryEntity ? entityId(categoryEntity) : null,
-    category: categoryEntity ? mapCategory(categoryEntity) : null,
-    attribute_set: attributeSetEntity
-      ? {
-          id: entityId(attributeSetEntity),
-          name: String(attributeSetEntity.name ?? ""),
-          code: String(attributeSetEntity.code ?? ""),
-        }
-      : null,
+    category,
+    attribute_set: attributeSet,
     variants,
     total_stock,
   };

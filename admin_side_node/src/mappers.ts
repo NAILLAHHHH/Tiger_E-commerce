@@ -13,19 +13,31 @@ type VariantWithOptions = ProductVariant & {
   }>;
 };
 
+type KindRef = { id: string; name: string; code: string };
+
 type ProductWithRelations = Product & {
-  category: Category | null;
-  attributeSet: { id: string; name: string; code: string } | null;
+  category:
+    | (Category & { attributeSet?: KindRef | null })
+    | null;
+  attributeSet: KindRef | null;
   variants: VariantWithOptions[];
 };
 
-export function mapCategory(c: Category) {
+function mapKind(set: KindRef | null | undefined) {
+  if (!set) return null;
+  return { id: set.id, name: set.name, code: set.code };
+}
+
+export function mapCategory(
+  c: Category & { attributeSet?: KindRef | null },
+) {
   return {
     id: c.id,
     name: c.name,
     slug: c.linkName,
     image_url: c.photoUrl,
     sort_order: c.listPosition,
+    attribute_set: mapKind(c.attributeSet),
   };
 }
 
@@ -79,15 +91,9 @@ export function mapProduct(p: ProductWithRelations) {
     is_new: p.markAsNew,
     published: p.published,
     category_id: p.categoryId,
-    attribute_set_id: p.attributeSetId,
+    attribute_set_id: p.attributeSetId ?? p.category?.attributeSet?.id ?? null,
     category: p.category ? mapCategory(p.category) : null,
-    attribute_set: p.attributeSet
-      ? {
-          id: p.attributeSet.id,
-          name: p.attributeSet.name,
-          code: p.attributeSet.code,
-        }
-      : null,
+    attribute_set: mapKind(p.attributeSet ?? p.category?.attributeSet),
     variants,
     total_stock: variants.reduce((sum, v) => sum + v.stock_quantity, 0),
   };
@@ -112,7 +118,7 @@ export const variantInclude = {
 } as const;
 
 export const productInclude = {
-  category: true,
+  category: { include: { attributeSet: true } },
   attributeSet: true,
   variants: { include: variantInclude },
 } as const;

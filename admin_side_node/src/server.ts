@@ -65,6 +65,8 @@ const FIELD_LABELS: Record<string, string> = {
   values: "Values",
   attributeIds: "Options",
   attributeValueIds: "Option values",
+  attributeSetId: "Product kind",
+  categoryId: "Category",
   linkName: "Link name",
   code: "Code",
 };

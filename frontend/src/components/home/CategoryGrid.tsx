@@ -31,8 +31,15 @@ export default function CategoryGrid({
                 sizes="25vw"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-dark/70 via-dark/20 to-transparent" />
-              <span className="absolute bottom-4 left-4 text-lg font-semibold text-white">
-                {cat.name}
+              <span className="absolute bottom-4 left-4 right-4">
+                {cat.attribute_set?.name && (
+                  <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-white/70">
+                    {cat.attribute_set.name}
+                  </span>
+                )}
+                <span className="text-lg font-semibold text-white">
+                  {cat.name}
+                </span>
               </span>
             </div>
           </Link>

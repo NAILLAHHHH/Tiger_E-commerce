@@ -9,7 +9,13 @@ import {
   parseNumber,
   rowsToCsv,
 } from "../lib/csv.js";
-import { slugify, roundMoney, requirePositivePrice, requireOptionalPositivePrice } from "../lib/utils.js";
+import { slugify, roundMoney, requirePositivePrice, requireOptionalPositivePrice, requirePositiveStock } from "../lib/utils.js";
+import {
+  assertOptionValuesMatchKind,
+  findAttributeSetByLabel,
+  kindHasAttributeCode,
+  syncProductsKindForCategory,
+} from "../lib/catalog.js";
 import { logStockChange, nextOrderReference } from "../services/orders.js";
 
 const CONTENT_TYPES = {
@@ -17,9 +23,9 @@ const CONTENT_TYPES = {
     key: "categories",
     label: "Categories",
     description: "Shop sections",
-    exportHeaders: ["name", "link_name", "list_position"],
-    templateHeaders: ["name", "list_position"],
-    templateExample: { name: "T-Shirts", list_position: "1" },
+    exportHeaders: ["name", "link_name", "list_position", "product_kind"],
+    templateHeaders: ["name", "list_position", "product_kind"],
+    templateExample: { name: "T-Shirts", list_position: "1", product_kind: "Apparel" },
   },
   products: {
     key: "products",
@@ -224,11 +230,15 @@ async function ensureOptionValue(
 
 async function exportRows(key: ContentKey) {
   if (key === "categories") {
-    const rows = await prisma.category.findMany({ orderBy: { listPosition: "asc" } });
+    const rows = await prisma.category.findMany({
+      include: { attributeSet: true },
+      orderBy: { listPosition: "asc" },
+    });
     return rows.map((c) => ({
       name: c.name,
       link_name: c.linkName,
       list_position: c.listPosition,
+      product_kind: c.attributeSet?.name ?? "",
     }));
   }
   if (key === "products") {
@@ -360,12 +370,26 @@ async function importRows(key: ContentKey, csvText: string) {
           result.skipped += 1;
           continue;
         }
+        const kindLabel = row.product_kind?.trim();
+        if (!kindLabel) {
+          result.errors.push(`Row ${i + 2}: product_kind is required`);
+          continue;
+        }
+        const kind = await findAttributeSetByLabel(kindLabel);
+        if (!kind) {
+          result.errors.push(`Row ${i + 2}: unknown product kind "${kindLabel}"`);
+          continue;
+        }
         const existing = await prisma.category.findFirst({ where: { name } });
         if (existing) {
           await prisma.category.update({
             where: { id: existing.id },
-            data: { listPosition: parseInteger(row.list_position, existing.listPosition) },
+            data: {
+              listPosition: parseInteger(row.list_position, existing.listPosition),
+              attributeSetId: kind.id,
+            },
           });
+          await syncProductsKindForCategory(existing.id, kind.id);
           result.updated += 1;
         } else {
           await prisma.category.create({
@@ -374,6 +398,7 @@ async function importRows(key: ContentKey, csvText: string) {
               linkName: slugify(name),
               listPosition: parseInteger(row.list_position, 0),
               published: true,
+              attributeSetId: kind.id,
             },
           });
           result.created += 1;
@@ -394,17 +419,32 @@ async function importRows(key: ContentKey, csvText: string) {
           continue;
         }
         let categoryId: string | null = null;
+        let attributeSetId: string | null = null;
         if (row.category_name?.trim()) {
           const cat = await prisma.category.findFirst({
             where: { name: row.category_name.trim() },
           });
           categoryId = cat?.id ?? null;
+          attributeSetId = cat?.attributeSetId ?? null;
+        }
+        if (!categoryId) {
+          result.errors.push(
+            `Row ${i + 2}: category_name is required so the product can inherit a product kind`,
+          );
+          continue;
+        }
+        if (!attributeSetId) {
+          result.errors.push(
+            `Row ${i + 2}: category "${row.category_name.trim()}" has no product kind`,
+          );
+          continue;
         }
         const data = {
           description: row.description || null,
           highlightOnHomepage: parseBoolean(row.highlight_on_homepage),
           markAsNew: parseBoolean(row.mark_as_new),
           categoryId,
+          attributeSetId,
         };
         const existing = await prisma.product.findFirst({ where: { name } });
         if (existing) {
@@ -444,10 +484,10 @@ async function importRows(key: ContentKey, csvText: string) {
         }
 
         const valueIds: string[] = [];
-        if (row.size?.trim()) {
+        if (row.size?.trim() && (await kindHasAttributeCode(product.id, "size"))) {
           valueIds.push((await ensureOptionValue("size", "Size", row.size.trim())).id);
         }
-        if (row.color?.trim()) {
+        if (row.color?.trim() && (await kindHasAttributeCode(product.id, "color"))) {
           valueIds.push(
             (
               await ensureOptionValue(
@@ -460,9 +500,18 @@ async function importRows(key: ContentKey, csvText: string) {
           );
         }
 
-        const stock = parseInteger(row.how_many_left, 0);
+        const uniqueIds = [...new Set(valueIds)];
+        try {
+          await assertOptionValuesMatchKind(product.id, uniqueIds);
+        } catch (e) {
+          result.errors.push(`Row ${i + 2}: ${(e as Error).message}`);
+          continue;
+        }
+
+        const parsedStock = parseInteger(row.how_many_left, 1);
         let priceForOne: number;
         let priceForBulk: number | null;
+        let stock: number;
         try {
           priceForOne = requirePositivePrice(
             parseNumber(row.price_for_one, 0),
@@ -477,6 +526,17 @@ async function importRows(key: ContentKey, csvText: string) {
           continue;
         }
         const existing = await prisma.productVariant.findUnique({ where: { itemCode } });
+
+        try {
+          if (!existing || parsedStock !== existing.howManyLeft) {
+            stock = requirePositiveStock(parsedStock, "how_many_left");
+          } else {
+            stock = parsedStock;
+          }
+        } catch (e) {
+          result.errors.push(`Row ${i + 2}: ${(e as Error).message}`);
+          continue;
+        }
 
         if (existing) {
           const before = existing.howManyLeft;
@@ -495,7 +555,7 @@ async function importRows(key: ContentKey, csvText: string) {
               color: row.color?.trim() || null,
               colorDot: row.color_dot?.trim() || null,
               optionValues: {
-                create: [...new Set(valueIds)].map((attributeValueId) => ({
+                create: uniqueIds.map((attributeValueId) => ({
                   attributeValueId,
                 })),
               },
@@ -525,7 +585,7 @@ async function importRows(key: ContentKey, csvText: string) {
               color: row.color?.trim() || null,
               colorDot: row.color_dot?.trim() || null,
               optionValues: {
-                create: [...new Set(valueIds)].map((attributeValueId) => ({
+                create: uniqueIds.map((attributeValueId) => ({
                   attributeValueId,
                 })),
               },

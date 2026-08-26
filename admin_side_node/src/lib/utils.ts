@@ -33,6 +33,20 @@ export function requireOptionalPositivePrice(
   return requirePositivePrice(amount, label);
 }
 
+/**
+ * Staff-set stock must be at least 1. Orders can still deduct to 0 (sold out).
+ */
+export function requirePositiveStock(
+  amount: number,
+  label = "Stock",
+): number {
+  const value = Math.trunc(amount);
+  if (!Number.isFinite(value) || value < 1) {
+    throw new Error(`${label} must be at least 1 (cannot be 0).`);
+  }
+  return value;
+}
+
 export function optionsLabel(
   values: Array<{ label: string; attribute?: { name: string; listPosition: number } | null }>,
   fallback?: { size?: string | null; color?: string | null },
