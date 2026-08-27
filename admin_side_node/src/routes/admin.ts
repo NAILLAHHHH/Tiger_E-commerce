@@ -4,7 +4,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../db.js";
 import { requireAdmin } from "../lib/auth.js";
-import { slugify, roundMoney, requirePositivePrice, requireOptionalPositivePrice, requirePositiveStock } from "../lib/utils.js";
+import { slugify, roundMoney, requirePositivePrice, requireOptionalPositivePrice, requirePositiveStock, splitPhotoList, splitVideoList, incomingUrlList } from "../lib/utils.js";
 import {
   assertOptionValuesMatchKind,
   kindHasAttributeCode,
@@ -22,6 +22,31 @@ const attributeValueInput = z.object({
   meta: z.any().optional().nullable(),
   listPosition: z.number().int().optional(),
 });
+
+const mediaFields = {
+  photoUrl: z.string().optional().nullable(),
+  extraPhotoUrls: z.array(z.string()).optional(),
+  photoUrls: z.array(z.string()).optional(),
+  videoUrl: z.string().optional().nullable(),
+  extraVideoUrls: z.array(z.string()).optional(),
+  videoUrls: z.array(z.string()).optional(),
+};
+
+function mediaFromBody(body: {
+  photoUrls?: string[];
+  extraPhotoUrls?: string[];
+  photoUrl?: string | null;
+  videoUrls?: string[];
+  extraVideoUrls?: string[];
+  videoUrl?: string | null;
+}) {
+  const photos = incomingUrlList(body.photoUrls, body.photoUrl, body.extraPhotoUrls);
+  const videos = incomingUrlList(body.videoUrls, body.videoUrl, body.extraVideoUrls);
+  return {
+    ...(photos !== undefined ? splitPhotoList(photos) : {}),
+    ...(videos !== undefined ? splitVideoList(videos) : {}),
+  };
+}
 
 const attributeInclude = {
   values: { orderBy: { listPosition: "asc" as const } },
@@ -650,7 +675,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
       .object({
         name: z.string().min(1),
         description: z.string().optional().nullable(),
-        photoUrl: z.string().optional().nullable(),
+        ...mediaFields,
         categoryId: z.string().min(1),
         highlightOnHomepage: z.boolean().optional(),
         markAsNew: z.boolean().optional(),
@@ -665,12 +690,17 @@ export async function registerAdminRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: (e as Error).message });
     }
 
+    const media = mediaFromBody(body);
+
     const row = await prisma.product.create({
       data: {
         name: body.name,
         linkName: slugify(body.name),
         description: body.description ?? null,
-        photoUrl: body.photoUrl ?? null,
+        photoUrl: media.photoUrl ?? null,
+        extraPhotoUrls: media.extraPhotoUrls ?? [],
+        videoUrl: media.videoUrl ?? null,
+        extraVideoUrls: media.extraVideoUrls ?? [],
         categoryId: body.categoryId,
         attributeSetId,
         highlightOnHomepage: body.highlightOnHomepage ?? false,
@@ -688,7 +718,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
       .object({
         name: z.string().min(1).optional(),
         description: z.string().optional().nullable(),
-        photoUrl: z.string().optional().nullable(),
+        ...mediaFields,
         categoryId: z.string().min(1).optional(),
         highlightOnHomepage: z.boolean().optional(),
         markAsNew: z.boolean().optional(),
@@ -705,12 +735,31 @@ export async function registerAdminRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: (e as Error).message });
     }
 
+    const {
+      photoUrls,
+      extraPhotoUrls,
+      photoUrl,
+      videoUrls,
+      extraVideoUrls,
+      videoUrl,
+      ...rest
+    } = body;
+    const media = mediaFromBody({
+      photoUrls,
+      extraPhotoUrls,
+      photoUrl,
+      videoUrls,
+      extraVideoUrls,
+      videoUrl,
+    });
+
     const row = await prisma.product.update({
       where: { id },
       data: {
-        ...body,
+        ...rest,
         ...(body.name ? { linkName: slugify(body.name) } : {}),
         ...(attributeSetId ? { attributeSetId } : {}),
+        ...media,
       },
       include: productInclude,
     });
@@ -750,7 +799,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
         priceForBulk: z.number().optional().nullable(),
         minQuantityForBulk: z.number().int().optional(),
         howManyLeft: z.number().int().optional(),
-        photoUrl: z.string().optional().nullable(),
+        ...mediaFields,
         attributeValueIds: z.array(z.string()).optional(),
         size: z.string().optional().nullable(),
         color: z.string().optional().nullable(),
@@ -818,6 +867,8 @@ export async function registerAdminRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: (e as Error).message });
     }
 
+    const media = mediaFromBody(body);
+
     const row = await prisma.productVariant.create({
       data: {
         productId: body.productId,
@@ -826,7 +877,10 @@ export async function registerAdminRoutes(app: FastifyInstance) {
         priceForBulk,
         minQuantityForBulk: body.minQuantityForBulk ?? 10,
         howManyLeft: stock,
-        photoUrl: body.photoUrl ?? null,
+        photoUrl: media.photoUrl ?? null,
+        extraPhotoUrls: media.extraPhotoUrls ?? [],
+        videoUrl: media.videoUrl ?? null,
+        extraVideoUrls: media.extraVideoUrls ?? [],
         size: body.size ?? null,
         color: body.color ?? null,
         optionValues: {
@@ -856,7 +910,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
         priceForBulk: z.number().optional().nullable(),
         minQuantityForBulk: z.number().int().optional(),
         howManyLeft: z.number().int().optional(),
-        photoUrl: z.string().optional().nullable(),
+        ...mediaFields,
         attributeValueIds: z.array(z.string()).optional(),
         size: z.string().optional().nullable(),
         color: z.string().optional().nullable(),
@@ -980,7 +1034,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
           ? { minQuantityForBulk: body.minQuantityForBulk }
           : {}),
         ...(nextStock != null ? { howManyLeft: nextStock } : {}),
-        ...(body.photoUrl !== undefined ? { photoUrl: body.photoUrl } : {}),
+        ...mediaFromBody(body),
         ...(body.size !== undefined ? { size: body.size } : {}),
         ...(body.color !== undefined ? { color: body.color } : {}),
       },

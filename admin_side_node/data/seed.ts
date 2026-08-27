@@ -12,6 +12,8 @@ type SeedVariant = {
   color_dot?: string;
   photo?: string;
   color_photos?: string[];
+  video?: string;
+  extra_videos?: string[];
   price_for_one: number;
   price_for_bulk?: number;
   min_quantity_for_bulk?: number;
@@ -23,7 +25,9 @@ type SeedProduct = {
   link_name: string;
   description: string;
   photo: string;
+  extra_photos?: string[];
   video?: string;
+  extra_videos?: string[];
   category_link_name: string;
   highlight_on_homepage: boolean;
   mark_as_new: boolean;

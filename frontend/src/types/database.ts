@@ -53,6 +53,10 @@ export type ProductVariant = {
   image_url: string | null;
   /** More photos for this look (angles, details) */
   color_images?: string[];
+  /** First clip for this look (also in `videos`) */
+  video_url?: string | null;
+  /** Additional clips for this look */
+  videos?: string[];
   per_piece_price: number;
   bulk_price: number | null;
   bulk_minimum: number;
@@ -65,8 +69,12 @@ export type Product = {
   slug: string;
   description: string | null;
   image_url: string | null;
-  /** Optional product showcase video (same for all colors) */
+  /** Additional product photos (cover is image_url / first item) */
+  images?: string[];
+  /** First product showcase video (also in `videos`) */
   video_url?: string | null;
+  /** Product showcase videos */
+  videos?: string[];
   is_featured: boolean;
   is_new: boolean;
   category_id: string | null;

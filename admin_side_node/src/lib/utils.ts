@@ -33,9 +33,7 @@ export function requireOptionalPositivePrice(
   return requirePositivePrice(amount, label);
 }
 
-/**
- * Staff-set stock must be at least 1. Orders can still deduct to 0 (sold out).
- */
+/** Staff-set stock must be at least 1. Orders can still deduct to 0 (sold out). */
 export function requirePositiveStock(
   amount: number,
   label = "Stock",
@@ -45,6 +43,62 @@ export function requirePositiveStock(
     throw new Error(`${label} must be at least 1 (cannot be 0).`);
   }
   return value;
+}
+
+export function uniqueTrimmedUrls(
+  urls: (string | null | undefined)[] | undefined,
+): string[] {
+  return [
+    ...new Set(
+      (urls ?? [])
+        .map((url) => url?.trim())
+        .filter((url): url is string => Boolean(url)),
+    ),
+  ];
+}
+
+/** Combined list wins; otherwise first + extras. Undefined means “not sent”. */
+export function incomingUrlList(
+  list?: string[],
+  first?: string | null,
+  extras?: string[],
+): string[] | undefined {
+  if (list !== undefined) return list;
+  if (first !== undefined || extras !== undefined) {
+    return [first ?? "", ...(extras ?? [])];
+  }
+  return undefined;
+}
+
+/** First URL is the cover photo; the rest are extras. */
+export function splitPhotoList(urls: string[] | undefined): {
+  photoUrl: string | null;
+  extraPhotoUrls: string[];
+} {
+  const clean = uniqueTrimmedUrls(urls);
+  return { photoUrl: clean[0] ?? null, extraPhotoUrls: clean.slice(1) };
+}
+
+export function splitVideoList(urls: string[] | undefined): {
+  videoUrl: string | null;
+  extraVideoUrls: string[];
+} {
+  const clean = uniqueTrimmedUrls(urls);
+  return { videoUrl: clean[0] ?? null, extraVideoUrls: clean.slice(1) };
+}
+
+export function photoListFrom(
+  cover: string | null | undefined,
+  extras: string[] | null | undefined,
+): string[] {
+  return uniqueTrimmedUrls([cover, ...(extras ?? [])]);
+}
+
+export function videoListFrom(
+  first: string | null | undefined,
+  extras: string[] | null | undefined,
+): string[] {
+  return uniqueTrimmedUrls([first, ...(extras ?? [])]);
 }
 
 export function optionsLabel(

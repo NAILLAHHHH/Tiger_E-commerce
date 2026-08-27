@@ -32,7 +32,7 @@ export async function saveUpload(file: {
 
     const url = await new Promise<string>((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
-        { folder: "tiger-wear" },
+        { folder: "tiger-wear", resource_type: "auto" },
         (err, result) => {
           if (err || !result?.secure_url) reject(err || new Error("Upload failed"));
           else resolve(result.secure_url);

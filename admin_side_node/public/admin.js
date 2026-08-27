@@ -314,9 +314,10 @@
         name: $("#fName").value,
         description: $("#fDesc").value || null,
         categoryId: $("#fCategory").value || null,
-        photoUrl: $("#fPhoto").value || null,
         highlightOnHomepage: $("#fFeatured").checked,
         markAsNew: $("#fNew").checked,
+        photoUrls: collectMediaUrls("fPhotos"),
+        videoUrls: collectMediaUrls("fVideos"),
         published:
           forcePublished !== undefined
             ? forcePublished
@@ -379,9 +380,8 @@
         priceForBulk,
         minQuantityForBulk: Number($("#vBulkMin").value || 10),
         howManyLeft,
-        size: $("#vSize")?.closest(".field")?.style.display === "none" ? null : ($("#vSize").value || null),
-        color: $("#vColor")?.closest(".field")?.style.display === "none" ? null : ($("#vColor").value || null),
-        photoUrl: $("#vPhoto").value || null,
+        photoUrls: collectMediaUrls("vPhotos"),
+        videoUrls: collectMediaUrls("vVideos"),
         attributeValueIds: [...document.querySelectorAll(".v-opt:checked")].map((el) => el.value),
       };
       if (id) {
@@ -966,6 +966,140 @@
     });
   }
 
+  function collectMediaUrls(listId) {
+    return [...document.querySelectorAll(`#${listId} .media-url`)]
+      .map((el) => el.value.trim())
+      .filter(Boolean);
+  }
+
+  function uniqueMediaUrls(values) {
+    const seen = new Set();
+    const out = [];
+    for (const value of values || []) {
+      const url = typeof value === "string" ? value.trim() : "";
+      if (url && !seen.has(url)) {
+        seen.add(url);
+        out.push(url);
+      }
+    }
+    return out;
+  }
+
+  function variantPhotoUrls(v) {
+    if (!v) return [];
+    return uniqueMediaUrls([
+      v.photoUrl,
+      v.image_url,
+      ...(v.extraPhotoUrls || []),
+      ...(v.color_images || []),
+    ]);
+  }
+
+  function productVideoList(p) {
+    if (!p) return [];
+    return uniqueMediaUrls([
+      p.video_url,
+      p.videoUrl,
+      ...(p.videos || []),
+      ...(p.extraVideoUrls || []),
+    ]);
+  }
+
+  function variantVideoList(v) {
+    if (!v) return [];
+    return uniqueMediaUrls([
+      v.videoUrl,
+      v.video_url,
+      ...(v.extraVideoUrls || []),
+      ...(v.videos || []),
+    ]);
+  }
+
+  const VIDEO_ACCEPT = "video/mp4,video/webm,video/quicktime,video/*";
+
+  function mediaRowHtml(url = "", accept = "image/*") {
+    return `<div class="media-row">
+      <input type="file" accept="${accept}" onchange="onUploadToRow(this)" />
+      <input class="media-url" value="${esc(url)}" placeholder="URL or upload" />
+      <button type="button" class="btn btn-secondary btn-sm" onclick="this.closest('.media-row').remove()">Remove</button>
+    </div>`;
+  }
+
+  function addMediaRow(listId) {
+    const list = $(`#${listId}`);
+    if (!list) return;
+    const accept = list.dataset.accept || "image/*";
+    list.insertAdjacentHTML("beforeend", mediaRowHtml("", accept));
+  }
+
+  function addPhotoRow(listId) {
+    addMediaRow(listId);
+  }
+
+  async function onUploadToRow(input) {
+    const file = input.files?.[0];
+    if (!file) return;
+    const urlInput = input.closest(".media-row")?.querySelector(".media-url");
+    if (!urlInput) return;
+    await runSave(async () => {
+      urlInput.value = await uploadFile(file);
+      toast("Uploaded");
+    });
+  }
+
+  async function onUploadMany(input, listId) {
+    const files = [...(input.files || [])];
+    if (!files.length) return;
+    const list = $(`#${listId}`);
+    if (!list) return;
+    const accept = list.dataset.accept || input.getAttribute("accept") || "image/*";
+    const kind = accept.includes("video") ? "video" : "photo";
+    await runSave(async () => {
+      for (const file of files) {
+        const url = await uploadFile(file);
+        const empty = [...list.querySelectorAll(".media-row")].find(
+          (row) => !row.querySelector(".media-url")?.value.trim(),
+        );
+        if (empty) {
+          empty.querySelector(".media-url").value = url;
+        } else {
+          list.insertAdjacentHTML("beforeend", mediaRowHtml(url, accept));
+        }
+      }
+      toast(files.length === 1 ? "Uploaded" : `${files.length} ${kind}s uploaded`);
+    });
+    input.value = "";
+  }
+
+  function mediaFieldHtml(listId, urls, opts) {
+    const accept = opts.accept || "image/*";
+    const items = urls.length ? urls : [""];
+    return `<div class="full field"><label>${opts.label}</label>
+      <p class="muted" style="margin:0 0 .5rem">${opts.hint}</p>
+      <input type="file" accept="${accept}" multiple onchange="onUploadMany(this, '${listId}')" />
+      <div id="${listId}" class="media-list" data-accept="${accept}">${items.map((url) => mediaRowHtml(url, accept)).join("")}</div>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="addMediaRow('${listId}')">${opts.addLabel}</button>
+    </div>`;
+  }
+
+  function photosFieldHtml(listId, urls) {
+    return mediaFieldHtml(listId, urls, {
+      label: "Photos",
+      hint: "Add as many as you want. The first photo is the cover. You can pick several files at once.",
+      accept: "image/*",
+      addLabel: "Add another photo",
+    });
+  }
+
+  function videosFieldHtml(listId, urls) {
+    return mediaFieldHtml(listId, urls, {
+      label: "Videos",
+      hint: "Optional. Add as many as you want (MP4 or WebM, up to 80MB each). You can pick several files at once.",
+      accept: VIDEO_ACCEPT,
+      addLabel: "Add another video",
+    });
+  }
+
   Object.assign(window, {
     filterTable,
     navigate,
@@ -1013,6 +1147,10 @@
     removeOptionValueRow,
     syncOptionValueHexVisibility,
     syncVariantKindOptions,
+    addPhotoRow,
+    addMediaRow,
+    onUploadToRow,
+    onUploadMany,
     saveKind,
     deleteKind,
     editKind: (id) => {
@@ -1071,15 +1209,14 @@
     );
   }
 
-  function variantOptionsHtml(productId, selectedIds) {
-    const kind = kindForProduct(productId);
+  function optionsCheckboxesHtml(kind, selectedIds, checkboxClass) {
     if (!kind) {
-      return `<p class="muted">This product needs a category with a product kind before you can set options.</p>`;
+      return `<p class="muted">Choose a category first. Options come from that category's product kind.</p>`;
     }
     const allowed = kindAttributeIds(kind);
     const attrs = cache.attributes.filter((a) => allowed.has(a.id));
     if (!attrs.length) {
-      return `<p class="muted">${esc(kind.name)} has no options yet. Add them under Product kind.</p>`;
+      return `<p class="muted">${esc(kind.name)} has no options yet. Add them under Product kind. You can still save a single SKU.</p>`;
     }
     return attrs
       .map(
@@ -1092,11 +1229,15 @@
               const swatch = hex
                 ? `<span class="opt-swatch" style="background:${esc(hex)}"></span>`
                 : "";
-              return `<label><input class="v-opt" type="checkbox" value="${val.id}" ${selectedIds.has(val.id) ? "checked" : ""} /> ${swatch}${esc(val.label)}</label>`;
+              return `<label><input class="${checkboxClass}" type="checkbox" value="${val.id}" ${selectedIds.has(val.id) ? "checked" : ""} /> ${swatch}${esc(val.label)}</label>`;
             })
             .join(""),
       )
       .join("");
+  }
+
+  function variantOptionsHtml(productId, selectedIds) {
+    return optionsCheckboxesHtml(kindForProduct(productId), selectedIds, "v-opt");
   }
 
   function syncVariantKindOptions() {
@@ -1107,14 +1248,6 @@
       [...document.querySelectorAll(".v-opt:checked")].map((el) => el.value),
     );
     wrap.innerHTML = variantOptionsHtml(productId, selected);
-    const kind = kindForProduct(productId);
-    const codes = new Set(
-      (kind?.attributes || []).map((m) => (m.attribute?.code || "").toLowerCase()),
-    );
-    const sizeField = $("#vSize")?.closest(".field");
-    const colorField = $("#vColor")?.closest(".field");
-    if (sizeField) sizeField.style.display = codes.has("size") ? "" : "none";
-    if (colorField) colorField.style.display = codes.has("color") ? "" : "none";
   }
 
   function productForm(p) {
@@ -1124,7 +1257,7 @@
         <div class="form-grid">
           <div class="full field"><label>${req("Name")}</label><input id="fName" value="${esc(p?.name || "")}" required /></div>
           <div class="full field"><label>Description</label><textarea id="fDesc" rows="4">${esc(p?.description || "")}</textarea></div>
-          <div class="field"><label>${req("Category")}</label>
+          <div class="full field"><label>${req("Category")}</label>
             <select id="fCategory" required>
               <option value="">Choose a category</option>
               ${cache.categories
@@ -1135,10 +1268,8 @@
                 .join("")}
             </select>
           </div>
-          <div class="full field"><label>Photo</label>
-            <input type="file" id="fPhotoFile" accept="image/*" onchange="onUpload('fPhotoFile','fPhoto')" />
-            <input id="fPhoto" value="${esc(p?.image_url || "")}" style="margin-top:.5rem" placeholder="URL or upload" />
-          </div>
+          ${photosFieldHtml("fPhotos", p?.images || (p?.image_url ? [p.image_url] : []))}
+          ${videosFieldHtml("fVideos", productVideoList(p))}
           <div class="full check-row">
             <label><input type="checkbox" id="fFeatured" ${p?.is_featured ? "checked" : ""} /> Highlight on homepage</label>
             <label><input type="checkbox" id="fNew" ${p?.is_new ? "checked" : ""} /> Mark as new</label>
@@ -1174,12 +1305,8 @@
           <div class="field"><label>Bulk price</label><input id="vBulk" type="number" min="1" step="1" value="${v?.priceForBulk ?? ""}" placeholder="Optional" /></div>
           <div class="field"><label>Bulk minimum</label><input id="vBulkMin" type="number" value="${v?.minQuantityForBulk ?? 10}" /></div>
           <div class="field"><label>${req("Stock")}</label><input id="vStock" type="number" min="1" step="1" value="${v?.howManyLeft ?? 1}" required /></div>
-          <div class="field"><label>Size (shortcut)</label><input id="vSize" value="${esc(v?.size || "")}" /></div>
-          <div class="field"><label>Color (shortcut)</label><input id="vColor" value="${esc(v?.color || "")}" /></div>
-          <div class="full field"><label>Photo</label>
-            <input type="file" id="vPhotoFile" accept="image/*" onchange="onUpload('vPhotoFile','vPhoto')" />
-            <input id="vPhoto" value="${esc(v?.photoUrl || "")}" style="margin-top:.5rem" />
-          </div>
+          ${photosFieldHtml("vPhotos", variantPhotoUrls(v))}
+          ${videosFieldHtml("vVideos", variantVideoList(v))}
           <div class="full field"><label>Options values</label>
             <div class="check-row" id="vKindOptions">
               ${variantOptionsHtml(v?.productId || v?.product?.id || cache.products[0]?.id, selectedIds)}
