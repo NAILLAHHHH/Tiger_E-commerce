@@ -27,7 +27,7 @@ await app.register(jwt, {
 });
 
 await app.register(multipart, {
-  limits: { fileSize: 15 * 1024 * 1024 },
+  limits: { fileSize: 80 * 1024 * 1024 },
 });
 
 const owner = await ensureBootstrapAdmin();

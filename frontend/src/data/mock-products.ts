@@ -526,6 +526,7 @@ function attachRelations(items: Omit<Product, "variants" | "total_stock">[]): Pr
       variants: mappedVariants,
       total_stock,
       video_url: product.video_url ?? null,
+      videos: product.videos ?? (product.video_url ? [product.video_url] : []),
     };
   });
 }

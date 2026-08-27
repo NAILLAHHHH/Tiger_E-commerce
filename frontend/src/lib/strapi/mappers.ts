@@ -219,8 +219,9 @@ function mapVariant(entity: StrapiEntity, productId: string): ProductVariant {
   const itemCode = entity.item_code ?? entity.sku ?? "";
   const image = resolveStrapiImage(entity.photo ?? entity.image_url ?? null);
   const colorImages = resolveStrapiMediaList(
-    entity.color_photos ?? entity.extra_photos ?? null,
+    entity.color_photos ?? entity.extra_photos ?? entity.extraPhotoUrls ?? null,
   );
+  const videos = collectVideoUrls(entity);
 
   return {
     id: entityId(entity),
@@ -232,6 +233,8 @@ function mapVariant(entity: StrapiEntity, productId: string): ProductVariant {
     color_hex: colorHex ? String(colorHex) : null,
     image_url: image,
     color_images: colorImages.length ? colorImages : undefined,
+    video_url: videos[0] ?? null,
+    videos,
     per_piece_price: roundMoney(Number(perPiece)),
     bulk_price: bulkPrice != null ? roundMoney(Number(bulkPrice)) : null,
     bulk_minimum: Number(
@@ -242,6 +245,19 @@ function mapVariant(entity: StrapiEntity, productId: string): ProductVariant {
     ),
     stock_quantity: Number(stock),
   };
+}
+
+function collectVideoUrls(entity: StrapiEntity): string[] {
+  return [
+    ...new Set(
+      [
+        resolveStrapiImage(entity.video ?? entity.video_url ?? null),
+        ...resolveStrapiMediaList(
+          entity.videos ?? entity.extra_videos ?? entity.extraVideoUrls ?? null,
+        ),
+      ].filter((url): url is string => Boolean(url)),
+    ),
+  ];
 }
 
 function firstRelationList(...values: unknown[]): StrapiEntity[] {
@@ -273,11 +289,19 @@ export function mapStrapiProduct(entity: StrapiEntity): Product {
       entity.photo ?? entity.main_image ?? entity.image_url ?? null,
     ) ?? fallbackProductImage(readSlug(entity));
 
-  const videoUrl = resolveStrapiImage(entity.video ?? entity.video_url ?? null);
-
   const category = categoryEntity ? mapCategory(categoryEntity) : null;
   const attributeSet =
     mapKind(attributeSetEntity) ?? category?.attribute_set ?? null;
+
+  const extraImages = resolveStrapiMediaList(
+    entity.extra_photos ?? entity.images ?? entity.extraPhotoUrls ?? null,
+  );
+  const images = [
+    ...new Set(
+      [mainImage, ...extraImages].filter((url): url is string => Boolean(url)),
+    ),
+  ];
+  const videos = collectVideoUrls(entity);
 
   return {
     id: productId,
@@ -285,7 +309,9 @@ export function mapStrapiProduct(entity: StrapiEntity): Product {
     slug: readSlug(entity),
     description: entity.description ? String(entity.description) : null,
     image_url: mainImage,
-    video_url: videoUrl,
+    images,
+    video_url: videos[0] ?? null,
+    videos,
     is_featured: Boolean(
       entity.highlight_on_homepage ??
         entity.show_on_homepage ??

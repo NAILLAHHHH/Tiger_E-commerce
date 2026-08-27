@@ -392,8 +392,44 @@ table.cm tbody tr.clickable { cursor: pointer; }
   padding: 1rem 1.25rem;
   border-top: 1px solid var(--neutral150);
 }
+.media-list { display: flex; flex-direction: column; gap: .5rem; margin-bottom: .65rem; }
+.media-row {
+  display: grid;
+  grid-template-columns: minmax(8rem, 12rem) minmax(0, 1fr) auto;
+  gap: .5rem;
+  align-items: center;
+}
+.media-row input[type="file"] { font-size: .8rem; }
 .check-row { display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; }
 .check-row label { display: flex; align-items: center; gap: .4rem; font-weight: 500; font-size: .875rem; }
+.pv-section { margin-top: .25rem; }
+.pv-existing { margin-bottom: .75rem; overflow-x: auto; }
+.pv-table { margin: 0; }
+.pv-card {
+  border: 1px solid var(--neutral150);
+  border-radius: 8px;
+  background: var(--neutral100);
+  margin-bottom: .75rem;
+  overflow: hidden;
+}
+.pv-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .7rem 1rem;
+  border-bottom: 1px solid var(--neutral150);
+  background: var(--neutral0);
+}
+.pv-card-head strong { font-size: .85rem; }
+.pv-card-grid {
+  display: grid;
+  gap: .85rem;
+  grid-template-columns: 1fr 1fr;
+  padding: 1rem;
+}
+.pv-card-grid .pv-span,
+.pv-card-grid .full { grid-column: 1 / -1; }
 
 .toast {
   position: fixed;
@@ -767,6 +803,8 @@ table.cm tbody tr.clickable { cursor: pointer; }
   .entry-panel { position: static; }
   .content { padding: 1rem .85rem 2.5rem; }
   .form-grid { grid-template-columns: 1fr; padding: 1rem; }
+  .pv-card-grid { grid-template-columns: 1fr; }
+  .media-row { grid-template-columns: 1fr; }
   .page-header { flex-direction: column; align-items: stretch; }
   .page-header h1 { font-size: 1.45rem; }
   .header-actions { width: 100%; }

@@ -9,6 +9,43 @@ import {
   optionValue,
 } from "@/lib/variant-options";
 
+function productPhotoUrls(product: Product): string[] {
+  return uniqueUrls([product.image_url, ...(product.images ?? [])]);
+}
+
+function variantPhotoUrls(variant: ProductVariant): string[] {
+  return uniqueUrls([variant.image_url, ...(variant.color_images ?? [])]);
+}
+
+function productVideoUrls(product: Product): string[] {
+  return uniqueUrls([product.video_url, ...(product.videos ?? [])]);
+}
+
+function variantVideoUrls(variant: ProductVariant): string[] {
+  return uniqueUrls([variant.video_url, ...(variant.videos ?? [])]);
+}
+
+function insertVideos(
+  items: GalleryItem[],
+  urls: (string | null | undefined)[],
+  meta?: Pick<GalleryItem, "color" | "option_code" | "option_value">,
+) {
+  const videos = uniqueUrls(urls).filter(
+    (url) => !items.some((item) => item.url === url),
+  );
+  if (!videos.length) return;
+  const insertAt = Math.min(1, items.length);
+  items.splice(
+    insertAt,
+    0,
+    ...videos.map((url) => ({
+      type: "video" as const,
+      url,
+      ...meta,
+    })),
+  );
+}
+
 function uniqueUrls(urls: (string | null | undefined)[]): string[] {
   const seen = new Set<string>();
   const result: string[] = [];
@@ -48,8 +85,9 @@ export function getProductColors(
     );
     let image_url: string | null = null;
     for (const variant of colorVariants) {
-      if (variant.image_url) {
-        image_url = variant.image_url;
+      const first = variantPhotoUrls(variant)[0];
+      if (first) {
+        image_url = first;
         break;
       }
     }
@@ -79,7 +117,7 @@ export function getColorImages(
   const urls: string[] = [];
 
   for (const v of colorVariants) {
-    urls.push(...uniqueUrls([v.image_url, ...(v.color_images ?? [])]));
+    urls.push(...variantPhotoUrls(v));
   }
 
   if (!urls.length && fallbackImage) {
@@ -95,17 +133,21 @@ export function getCardImages(product: Product, color?: string): string[] {
   const axisCode = getSwatchAxisCode(variants);
   if (!axisCode) {
     const urls = uniqueUrls([
-      product.image_url,
-      ...variants.flatMap((v) => [v.image_url, ...(v.color_images ?? [])]),
+      ...productPhotoUrls(product),
+      ...variants.flatMap((v) => variantPhotoUrls(v)),
     ]);
     return urls.length ? urls : [product.image_url ?? "/placeholder-product.svg"];
   }
 
   const activeColor = color || optionValue(variants[0], axisCode);
   if (!activeColor) {
-    return [product.image_url ?? "/placeholder-product.svg"];
+    const urls = productPhotoUrls(product);
+    return urls.length ? urls : [product.image_url ?? "/placeholder-product.svg"];
   }
-  return getColorImages(variants, activeColor, product.image_url);
+  const look = getColorImages(variants, activeColor, null);
+  if (look.length && look[0] !== "/placeholder-product.svg") return look;
+  const productPhotos = productPhotoUrls(product);
+  return productPhotos.length ? productPhotos : ["/placeholder-product.svg"];
 }
 
 /** Color-synced PDP gallery — only that look's photos, plus optional product video. */
@@ -114,8 +156,14 @@ export function buildColorGallery(
   color: string,
 ): GalleryItem[] {
   const variants = product.variants ?? [];
-  const imageUrls = getColorImages(variants, color, product.image_url);
   const axisCode = getSwatchAxisCode(variants) ?? "color";
+  const imageUrls = uniqueUrls([
+    ...getColorImages(variants, color, null).filter(
+      (url) => url !== "/placeholder-product.svg",
+    ),
+    ...productPhotoUrls(product),
+  ]);
+  const colorVariants = variants.filter((v) => optionValue(v, axisCode) === color);
 
   const items: GalleryItem[] = imageUrls.map((url) => ({
     type: "image",
@@ -125,16 +173,24 @@ export function buildColorGallery(
     option_value: color,
   }));
 
-  if (product.video_url) {
-    const insertAt = Math.min(1, items.length);
-    items.splice(insertAt, 0, {
-      type: "video",
-      url: product.video_url,
+  if (!items.length) {
+    items.push({
+      type: "image",
+      url: "/placeholder-product.svg",
       color,
       option_code: axisCode,
       option_value: color,
     });
   }
+
+  insertVideos(
+    items,
+    [
+      ...productVideoUrls(product),
+      ...colorVariants.flatMap((v) => variantVideoUrls(v)),
+    ],
+    { color, option_code: axisCode, option_value: color },
+  );
 
   return items;
 }
@@ -165,10 +221,14 @@ export function buildProductGallery(product: Product): GalleryItem[] {
         });
       }
     }
+    const extraProduct = productPhotoUrls(product).filter((url) => !seen.has(url));
+    items.unshift(
+      ...extraProduct.map((url) => ({ type: "image" as const, url })),
+    );
   } else {
     for (const url of uniqueUrls([
-      product.image_url,
-      ...variants.flatMap((v) => [v.image_url, ...(v.color_images ?? [])]),
+      ...productPhotoUrls(product),
+      ...variants.flatMap((v) => variantPhotoUrls(v)),
     ])) {
       items.push({ type: "image", url });
     }
@@ -182,15 +242,48 @@ export function buildProductGallery(product: Product): GalleryItem[] {
     items.push({ type: "image", url: "/placeholder-product.svg" });
   }
 
-  if (product.video_url) {
-    const insertAt = Math.min(1, items.length);
-    items.splice(insertAt, 0, {
-      type: "video",
-      url: product.video_url,
+  insertVideos(
+    items,
+    productVideoUrls(product),
+    {
       color: items[0]?.color,
       option_code: items[0]?.option_code,
       option_value: items[0]?.option_value,
-    });
+    },
+  );
+
+  if (colors.length && axisCode) {
+    for (const option of colors) {
+      const colorVariants = variants.filter(
+        (v) => optionValue(v, axisCode) === option.color,
+      );
+      const videos = uniqueUrls(
+        colorVariants.flatMap((v) => variantVideoUrls(v)),
+      ).filter((url) => !items.some((item) => item.url === url));
+      if (!videos.length) continue;
+      const firstIdx = items.findIndex(
+        (item) =>
+          item.type === "image" &&
+          (item.option_value ?? item.color) === option.color,
+      );
+      const insertAt = firstIdx >= 0 ? firstIdx + 1 : Math.min(1, items.length);
+      items.splice(
+        insertAt,
+        0,
+        ...videos.map((url) => ({
+          type: "video" as const,
+          url,
+          color: option.color,
+          option_code: axisCode,
+          option_value: option.color,
+        })),
+      );
+    }
+  } else {
+    insertVideos(
+      items,
+      variants.flatMap((v) => variantVideoUrls(v)),
+    );
   }
 
   return items;

@@ -125,7 +125,9 @@ model Product {
   linkName             String           @unique
   description          String?
   photoUrl             String?
+  extraPhotoUrls       String[]         @default([])
   videoUrl             String?
+  extraVideoUrls       String[]         @default([])
   highlightOnHomepage  Boolean          @default(false)
   markAsNew            Boolean          @default(false)
   published            Boolean          @default(true)
@@ -149,6 +151,8 @@ model ProductVariant {
   howManyLeft         Int                         @default(1)
   photoUrl            String?
   extraPhotoUrls      String[]                    @default([])
+  videoUrl            String?
+  extraVideoUrls      String[]                    @default([])
   /// Legacy helpers for CSV / migration
   size                String?
   color               String?

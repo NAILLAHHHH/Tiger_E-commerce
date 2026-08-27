@@ -6,6 +6,7 @@ import type {
   ProductVariant,
   Review,
 } from "@prisma/client";
+import { photoListFrom, videoListFrom } from "./lib/utils.js";
 
 type VariantWithOptions = ProductVariant & {
   optionValues: Array<{
@@ -71,6 +72,8 @@ export function mapVariant(v: VariantWithOptions, productId: string) {
     color_hex: colorHex,
     image_url: v.photoUrl,
     color_images: v.extraPhotoUrls?.length ? v.extraPhotoUrls : undefined,
+    video_url: v.videoUrl ?? null,
+    videos: videoListFrom(v.videoUrl, v.extraVideoUrls),
     per_piece_price: v.priceForOne,
     bulk_price: v.priceForBulk,
     bulk_minimum: v.minQuantityForBulk,
@@ -86,7 +89,9 @@ export function mapProduct(p: ProductWithRelations) {
     slug: p.linkName,
     description: p.description,
     image_url: p.photoUrl,
+    images: photoListFrom(p.photoUrl, p.extraPhotoUrls),
     video_url: p.videoUrl,
+    videos: videoListFrom(p.videoUrl, p.extraVideoUrls),
     is_featured: p.highlightOnHomepage,
     is_new: p.markAsNew,
     published: p.published,

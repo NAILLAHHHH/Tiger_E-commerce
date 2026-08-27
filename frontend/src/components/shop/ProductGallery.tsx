@@ -190,7 +190,7 @@ export default function ProductGallery({
                   <video
                     ref={videoRef}
                     key={current.url}
-                    src={current.url}
+                    src={resolveProductImage(current.url)}
                     className="h-full w-full object-contain object-center"
                     playsInline
                     muted={isVideoMuted}
