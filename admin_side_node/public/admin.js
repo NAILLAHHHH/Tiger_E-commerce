@@ -9,6 +9,7 @@
   let currentView = "home";
   let editing = null;
   let currentUser = null;
+  let pvKeySeq = 0;
 
   const $ = (sel) => document.querySelector(sel);
   const esc = (s) =>
@@ -17,6 +18,13 @@
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;");
+  const slugifyClient = (value) =>
+    String(value || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
   const money = (n) => Number(n || 0).toLocaleString();
   const when = (iso) =>
     new Date(iso).toLocaleString(undefined, {
@@ -310,6 +318,16 @@
       if (!$("#fCategory")?.value) {
         throw new Error("Choose a category. Product kind comes from the category.");
       }
+      const drafts = collectNewProductVariants();
+      const existingCount = id ? variantsForProduct(id).length : 0;
+      if (!id && !drafts.length) {
+        throw new Error(
+          "Add at least one variant (SKU). Shoppers buy a variant — price, stock, and options — not the product shell.",
+        );
+      }
+      if (forcePublished === true && existingCount + drafts.length < 1) {
+        throw new Error("Publish needs at least one variant (SKU) so the product can be sold.");
+      }
       const payload = {
         name: $("#fName").value,
         description: $("#fDesc").value || null,
@@ -331,8 +349,22 @@
         });
         id = created.data.id;
       }
+      for (const draft of drafts) {
+        await api("/api/admin/variants", {
+          method: "POST",
+          body: JSON.stringify({ ...draft, productId: id }),
+        });
+      }
       await refreshAll();
-      toast(forcePublished === true ? "Published" : forcePublished === false ? "Unpublished" : "Saved");
+      toast(
+        forcePublished === true
+          ? "Published"
+          : forcePublished === false
+            ? "Unpublished"
+            : drafts.length
+              ? `Saved · ${drafts.length} variant${drafts.length === 1 ? "" : "s"} added`
+              : "Saved",
+      );
       editing = { type: "product", id };
       await render();
     });
@@ -1116,11 +1148,19 @@
     saveVariant,
     deleteVariant,
     editVariant: (id) => {
+      currentView = "variants";
       editing = { type: "variant", id };
+      document.querySelectorAll(".nav-item").forEach((el) => {
+        el.classList.toggle("active", el.dataset.view === "variants");
+      });
       render();
     },
     newVariant: () => {
+      currentView = "variants";
       editing = { type: "variant", id: null };
+      document.querySelectorAll(".nav-item").forEach((el) => {
+        el.classList.toggle("active", el.dataset.view === "variants");
+      });
       render();
     },
     saveCategory,
@@ -1149,6 +1189,9 @@
     syncVariantKindOptions,
     addPhotoRow,
     addMediaRow,
+    addProductVariantRow,
+    removeProductVariantRow,
+    syncProductVariantOptions,
     onUploadToRow,
     onUploadMany,
     saveKind,
@@ -1203,6 +1246,28 @@
     return cache.sets.find((s) => s.id === setId) || null;
   }
 
+  function kindForCategory(categoryId) {
+    const cat = cache.categories.find((c) => c.id === categoryId);
+    if (!cat) return null;
+    const setId = cat.attributeSetId || cat.attributeSet?.id;
+    return cache.sets.find((s) => s.id === setId) || null;
+  }
+
+  function variantsForProduct(productId) {
+    if (!productId) return [];
+    return (cache.variants || []).filter(
+      (v) => v.productId === productId || v.product?.id === productId,
+    );
+  }
+
+  function variantOptionsLabel(v) {
+    const fromValues = (v?.optionValues || [])
+      .map((ov) => ov.attributeValue?.label)
+      .filter(Boolean);
+    if (fromValues.length) return fromValues.join(" · ");
+    return [v?.size, v?.color].filter(Boolean).join(" · ") || "—";
+  }
+
   function kindAttributeIds(kind) {
     return new Set(
       (kind?.attributes || []).map((m) => m.attributeId || m.attribute?.id),
@@ -1240,6 +1305,146 @@
     return optionsCheckboxesHtml(kindForProduct(productId), selectedIds, "v-opt");
   }
 
+  function productVariantOptionsHtml(categoryId, selectedIds) {
+    return optionsCheckboxesHtml(kindForCategory(categoryId), selectedIds, "pv-opt");
+  }
+
+  function productVariantCardHtml(key, categoryId) {
+    return `<article class="pv-card" data-key="${key}">
+      <div class="pv-card-head">
+        <strong>New variant</strong>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="removeProductVariantRow(this)">Remove</button>
+      </div>
+      <div class="pv-card-grid">
+        <div class="field"><label>${req("Item code")}</label>
+          <input class="pv-code" placeholder="Auto from name + options if empty" />
+        </div>
+        <div class="field"><label>${req("Price for one")}</label>
+          <input class="pv-price" type="number" min="1" step="1" value="1" required />
+        </div>
+        <div class="field"><label>Bulk price</label>
+          <input class="pv-bulk" type="number" min="1" step="1" placeholder="Optional" />
+        </div>
+        <div class="field"><label>Bulk minimum</label>
+          <input class="pv-bulkmin" type="number" value="10" />
+        </div>
+        <div class="field"><label>${req("Stock")}</label>
+          <input class="pv-stock" type="number" min="1" step="1" value="1" required />
+        </div>
+        <div class="pv-span">${photosFieldHtml(`pvPhotos-${key}`, [])}</div>
+        <div class="pv-span">${videosFieldHtml(`pvVideos-${key}`, [])}</div>
+        <div class="pv-span field"><label>Options</label>
+          <div class="check-row pv-options">${productVariantOptionsHtml(categoryId, new Set())}</div>
+        </div>
+      </div>
+    </article>`;
+  }
+
+  function addProductVariantRow() {
+    const list = $("#pvList");
+    if (!list) return;
+    pvKeySeq += 1;
+    list.insertAdjacentHTML(
+      "beforeend",
+      productVariantCardHtml(pvKeySeq, $("#fCategory")?.value),
+    );
+  }
+
+  function removeProductVariantRow(btn) {
+    btn.closest(".pv-card")?.remove();
+  }
+
+  function syncProductVariantOptions() {
+    const categoryId = $("#fCategory")?.value;
+    document.querySelectorAll(".pv-card .pv-options").forEach((wrap) => {
+      const selected = new Set(
+        [...wrap.querySelectorAll(".pv-opt:checked")].map((el) => el.value),
+      );
+      wrap.innerHTML = productVariantOptionsHtml(categoryId, selected);
+    });
+  }
+
+  function collectNewProductVariants() {
+    const used = new Set(
+      (cache.variants || []).map((v) => String(v.itemCode || "").toLowerCase()),
+    );
+    const drafts = [];
+    const nameSlug = slugifyClient($("#fName")?.value);
+    for (const card of document.querySelectorAll(".pv-card")) {
+      const key = card.dataset.key;
+      const typedCode = card.querySelector(".pv-code")?.value?.trim() || "";
+      const optionLabels = [...card.querySelectorAll(".pv-opt:checked")]
+        .map((el) => slugifyClient(el.closest("label")?.textContent))
+        .filter(Boolean);
+      const photoUrls = collectMediaUrls(`pvPhotos-${key}`);
+      const videoUrls = collectMediaUrls(`pvVideos-${key}`);
+      const isOnlyCard = document.querySelectorAll(".pv-card").length === 1;
+      if (!typedCode && !optionLabels.length && !photoUrls.length && !videoUrls.length && !isOnlyCard) {
+        continue;
+      }
+      let itemCode = typedCode;
+      if (!itemCode) {
+        itemCode = [nameSlug, ...optionLabels].filter(Boolean).join("-") || "sku";
+      }
+      let n = 2;
+      const base = itemCode;
+      while (used.has(itemCode.toLowerCase())) {
+        itemCode = `${base}-${n++}`;
+      }
+      used.add(itemCode.toLowerCase());
+
+      const priceForOne = Number(card.querySelector(".pv-price")?.value);
+      const bulkRaw = card.querySelector(".pv-bulk")?.value;
+      const priceForBulk = bulkRaw === "" ? null : Number(bulkRaw);
+      const howManyLeft = Number(card.querySelector(".pv-stock")?.value);
+      if (!Number.isFinite(priceForOne) || priceForOne < 1) {
+        throw new Error(`Variant ${itemCode}: price for one must be at least 1.`);
+      }
+      if (priceForBulk != null && (!Number.isFinite(priceForBulk) || priceForBulk < 1)) {
+        throw new Error(`Variant ${itemCode}: bulk price must be at least 1, or leave it empty.`);
+      }
+      if (!Number.isFinite(howManyLeft) || howManyLeft < 1) {
+        throw new Error(`Variant ${itemCode}: stock must be at least 1.`);
+      }
+      drafts.push({
+        itemCode,
+        priceForOne,
+        priceForBulk,
+        minQuantityForBulk: Number(card.querySelector(".pv-bulkmin")?.value || 10),
+        howManyLeft,
+        photoUrls,
+        videoUrls,
+        attributeValueIds: [...card.querySelectorAll(".pv-opt:checked")].map(
+          (el) => el.value,
+        ),
+      });
+    }
+    return drafts;
+  }
+
+  function existingVariantsHtml(productId) {
+    const rows = variantsForProduct(productId);
+    if (!rows.length) return "";
+    return `<div class="pv-existing">
+      <table class="cm pv-table">
+        <thead><tr><th>Item code</th><th>Price</th><th>Stock</th><th>Options</th><th></th></tr></thead>
+        <tbody>
+          ${rows
+            .map(
+              (v) => `<tr>
+                <td><strong>${esc(v.itemCode)}</strong></td>
+                <td>${money(v.priceForOne)}</td>
+                <td>${v.howManyLeft <= 5 ? `<span class="pill warn">${v.howManyLeft}</span>` : v.howManyLeft}</td>
+                <td>${esc(variantOptionsLabel(v))}</td>
+                <td><button type="button" class="btn btn-secondary btn-sm" onclick="editVariant('${v.id}')">Edit</button></td>
+              </tr>`,
+            )
+            .join("")}
+        </tbody>
+      </table>
+    </div>`;
+  }
+
   function syncVariantKindOptions() {
     const wrap = $("#vKindOptions");
     if (!wrap) return;
@@ -1252,13 +1457,17 @@
 
   function productForm(p) {
     const published = p ? p.published !== false : false;
+    const categoryId = p?.category_id || p?.category?.id || "";
+    const existing = p ? variantsForProduct(p.id) : [];
+    pvKeySeq += 1;
+    const startWithDraft = !existing.length;
     return `<div class="edit-layout">
       <div class="panel">
         <div class="form-grid">
           <div class="full field"><label>${req("Name")}</label><input id="fName" value="${esc(p?.name || "")}" required /></div>
           <div class="full field"><label>Description</label><textarea id="fDesc" rows="4">${esc(p?.description || "")}</textarea></div>
           <div class="full field"><label>${req("Category")}</label>
-            <select id="fCategory" required>
+            <select id="fCategory" required onchange="syncProductVariantOptions()">
               <option value="">Choose a category</option>
               ${cache.categories
                 .map((c) => {
@@ -1273,6 +1482,13 @@
           <div class="full check-row">
             <label><input type="checkbox" id="fFeatured" ${p?.is_featured ? "checked" : ""} /> Highlight on homepage</label>
             <label><input type="checkbox" id="fNew" ${p?.is_new ? "checked" : ""} /> Mark as new</label>
+          </div>
+          <div class="full field pv-section">
+            <label>${req("Variants (SKUs)")}</label>
+            <p class="muted" style="margin:0 0 .65rem">Shoppers buy a variant — options, price, and stock — not the product name alone. Add at least one. Variant photos/videos are optional; otherwise the product media is used.</p>
+            ${existingVariantsHtml(p?.id)}
+            <div id="pvList">${startWithDraft ? productVariantCardHtml(pvKeySeq, categoryId) : ""}</div>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="addProductVariantRow()">Add variant</button>
           </div>
           <input type="hidden" id="fPublished" value="${published ? "1" : "0"}" />
         </div>
@@ -1644,7 +1860,7 @@
       if (editing?.type === "product") {
         const p = editing.id ? cache.products.find((x) => x.id === editing.id) : null;
         root.innerHTML =
-          header(p ? p.name : "Create an entry", "Draft stays off the storefront until you Publish.") +
+          header(p ? p.name : "Create an entry", "Add at least one variant (SKU). Draft stays off the storefront until you Publish.") +
           productForm(p);
         return;
       }
