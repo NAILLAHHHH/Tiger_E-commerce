@@ -66,18 +66,85 @@
     setTimeout(() => el.remove(), kind === "error" ? 6000 : 2800);
   }
 
+  function uniqueFromPayload(json) {
+    const code = json?.code;
+    const message = String(json?.message || json?.error || "");
+    if (code !== "P2002" && !/unique constraint failed/i.test(message)) return null;
+    if (/itemCode|item_code/i.test(message)) {
+      return "This item code is already used by another variant.";
+    }
+    if (/email/i.test(message)) return "A staff user with this email already exists.";
+    if (/orderReference/i.test(message)) {
+      return "An order with this reference already exists.";
+    }
+    if (/linkName|link_name/i.test(message)) {
+      return "Something with this name already exists. Choose a different name.";
+    }
+    if (/attributeId.*code|already has that value/i.test(message)) {
+      return "This option already has that value.";
+    }
+    if (/\bcode\b/i.test(message)) {
+      return "This code is already in use. Choose a different name.";
+    }
+    return "That value is already in use. Change it and try again.";
+  }
+
+  function zodFromPayload(json) {
+    const raw = json?.message;
+    if (typeof raw !== "string" || !raw.trim().startsWith("[")) return null;
+    try {
+      const issues = JSON.parse(raw);
+      if (!Array.isArray(issues) || !issues[0]?.message) return null;
+      const issue = issues[0];
+      const path = Array.isArray(issue.path) ? issue.path.join(".") : "";
+      const labels = {
+        name: "Name",
+        email: "Email",
+        itemCode: "Item code",
+        categoryId: "Category",
+        priceForOne: "Price for one",
+        howManyLeft: "Stock",
+      };
+      const label = labels[path] || path;
+      return label ? `${label}: ${issue.message}` : issue.message;
+    } catch {
+      return null;
+    }
+  }
+
   function apiErrorMessage(json, fallback) {
-    if (typeof json?.error === "string" && json.error && json.error !== "Bad Request") {
+    const generic = new Set([
+      "Internal Server Error",
+      "Bad Request",
+      "Unauthorized",
+      "Forbidden",
+      "Not Found",
+      "Conflict",
+    ]);
+    const unique = uniqueFromPayload(json);
+    if (unique) return unique;
+    const fromZod = zodFromPayload(json);
+    if (fromZod) return fromZod;
+    if (typeof json?.error === "string" && json.error && !generic.has(json.error)) {
       return json.error;
     }
-    if (typeof json?.message === "string" && json.message) return json.message;
+    if (typeof json?.message === "string" && json.message && !generic.has(json.message)) {
+      if (/prisma\.|invocation in|Unique constraint/i.test(json.message)) {
+        return "That value is already in use. Change it and try again.";
+      }
+      if (json.message.length > 180) {
+        return "Could not save. Check the values and try again.";
+      }
+      return json.message;
+    }
     if (typeof json?.error?.message === "string") return json.error.message;
     if (Array.isArray(json?.issues) && json.issues[0]?.message) {
       const issue = json.issues[0];
       const path = Array.isArray(issue.path) ? issue.path.join(".") : "";
       return path ? `${path}: ${issue.message}` : issue.message;
     }
-    return fallback || "Could not save. Check the form and try again.";
+    if (fallback && !generic.has(fallback)) return fallback;
+    return "Could not save. Check the values and try again.";
   }
 
   function clearFormError() {

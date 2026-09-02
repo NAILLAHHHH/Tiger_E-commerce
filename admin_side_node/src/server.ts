@@ -7,11 +7,15 @@ import fastifyStatic from "@fastify/static";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ZodError } from "zod";
-import { Prisma } from "@prisma/client";
 import { registerStoreRoutes } from "./routes/store.js";
 import { registerAdminRoutes } from "./routes/admin.js";
 import { registerDataTransferRoutes } from "./routes/data-transfer.js";
 import { ensureBootstrapAdmin } from "./lib/bootstrap-admin.js";
+import {
+  isGenericHttpLabel,
+  prismaPublicError,
+  zodIssues,
+} from "./lib/errors.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -44,7 +48,7 @@ await app.register(fastifyStatic, {
 
 app.setNotFoundHandler((request, reply) => {
   if (request.url.startsWith("/api/")) {
-    return reply.code(404).send({ error: "Not found" });
+    return reply.code(404).send({ error: "That endpoint was not found." });
   }
   return reply.sendFile("index.html");
 });
@@ -76,46 +80,40 @@ function fieldLabel(path: string) {
   return FIELD_LABELS[key] || key.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase());
 }
 
-function isZodError(error: unknown): error is ZodError {
-  if (error instanceof ZodError) return true;
-  if (typeof error !== "object" || error === null) return false;
-  const candidate = error as { name?: string; issues?: unknown };
-  return candidate.name === "ZodError" && Array.isArray(candidate.issues);
-}
-
 app.setErrorHandler((error, request, reply) => {
-  if (isZodError(error)) {
-    const issue = error.issues[0];
-    const path = issue?.path?.length ? String(issue.path.join(".")) : "";
+  const issues = zodIssues(error);
+  if (error instanceof ZodError || issues?.length) {
+    const issue = (error instanceof ZodError ? error.issues : issues)?.[0];
+    const path = issue?.path?.length ? String((issue.path as unknown[]).join(".")) : "";
     const detail = issue?.message || "Invalid value";
     const message = path ? `${fieldLabel(path)}: ${detail}` : detail;
     return reply.code(400).send({ error: message });
   }
 
-  if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    if (error.code === "P2002") {
-      const target = error.meta?.target;
-      const fields = Array.isArray(target) ? target : target ? [String(target)] : [];
-      const label = fields.map((f) => fieldLabel(String(f))).join(", ") || "This value";
-      return reply.code(400).send({ error: `${label} is already in use.` });
-    }
-    if (error.code === "P2003") {
-      return reply.code(400).send({
-        error: "This record is linked to other data, so that change is not allowed.",
-      });
-    }
-    if (error.code === "P2025") {
-      return reply.code(404).send({ error: "That record was not found." });
-    }
+  const prismaErr = prismaPublicError(error);
+  if (prismaErr) {
+    return reply.code(prismaErr.status).send({ error: prismaErr.message });
+  }
+
+  const statusCode =
+    typeof (error as { statusCode?: number }).statusCode === "number"
+      ? (error as { statusCode: number }).statusCode
+      : 500;
+  const rawMessage =
+    error instanceof Error && error.message ? error.message : "";
+
+  if (statusCode >= 400 && statusCode < 500) {
+    const safe =
+      rawMessage && !isGenericHttpLabel(rawMessage)
+        ? rawMessage
+        : "That request was not valid. Check the form and try again.";
+    return reply.code(statusCode).send({ error: safe });
   }
 
   request.log.error(error);
-  const message =
-    error instanceof Error && error.message ? error.message : "Something went wrong.";
-  const status = typeof (error as { statusCode?: number }).statusCode === "number"
-    ? (error as { statusCode: number }).statusCode
-    : 500;
-  return reply.code(status >= 400 ? status : 500).send({ error: message });
+  return reply.code(500).send({
+    error: "Something went wrong while saving. Check the values and try again.",
+  });
 });
 
 const port = Number(process.env.PORT || 1338);

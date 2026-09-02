@@ -51,7 +51,7 @@ export async function registerStoreRoutes(app: FastifyInstance) {
       where: { linkName: slug, published: true },
       include: productInclude,
     });
-    if (!row) return reply.code(404).send({ error: "Not found" });
+    if (!row) return reply.code(404).send({ error: "That product was not found." });
     return { data: mapProduct(row) };
   });
 
@@ -185,7 +185,7 @@ export async function registerStoreRoutes(app: FastifyInstance) {
       where: { orderReference: decodeURIComponent(ref).trim() },
       include: { items: true },
     });
-    if (!order) return reply.code(404).send({ error: "Not found" });
+    if (!order) return reply.code(404).send({ error: "That order was not found." });
 
     return {
       data: {
@@ -219,7 +219,7 @@ export async function registerStoreRoutes(app: FastifyInstance) {
     const order = await prisma.order.findFirst({
       where: { OR: [{ id }, { orderReference: id }] },
     });
-    if (!order) return reply.code(404).send({ error: "Not found" });
+    if (!order) return reply.code(404).send({ error: "That order was not found." });
 
     const updated = await prisma.order.update({
       where: { id: order.id },
