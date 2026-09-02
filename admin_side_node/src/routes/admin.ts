@@ -1089,9 +1089,19 @@ export async function registerAdminRoutes(app: FastifyInstance) {
     const rows = await prisma.order.findMany({
       include: { items: true },
       orderBy: { createdAt: "desc" },
-      take: 100,
+      take: 200,
     });
     return { data: rows };
+  });
+
+  app.get("/api/admin/orders/:id", { preHandler: requireAdmin }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const row = await prisma.order.findUnique({
+      where: { id },
+      include: { items: true },
+    });
+    if (!row) return reply.code(404).send({ error: "That order was not found." });
+    return { data: row };
   });
 
   app.patch("/api/admin/orders/:id", { preHandler: requireAdmin }, async (request, reply) => {
@@ -1120,20 +1130,60 @@ export async function registerAdminRoutes(app: FastifyInstance) {
     return { data: row };
   });
 
+  const historyInclude = {
+    variant: { include: { product: true } },
+  } as const;
+
+  function decorateHistory<
+    T extends {
+      productName: string | null;
+      itemCode: string | null;
+      variant: { itemCode: string; product: { name: string } | null } | null;
+    },
+  >(row: T) {
+    return {
+      ...row,
+      productName: row.productName || row.variant?.product?.name || null,
+      itemCode: row.itemCode || row.variant?.itemCode || null,
+    };
+  }
+
   app.get("/api/admin/inventory-movements", { preHandler: requireAdmin }, async () => {
     const rows = await prisma.inventoryMovement.findMany({
+      include: historyInclude,
       orderBy: { createdAt: "desc" },
-      take: 100,
+      take: 300,
     });
-    return { data: rows };
+    return { data: rows.map(decorateHistory) };
+  });
+
+  app.get("/api/admin/inventory-movements/:id", { preHandler: requireAdmin }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const row = await prisma.inventoryMovement.findUnique({
+      where: { id },
+      include: historyInclude,
+    });
+    if (!row) return reply.code(404).send({ error: "That stock record was not found." });
+    return { data: decorateHistory(row) };
   });
 
   app.get("/api/admin/price-histories", { preHandler: requireAdmin }, async () => {
     const rows = await prisma.priceHistory.findMany({
+      include: historyInclude,
       orderBy: { createdAt: "desc" },
-      take: 100,
+      take: 300,
     });
-    return { data: rows };
+    return { data: rows.map(decorateHistory) };
+  });
+
+  app.get("/api/admin/price-histories/:id", { preHandler: requireAdmin }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const row = await prisma.priceHistory.findUnique({
+      where: { id },
+      include: historyInclude,
+    });
+    if (!row) return reply.code(404).send({ error: "That price change was not found." });
+    return { data: decorateHistory(row) };
   });
 
   // —— Homepage ——

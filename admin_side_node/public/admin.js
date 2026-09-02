@@ -227,6 +227,8 @@
       values: (attributes.data || []).flatMap((a) =>
         (a.values || []).map((v) => ({ ...v, attribute: { id: a.id, name: a.name } })),
       ),
+      stock: cache.stock || [],
+      prices: cache.prices || [],
     };
   }
 
@@ -308,6 +310,189 @@
     return published
       ? '<span class="pill ok">Published</span>'
       : '<span class="pill draft">Draft</span>';
+  }
+
+  function snapshotLabel(snapshot) {
+    if (!snapshot) return "";
+    if (Array.isArray(snapshot)) {
+      return snapshot
+        .map((o) => (o?.name ? `${o.name}: ${o.value}` : o?.value || o?.label || ""))
+        .filter(Boolean)
+        .join(" · ");
+    }
+    if (typeof snapshot === "object") {
+      return Object.entries(snapshot)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(" · ");
+    }
+    return String(snapshot);
+  }
+
+  function priceFieldLabel(field) {
+    if (field === "price_for_one") return "Price for one";
+    if (field === "price_for_bulk") return "Bulk price";
+    return field || "—";
+  }
+
+  function movementTypeLabel(type) {
+    return (
+      {
+        restock: "Restock",
+        adjustment: "Adjustment",
+        import: "Import",
+        initial: "Initial stock",
+        count: "Count",
+      }[type] ||
+      type ||
+      "—"
+    );
+  }
+
+  function sourceLabel(source) {
+    return (
+      { system: "System", admin: "Staff", import: "Import", api: "API" }[source] ||
+      source ||
+      "—"
+    );
+  }
+
+  function detailList(rows) {
+    return `<dl class="detail-list">${rows
+      .filter(([, value]) => value != null && value !== "")
+      .map(
+        ([label, value]) =>
+          `<div class="detail-row"><dt>${esc(label)}</dt><dd>${value}</dd></div>`,
+      )
+      .join("")}</dl>`;
+  }
+
+  async function loadRecord(list, path, id) {
+    try {
+      const json = await api(path);
+      if (json.data) return json.data;
+    } catch {
+      /* use list cache if the record is already loaded */
+    }
+    return (list || []).find((row) => row.id === id) || null;
+  }
+
+  function orderDetail(o) {
+    const items = o.items || [];
+    return `<div class="edit-layout">
+      <div class="panel">
+        <div class="form-grid" style="grid-template-columns:1fr">
+          ${detailList([
+            ["Reference", esc(o.orderReference)],
+            ["Placed", when(o.createdAt)],
+            ["Customer", esc(o.customerName)],
+            ["Phone", esc(o.phone)],
+            ["Delivery address", esc(o.deliveryAddress || "—")],
+            ["Customer notes", esc(o.customerNotes || "—")],
+            ["Subtotal", money(o.subtotal)],
+            ["Total", `<strong>${money(o.total)}</strong>`],
+          ])}
+          <div class="full field"><label>Status</label>
+            <select id="oStatus" class="strapi-input" onchange="setOrderStatus('${o.id}', this.value)">
+              ${["placed", "paid", "pending", "completed", "cancelled"]
+                .map(
+                  (s) =>
+                    `<option value="${s}" ${o.orderStatus === s ? "selected" : ""}>${s}</option>`,
+                )
+                .join("")}
+            </select>
+          </div>
+          <div class="full field"><label>Line items</label>
+            <table class="cm">
+              <thead><tr><th>Product</th><th>SKU</th><th>Options</th><th>Qty</th><th>Each</th><th>Line</th></tr></thead>
+              <tbody>
+                ${
+                  items
+                    .map(
+                      (i) => `<tr>
+                    <td><strong>${esc(i.productName)}</strong><div class="muted">${esc(i.boughtAs === "many_pieces" ? "Bulk" : "Retail")}</div></td>
+                    <td>${esc(i.itemCode || "—")}</td>
+                    <td>${esc(snapshotLabel(i.optionsSnapshot) || [i.size, i.color].filter(Boolean).join(" · ") || "—")}</td>
+                    <td>${i.howMany}</td>
+                    <td>${money(i.priceEach)}</td>
+                    <td>${money(i.rowTotal)}</td>
+                  </tr>`,
+                    )
+                    .join("") ||
+                  `<tr><td colspan="6" class="muted" style="padding:1rem">No line items</td></tr>`
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <aside class="entry-panel">
+        <h3>Entry</h3>
+        <div class="entry-body">
+          <div class="entry-actions">
+            <button class="btn btn-secondary" onclick="navigate('orders')">Back to orders</button>
+          </div>
+        </div>
+      </aside>
+    </div>`;
+  }
+
+  function stockDetail(m) {
+    const product = m.productName || m.variant?.product?.name || "—";
+    return `<div class="edit-layout">
+      <div class="panel">
+        <div class="form-grid" style="grid-template-columns:1fr">
+          ${detailList([
+            ["When", when(m.createdAt)],
+            ["Type", esc(movementTypeLabel(m.movementType))],
+            ["Source", esc(sourceLabel(m.source))],
+            ["Product", esc(product)],
+            ["Item code", esc(m.itemCode || m.variant?.itemCode || "—")],
+            ["Options", esc(m.optionsLabel || "—")],
+            ["Before", String(m.quantityBefore ?? "—")],
+            ["Change", `${m.quantityDelta >= 0 ? "+" : ""}${m.quantityDelta}`],
+            ["After", String(m.quantityAfter ?? "—")],
+            ["Reason", esc(m.reason || "—")],
+          ])}
+        </div>
+      </div>
+      <aside class="entry-panel">
+        <h3>Entry</h3>
+        <div class="entry-body">
+          <div class="entry-actions">
+            <button class="btn btn-secondary" onclick="navigate('stock')">Back to stock history</button>
+          </div>
+        </div>
+      </aside>
+    </div>`;
+  }
+
+  function priceDetail(m) {
+    const product = m.productName || m.variant?.product?.name || "—";
+    return `<div class="edit-layout">
+      <div class="panel">
+        <div class="form-grid" style="grid-template-columns:1fr">
+          ${detailList([
+            ["When", when(m.createdAt)],
+            ["Field", esc(priceFieldLabel(m.priceField))],
+            ["Source", esc(sourceLabel(m.source))],
+            ["Product", esc(product)],
+            ["Item code", esc(m.itemCode || m.variant?.itemCode || "—")],
+            ["Options", esc(m.optionsLabel || "—")],
+            ["Before", m.priceBefore == null ? "—" : money(m.priceBefore)],
+            ["After", m.priceAfter == null ? "—" : money(m.priceAfter)],
+            ["Reason", esc(m.reason || "—")],
+          ])}
+        </div>
+      </div>
+      <aside class="entry-panel">
+        <h3>Entry</h3>
+        <div class="entry-body">
+          <div class="entry-actions">
+            <button class="btn btn-secondary" onclick="navigate('prices')">Back to price changes</button>
+          </div>
+        </div>
+      </aside>
+    </div>`;
   }
 
   function entryPanel(opts) {
@@ -664,7 +849,8 @@
       });
       await refreshAll();
       toast("Order updated");
-      navigate("orders");
+      if (currentView === "orders") await render();
+      else navigate("orders");
     });
   }
 
@@ -1199,6 +1385,18 @@
     });
   }
 
+  function setCollectionView(view, edit) {
+    currentView = view;
+    editing = edit;
+    document.querySelectorAll(".nav-item").forEach((el) => {
+      el.classList.toggle("active", el.dataset.view === view);
+    });
+    const title = TITLES[view] || view;
+    $("#breadcrumb").innerHTML =
+      `Content Manager › Collection Types › <strong>${title}</strong>`;
+    render();
+  }
+
   Object.assign(window, {
     filterTable,
     navigate,
@@ -1272,6 +1470,9 @@
       render();
     },
     setOrderStatus,
+    openOrder: (id) => setCollectionView("orders", { type: "order", id }),
+    openStock: (id) => setCollectionView("stock", { type: "stock", id }),
+    openPrice: (id) => setCollectionView("prices", { type: "price", id }),
     toggleReview,
     deleteReview,
     saveHomepage,
@@ -1704,6 +1905,7 @@
 
   async function render() {
     const root = $("#contentRoot");
+    try {
 
     if (currentView === "home") {
       const d = cache.dash || {};
@@ -1865,7 +2067,7 @@
               recentOrders.length
                 ? `<ul class="order-list">${recentOrders
                     .map(
-                      (o) => `<li>
+                      (o) => `<li class="clickable" onclick="openOrder('${o.id}')">
                       <div>
                         <strong>${esc(o.orderReference)}</strong>
                         <div class="meta">${esc(o.customerName)} · ${o.items?.length || 0} item(s) · ${when(o.createdAt)}</div>
@@ -1907,7 +2109,7 @@
             moves.length
               ? `<ul class="move-list">${moves
                   .map(
-                    (m) => `<li>
+                    (m) => `<li class="clickable" onclick="openStock('${m.id}')">
                     <div>
                       <strong>${esc(m.itemCode || "—")}</strong>
                       <div class="meta">${m.movementType} · ${esc(m.reason || "No reason")} · ${when(m.createdAt)}</div>
@@ -2020,19 +2222,35 @@
     }
 
     if (currentView === "orders") {
+      if (editing?.type === "order") {
+        const o = await loadRecord(
+          cache.orders,
+          `/api/admin/orders/${editing.id}`,
+          editing.id,
+        );
+        if (!o) {
+          root.innerHTML = header("Order", "That order was not found.");
+          return;
+        }
+        root.innerHTML =
+          header(esc(o.orderReference), "Customer, items, and status for this order.") +
+          orderDetail(o);
+        return;
+      }
       root.innerHTML = `
         ${header("Order", `${cache.orders.length} entries found`)}
         <div class="panel">
           ${listToolbar("ordersBody", cache.orders.length, "orders")}
-          <table class="cm"><thead><tr><th>Reference</th><th>Customer</th><th>Total</th><th>Status</th><th>Update</th></tr></thead>
+          <table class="cm"><thead><tr><th>Reference</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th><th>Update</th></tr></thead>
           <tbody id="ordersBody">
             ${
               cache.orders
                 .map(
-                  (o) => `<tr>
-              <td><strong>${esc(o.orderReference)}</strong></td>
+                  (o) => `<tr class="clickable" onclick="openOrder('${o.id}')">
+              <td><strong>${esc(o.orderReference)}</strong><div class="muted">${when(o.createdAt)}</div></td>
               <td>${esc(o.customerName)}<div class="muted">${esc(o.phone)}</div></td>
-              <td>${o.total}</td>
+              <td>${o.items?.length || 0}</td>
+              <td>${money(o.total)}</td>
               <td><span class="pill">${o.orderStatus}</span></td>
               <td><select class="strapi-input" style="width:auto" onclick="event.stopPropagation()" onchange="setOrderStatus('${o.id}', this.value)">
                 ${["placed", "paid", "pending", "completed", "cancelled"]
@@ -2045,7 +2263,7 @@
             </tr>`,
                 )
                 .join("") ||
-              `<tr><td colspan="5" style="padding:2rem;text-align:center;color:var(--neutral500)">No orders</td></tr>`
+              `<tr><td colspan="6" style="padding:2rem;text-align:center;color:var(--neutral500)">No orders</td></tr>`
             }
           </tbody></table>
         </div>`;
@@ -2150,21 +2368,37 @@
     }
 
     if (currentView === "stock") {
+      if (editing?.type === "stock") {
+        const m = await loadRecord(
+          cache.stock,
+          `/api/admin/inventory-movements/${editing.id}`,
+          editing.id,
+        );
+        if (!m) {
+          root.innerHTML = header("Stock history", "That record was not found.");
+          return;
+        }
+        root.innerHTML =
+          header(esc(m.itemCode || "Stock change"), "What changed, by how much, and why.") +
+          stockDetail(m);
+        return;
+      }
       const { data } = await api("/api/admin/inventory-movements");
+      cache.stock = data || [];
       root.innerHTML = `
-        ${header("Stock history", `${(data || []).length} entries found`)}
+        ${header("Stock history", `${cache.stock.length} entries found`)}
         <div class="panel">
-          ${listToolbar("stockBody", (data || []).length, "stock")}
-          <table class="cm"><thead><tr><th>When</th><th>Type</th><th>Item</th><th>Delta</th><th>Reason</th></tr></thead>
+          ${listToolbar("stockBody", cache.stock.length, "stock")}
+          <table class="cm"><thead><tr><th>When</th><th>Type</th><th>Item</th><th>Before → After</th><th>Reason</th></tr></thead>
           <tbody id="stockBody">
-            ${(data || [])
+            ${cache.stock
               .map(
-                (m) => `<tr>
-              <td>${new Date(m.createdAt).toLocaleString()}</td>
-              <td>${m.movementType}</td>
-              <td>${esc(m.itemCode || "")}<div class="muted">${esc(m.optionsLabel || "")}</div></td>
-              <td>${m.quantityDelta}</td>
-              <td>${esc(m.reason || "")}</td>
+                (m) => `<tr class="clickable" onclick="openStock('${m.id}')">
+              <td>${when(m.createdAt)}</td>
+              <td>${esc(movementTypeLabel(m.movementType))}</td>
+              <td>${esc(m.itemCode || "")}<div class="muted">${esc(m.productName || m.optionsLabel || "")}</div></td>
+              <td>${m.quantityBefore ?? "—"} → ${m.quantityAfter ?? "—"} <span class="muted">(${m.quantityDelta >= 0 ? "+" : ""}${m.quantityDelta})</span></td>
+              <td>${esc(m.reason || "—")}</td>
             </tr>`,
               )
               .join("") ||
@@ -2175,21 +2409,37 @@
     }
 
     if (currentView === "prices") {
+      if (editing?.type === "price") {
+        const m = await loadRecord(
+          cache.prices,
+          `/api/admin/price-histories/${editing.id}`,
+          editing.id,
+        );
+        if (!m) {
+          root.innerHTML = header("Price changes", "That record was not found.");
+          return;
+        }
+        root.innerHTML =
+          header(esc(m.itemCode || "Price change"), "What the price was, what it became, and why.") +
+          priceDetail(m);
+        return;
+      }
       const { data } = await api("/api/admin/price-histories");
+      cache.prices = data || [];
       root.innerHTML = `
-        ${header("Price changes", `${(data || []).length} entries found`)}
+        ${header("Price changes", `${cache.prices.length} entries found`)}
         <div class="panel">
-          ${listToolbar("pricesBody", (data || []).length, "prices")}
+          ${listToolbar("pricesBody", cache.prices.length, "prices")}
           <table class="cm"><thead><tr><th>When</th><th>Field</th><th>Item</th><th>Before → After</th><th>Reason</th></tr></thead>
           <tbody id="pricesBody">
-            ${(data || [])
+            ${cache.prices
               .map(
-                (m) => `<tr>
-              <td>${new Date(m.createdAt).toLocaleString()}</td>
-              <td>${m.priceField}</td>
-              <td>${esc(m.itemCode || "")}</td>
-              <td>${m.priceBefore ?? "—"} → ${m.priceAfter ?? "—"}</td>
-              <td>${esc(m.reason || "")}</td>
+                (m) => `<tr class="clickable" onclick="openPrice('${m.id}')">
+              <td>${when(m.createdAt)}</td>
+              <td>${esc(priceFieldLabel(m.priceField))}</td>
+              <td>${esc(m.itemCode || "")}<div class="muted">${esc(m.productName || m.optionsLabel || "")}</div></td>
+              <td>${m.priceBefore == null ? "—" : money(m.priceBefore)} → ${m.priceAfter == null ? "—" : money(m.priceAfter)}</td>
+              <td>${esc(m.reason || "—")}</td>
             </tr>`,
               )
               .join("") ||
@@ -2239,6 +2489,12 @@
             </tbody>
           </table>
         </div>`;
+    }
+    } catch (e) {
+      root.innerHTML = header(
+        "Could not load this page",
+        esc(e?.message || "Try again."),
+      );
     }
   }
 
