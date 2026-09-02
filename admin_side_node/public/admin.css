@@ -312,6 +312,42 @@ table.cm td {
 table.cm tr { cursor: default; }
 table.cm tbody tr:hover td { background: #fafafd; }
 table.cm tbody tr.clickable { cursor: pointer; }
+.order-list li.clickable,
+.move-list li.clickable,
+.stock-list li.clickable { cursor: pointer; }
+.order-list li.clickable:hover,
+.move-list li.clickable:hover,
+.stock-list li.clickable:hover { background: #fafafd; }
+
+.detail-list {
+  margin: 0 0 1rem;
+  display: grid;
+  gap: 0;
+}
+.detail-row {
+  display: grid;
+  grid-template-columns: 10rem minmax(0, 1fr);
+  gap: .75rem;
+  padding: .7rem 0;
+  border-bottom: 1px solid var(--neutral100);
+  font-size: .875rem;
+}
+.detail-row dt {
+  margin: 0;
+  color: var(--neutral600);
+  font-weight: 600;
+  font-size: .75rem;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+.detail-row dd {
+  margin: 0;
+  color: var(--neutral800);
+  word-break: break-word;
+}
+@media (max-width: 640px) {
+  .detail-row { grid-template-columns: 1fr; gap: .2rem; }
+}
 .pill {
   display: inline-flex;
   align-items: center;

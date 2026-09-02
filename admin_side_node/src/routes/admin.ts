@@ -4,7 +4,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../db.js";
 import { requireAdmin } from "../lib/auth.js";
-import { slugify, roundMoney, requirePositivePrice, requireOptionalPositivePrice, requirePositiveStock, splitPhotoList, splitVideoList, incomingUrlList } from "../lib/utils.js";
+import { slugify, roundMoney, requirePositivePrice, requireOptionalPositivePrice, requirePositiveStock, splitPhotoList, splitVideoList, incomingUrlList, optionsLabel } from "../lib/utils.js";
 import {
   assertOptionValuesMatchKind,
   kindHasAttributeCode,
@@ -14,7 +14,8 @@ import {
 } from "../lib/catalog.js";
 import { logPriceChanges, logStockChange, syncOrderStock } from "../services/orders.js";
 import { saveUpload } from "../services/upload.js";
-import { mapProduct, productInclude } from "../mappers.js";
+import { mapProduct, productInclude, variantInclude } from "../mappers.js";
+import { isPrismaNotFound } from "../lib/errors.js";
 
 const attributeValueInput = z.object({
   id: z.string().optional(),
@@ -51,6 +52,13 @@ function mediaFromBody(body: {
 const attributeInclude = {
   values: { orderBy: { listPosition: "asc" as const } },
 };
+
+function notFoundOrRethrow(reply: { code: (status: number) => { send: (body: unknown) => unknown } }, error: unknown) {
+  if (isPrismaNotFound(error)) {
+    return reply.code(404).send({ error: "That record was not found." });
+  }
+  throw error;
+}
 
 function uniqueCodes(labels: string[]): string[] {
   const used = new Set<string>();
@@ -223,7 +231,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
       .parse(request.body);
 
     const target = await prisma.adminUser.findUnique({ where: { id } });
-    if (!target) return reply.code(404).send({ error: "Not found" });
+    if (!target) return reply.code(404).send({ error: "That staff user was not found." });
 
     // Owner password is controlled by ADMIN_PASSWORD env — don't override via UI
     if (target.isOwner && body.password) {
@@ -256,7 +264,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string };
     const payload = request.user as { sub: string };
     const target = await prisma.adminUser.findUnique({ where: { id } });
-    if (!target) return reply.code(404).send({ error: "Not found" });
+    if (!target) return reply.code(404).send({ error: "That staff user was not found." });
     if (target.isOwner) {
       return reply.code(400).send({ error: "The permanent owner account cannot be deleted." });
     }
@@ -402,8 +410,8 @@ export async function registerAdminRoutes(app: FastifyInstance) {
         await syncProductsKindForCategory(id, body.attributeSetId);
       }
       return { data: row };
-    } catch {
-      return reply.code(404).send({ error: "Not found" });
+    } catch (e) {
+      return notFoundOrRethrow(reply, e);
     }
   });
 
@@ -412,8 +420,8 @@ export async function registerAdminRoutes(app: FastifyInstance) {
     try {
       await prisma.category.delete({ where: { id } });
       return { ok: true };
-    } catch {
-      return reply.code(404).send({ error: "Not found" });
+    } catch (e) {
+      return notFoundOrRethrow(reply, e);
     }
   });
 
@@ -476,7 +484,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
       .parse(request.body);
 
     const existing = await prisma.attribute.findUnique({ where: { id } });
-    if (!existing) return reply.code(404).send({ error: "Not found" });
+    if (!existing) return reply.code(404).send({ error: "That option was not found." });
 
     if (body.values) {
       const values = body.values.filter((v) => v.label.trim());
@@ -505,8 +513,8 @@ export async function registerAdminRoutes(app: FastifyInstance) {
     try {
       await prisma.attribute.delete({ where: { id } });
       return { ok: true };
-    } catch {
-      return reply.code(404).send({ error: "Not found" });
+    } catch (e) {
+      return notFoundOrRethrow(reply, e);
     }
   });
 
@@ -553,8 +561,8 @@ export async function registerAdminRoutes(app: FastifyInstance) {
           },
         });
         return { data: row };
-      } catch {
-        return reply.code(404).send({ error: "Not found" });
+      } catch (e) {
+        return notFoundOrRethrow(reply, e);
       }
     },
   );
@@ -567,8 +575,8 @@ export async function registerAdminRoutes(app: FastifyInstance) {
       try {
         await prisma.attributeValue.delete({ where: { id } });
         return { ok: true };
-      } catch {
-        return reply.code(404).send({ error: "Not found" });
+      } catch (e) {
+        return notFoundOrRethrow(reply, e);
       }
     },
   );
@@ -634,8 +642,8 @@ export async function registerAdminRoutes(app: FastifyInstance) {
           include: { attributes: { include: { attribute: true } } },
         });
         return { data: row };
-      } catch {
-        return reply.code(404).send({ error: "Not found" });
+      } catch (e) {
+        return notFoundOrRethrow(reply, e);
       }
     },
   );
@@ -655,8 +663,8 @@ export async function registerAdminRoutes(app: FastifyInstance) {
       try {
         await prisma.attributeSet.delete({ where: { id } });
         return { ok: true };
-      } catch {
-        return reply.code(404).send({ error: "Not found" });
+      } catch (e) {
+        return notFoundOrRethrow(reply, e);
       }
     },
   );
@@ -771,8 +779,8 @@ export async function registerAdminRoutes(app: FastifyInstance) {
     try {
       await prisma.product.delete({ where: { id } });
       return { ok: true };
-    } catch {
-      return reply.code(404).send({ error: "Not found" });
+    } catch (e) {
+      return notFoundOrRethrow(reply, e);
     }
   });
 
@@ -920,7 +928,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
       .parse(request.body);
 
     const previous = await prisma.productVariant.findUnique({ where: { id } });
-    if (!previous) return reply.code(404).send({ error: "Not found" });
+    if (!previous) return reply.code(404).send({ error: "That variant was not found." });
 
     const stockChanging =
       body.howManyLeft != null && body.howManyLeft !== previous.howManyLeft;
@@ -1071,8 +1079,8 @@ export async function registerAdminRoutes(app: FastifyInstance) {
     try {
       await prisma.productVariant.delete({ where: { id } });
       return { ok: true };
-    } catch {
-      return reply.code(404).send({ error: "Not found" });
+    } catch (e) {
+      return notFoundOrRethrow(reply, e);
     }
   });
 
@@ -1081,9 +1089,19 @@ export async function registerAdminRoutes(app: FastifyInstance) {
     const rows = await prisma.order.findMany({
       include: { items: true },
       orderBy: { createdAt: "desc" },
-      take: 100,
+      take: 200,
     });
     return { data: rows };
+  });
+
+  app.get("/api/admin/orders/:id", { preHandler: requireAdmin }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const row = await prisma.order.findUnique({
+      where: { id },
+      include: { items: true },
+    });
+    if (!row) return reply.code(404).send({ error: "That order was not found." });
+    return { data: row };
   });
 
   app.patch("/api/admin/orders/:id", { preHandler: requireAdmin }, async (request, reply) => {
@@ -1101,7 +1119,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
       .parse(request.body);
 
     const existing = await prisma.order.findUnique({ where: { id } });
-    if (!existing) return reply.code(404).send({ error: "Not found" });
+    if (!existing) return reply.code(404).send({ error: "That order was not found." });
 
     const row = await prisma.order.update({
       where: { id },
@@ -1112,20 +1130,101 @@ export async function registerAdminRoutes(app: FastifyInstance) {
     return { data: row };
   });
 
+  const historyInclude = {
+    variant: {
+      include: {
+        product: true,
+        ...variantInclude,
+      },
+    },
+  } as const;
+
+  function variantOptionsFrom(variant: {
+    size: string | null;
+    color: string | null;
+    optionValues: Array<{
+      attributeValue: {
+        label: string;
+        attribute: { name: string; listPosition: number };
+      };
+    }>;
+  } | null) {
+    if (!variant) return "";
+    return optionsLabel(
+      variant.optionValues.map((ov) => ({
+        label: ov.attributeValue.label,
+        attribute: ov.attributeValue.attribute,
+      })),
+      { size: variant.size, color: variant.color },
+    );
+  }
+
+  function decorateHistory<
+    T extends {
+      variantId: string | null;
+      productName: string | null;
+      itemCode: string | null;
+      optionsLabel: string | null;
+      variant: {
+        id: string;
+        itemCode: string;
+        size: string | null;
+        color: string | null;
+        product: { name: string } | null;
+        optionValues: Array<{
+          attributeValue: {
+            label: string;
+            attribute: { name: string; listPosition: number };
+          };
+        }>;
+      } | null;
+    },
+  >(row: T) {
+    return {
+      ...row,
+      variantId: row.variantId || row.variant?.id || null,
+      productName: row.productName || row.variant?.product?.name || null,
+      itemCode: row.itemCode || row.variant?.itemCode || null,
+      optionsLabel: row.optionsLabel || variantOptionsFrom(row.variant) || null,
+    };
+  }
+
   app.get("/api/admin/inventory-movements", { preHandler: requireAdmin }, async () => {
     const rows = await prisma.inventoryMovement.findMany({
+      include: historyInclude,
       orderBy: { createdAt: "desc" },
-      take: 100,
+      take: 300,
     });
-    return { data: rows };
+    return { data: rows.map(decorateHistory) };
+  });
+
+  app.get("/api/admin/inventory-movements/:id", { preHandler: requireAdmin }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const row = await prisma.inventoryMovement.findUnique({
+      where: { id },
+      include: historyInclude,
+    });
+    if (!row) return reply.code(404).send({ error: "That stock record was not found." });
+    return { data: decorateHistory(row) };
   });
 
   app.get("/api/admin/price-histories", { preHandler: requireAdmin }, async () => {
     const rows = await prisma.priceHistory.findMany({
+      include: historyInclude,
       orderBy: { createdAt: "desc" },
-      take: 100,
+      take: 300,
     });
-    return { data: rows };
+    return { data: rows.map(decorateHistory) };
+  });
+
+  app.get("/api/admin/price-histories/:id", { preHandler: requireAdmin }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const row = await prisma.priceHistory.findUnique({
+      where: { id },
+      include: historyInclude,
+    });
+    if (!row) return reply.code(404).send({ error: "That price change was not found." });
+    return { data: decorateHistory(row) };
   });
 
   // —— Homepage ——
@@ -1173,8 +1272,8 @@ export async function registerAdminRoutes(app: FastifyInstance) {
         include: { product: true },
       });
       return { data: row };
-    } catch {
-      return reply.code(404).send({ error: "Not found" });
+    } catch (e) {
+      return notFoundOrRethrow(reply, e);
     }
   });
 
@@ -1183,8 +1282,8 @@ export async function registerAdminRoutes(app: FastifyInstance) {
     try {
       await prisma.review.delete({ where: { id } });
       return { ok: true };
-    } catch {
-      return reply.code(404).send({ error: "Not found" });
+    } catch (e) {
+      return notFoundOrRethrow(reply, e);
     }
   });
 

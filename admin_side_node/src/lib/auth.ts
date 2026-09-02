@@ -7,6 +7,6 @@ export async function requireAdmin(
   try {
     await request.jwtVerify();
   } catch {
-    return reply.code(401).send({ error: "Unauthorized" });
+    return reply.code(401).send({ error: "Please sign in to continue." });
   }
 }
