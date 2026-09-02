@@ -45,6 +45,21 @@ export default async function ShopPage({ searchParams }: Props) {
           <p className="text-xs font-semibold uppercase tracking-wider text-brand">
             TygaStyle shop
           </p>
+          {activeCategory?.attribute_set?.name && !query && (
+            <p className="mt-2 text-xs font-medium text-body">
+              <span className="font-semibold uppercase tracking-wider text-muted">
+                Kind
+              </span>
+              <span className="mx-1.5 text-gray-3">·</span>
+              {activeCategory.attribute_set.name}
+              <span className="mx-1.5 text-gray-3">·</span>
+              <span className="font-semibold uppercase tracking-wider text-muted">
+                Category
+              </span>
+              <span className="mx-1.5 text-gray-3">·</span>
+              {activeCategory.name}
+            </p>
+          )}
           <h1 className="section-title mt-1">{pageTitle}</h1>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">
             {pageDescription}
