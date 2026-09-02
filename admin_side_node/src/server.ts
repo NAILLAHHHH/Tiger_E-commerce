@@ -21,6 +21,19 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = Fastify({ logger: true });
 
+app.addContentTypeParser(
+  "application/json",
+  { parseAs: "string" },
+  (_request, body, done) => {
+    try {
+      const text = typeof body === "string" ? body.trim() : "";
+      done(null, text ? JSON.parse(text) : {});
+    } catch (err) {
+      done(err as Error);
+    }
+  },
+);
+
 await app.register(cors, {
   origin: process.env.CORS_ORIGIN?.split(",") ?? true,
   credentials: true,

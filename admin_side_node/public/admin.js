@@ -187,7 +187,9 @@
 
   async function api(path, opts = {}) {
     const headers = { ...(opts.headers || {}) };
-    if (!(opts.body instanceof FormData)) headers["Content-Type"] = "application/json";
+    if (opts.body && !(opts.body instanceof FormData)) {
+      headers["Content-Type"] = "application/json";
+    }
     if (token) headers.Authorization = `Bearer ${token}`;
     let res;
     try {
