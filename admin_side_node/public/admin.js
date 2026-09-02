@@ -129,6 +129,7 @@
       return json.error;
     }
     if (typeof json?.message === "string" && json.message && !generic.has(json.message)) {
+      // Never show Prisma/Fastify internals
       if (/prisma\.|invocation in|Unique constraint/i.test(json.message)) {
         return "That value is already in use. Change it and try again.";
       }
@@ -436,8 +437,56 @@
     </div>`;
   }
 
-  function stockDetail(m) {
+  function variantOptionRows(m) {
+    const ovs = [...(m.variant?.optionValues || [])].sort(
+      (a, b) =>
+        (a.attributeValue?.attribute?.listPosition ?? 0) -
+        (b.attributeValue?.attribute?.listPosition ?? 0),
+    );
+    const fromLive = ovs
+      .map((ov) => {
+        const name = ov.attributeValue?.attribute?.name;
+        const value = ov.attributeValue?.label;
+        return name && value ? [name, esc(value)] : null;
+      })
+      .filter(Boolean);
+    if (fromLive.length) return fromLive;
+    const fallback = [];
+    if (m.variant?.size) fallback.push(["Size", esc(m.variant.size)]);
+    if (m.variant?.color) fallback.push(["Color", esc(m.variant.color)]);
+    if (fallback.length) return fallback;
+    if (m.optionsLabel) return [["Options", esc(m.optionsLabel)]];
+    return [];
+  }
+
+  function variantDetailRows(m) {
     const product = m.productName || m.variant?.product?.name || "—";
+    const sku = m.itemCode || m.variant?.itemCode || "—";
+    return [
+      ["Product", esc(product)],
+      ["Variant", esc(sku)],
+      ...variantOptionRows(m),
+    ];
+  }
+
+  function variantEntryActions(m, backView, backLabel) {
+    const variantId = m.variantId || m.variant?.id;
+    return `<aside class="entry-panel">
+      <h3>Entry</h3>
+      <div class="entry-body">
+        <div class="entry-actions">
+          ${
+            variantId
+              ? `<button class="btn btn-primary" onclick="editVariant('${variantId}')">Open variant</button>`
+              : ""
+          }
+          <button class="btn btn-secondary" onclick="navigate('${backView}')">${backLabel}</button>
+        </div>
+      </div>
+    </aside>`;
+  }
+
+  function stockDetail(m) {
     return `<div class="edit-layout">
       <div class="panel">
         <div class="form-grid" style="grid-template-columns:1fr">
@@ -445,9 +494,7 @@
             ["When", when(m.createdAt)],
             ["Type", esc(movementTypeLabel(m.movementType))],
             ["Source", esc(sourceLabel(m.source))],
-            ["Product", esc(product)],
-            ["Item code", esc(m.itemCode || m.variant?.itemCode || "—")],
-            ["Options", esc(m.optionsLabel || "—")],
+            ...variantDetailRows(m),
             ["Before", String(m.quantityBefore ?? "—")],
             ["Change", `${m.quantityDelta >= 0 ? "+" : ""}${m.quantityDelta}`],
             ["After", String(m.quantityAfter ?? "—")],
@@ -455,19 +502,11 @@
           ])}
         </div>
       </div>
-      <aside class="entry-panel">
-        <h3>Entry</h3>
-        <div class="entry-body">
-          <div class="entry-actions">
-            <button class="btn btn-secondary" onclick="navigate('stock')">Back to stock history</button>
-          </div>
-        </div>
-      </aside>
+      ${variantEntryActions(m, "stock", "Back to stock history")}
     </div>`;
   }
 
   function priceDetail(m) {
-    const product = m.productName || m.variant?.product?.name || "—";
     return `<div class="edit-layout">
       <div class="panel">
         <div class="form-grid" style="grid-template-columns:1fr">
@@ -475,23 +514,14 @@
             ["When", when(m.createdAt)],
             ["Field", esc(priceFieldLabel(m.priceField))],
             ["Source", esc(sourceLabel(m.source))],
-            ["Product", esc(product)],
-            ["Item code", esc(m.itemCode || m.variant?.itemCode || "—")],
-            ["Options", esc(m.optionsLabel || "—")],
+            ...variantDetailRows(m),
             ["Before", m.priceBefore == null ? "—" : money(m.priceBefore)],
             ["After", m.priceAfter == null ? "—" : money(m.priceAfter)],
             ["Reason", esc(m.reason || "—")],
           ])}
         </div>
       </div>
-      <aside class="entry-panel">
-        <h3>Entry</h3>
-        <div class="entry-body">
-          <div class="entry-actions">
-            <button class="btn btn-secondary" onclick="navigate('prices')">Back to price changes</button>
-          </div>
-        </div>
-      </aside>
+      ${variantEntryActions(m, "prices", "Back to price changes")}
     </div>`;
   }
 

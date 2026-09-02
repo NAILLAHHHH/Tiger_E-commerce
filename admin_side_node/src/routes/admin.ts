@@ -4,7 +4,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../db.js";
 import { requireAdmin } from "../lib/auth.js";
-import { slugify, roundMoney, requirePositivePrice, requireOptionalPositivePrice, requirePositiveStock, splitPhotoList, splitVideoList, incomingUrlList } from "../lib/utils.js";
+import { slugify, roundMoney, requirePositivePrice, requireOptionalPositivePrice, requirePositiveStock, splitPhotoList, splitVideoList, incomingUrlList, optionsLabel } from "../lib/utils.js";
 import {
   assertOptionValuesMatchKind,
   kindHasAttributeCode,
@@ -14,7 +14,7 @@ import {
 } from "../lib/catalog.js";
 import { logPriceChanges, logStockChange, syncOrderStock } from "../services/orders.js";
 import { saveUpload } from "../services/upload.js";
-import { mapProduct, productInclude } from "../mappers.js";
+import { mapProduct, productInclude, variantInclude } from "../mappers.js";
 import { isPrismaNotFound } from "../lib/errors.js";
 
 const attributeValueInput = z.object({
@@ -1131,20 +1131,61 @@ export async function registerAdminRoutes(app: FastifyInstance) {
   });
 
   const historyInclude = {
-    variant: { include: { product: true } },
+    variant: {
+      include: {
+        product: true,
+        ...variantInclude,
+      },
+    },
   } as const;
+
+  function variantOptionsFrom(variant: {
+    size: string | null;
+    color: string | null;
+    optionValues: Array<{
+      attributeValue: {
+        label: string;
+        attribute: { name: string; listPosition: number };
+      };
+    }>;
+  } | null) {
+    if (!variant) return "";
+    return optionsLabel(
+      variant.optionValues.map((ov) => ({
+        label: ov.attributeValue.label,
+        attribute: ov.attributeValue.attribute,
+      })),
+      { size: variant.size, color: variant.color },
+    );
+  }
 
   function decorateHistory<
     T extends {
+      variantId: string | null;
       productName: string | null;
       itemCode: string | null;
-      variant: { itemCode: string; product: { name: string } | null } | null;
+      optionsLabel: string | null;
+      variant: {
+        id: string;
+        itemCode: string;
+        size: string | null;
+        color: string | null;
+        product: { name: string } | null;
+        optionValues: Array<{
+          attributeValue: {
+            label: string;
+            attribute: { name: string; listPosition: number };
+          };
+        }>;
+      } | null;
     },
   >(row: T) {
     return {
       ...row,
+      variantId: row.variantId || row.variant?.id || null,
       productName: row.productName || row.variant?.product?.name || null,
       itemCode: row.itemCode || row.variant?.itemCode || null,
+      optionsLabel: row.optionsLabel || variantOptionsFrom(row.variant) || null,
     };
   }
 
