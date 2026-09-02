@@ -82,9 +82,10 @@ function fieldLabel(path: string) {
 
 app.setErrorHandler((error, request, reply) => {
   const issues = zodIssues(error);
-  if (error instanceof ZodError || issues?.length) {
-    const issue = (error instanceof ZodError ? error.issues : issues)?.[0];
-    const path = issue?.path?.length ? String((issue.path as unknown[]).join(".")) : "";
+  if (error instanceof ZodError || (issues && issues.length > 0)) {
+    const issue = error instanceof ZodError ? error.issues[0] : issues?.[0];
+    const rawPath = issue?.path;
+    const path = Array.isArray(rawPath) ? rawPath.map(String).join(".") : "";
     const detail = issue?.message || "Invalid value";
     const message = path ? `${fieldLabel(path)}: ${detail}` : detail;
     return reply.code(400).send({ error: message });

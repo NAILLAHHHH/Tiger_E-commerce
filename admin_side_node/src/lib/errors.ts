@@ -147,8 +147,15 @@ export function zodIssues(
     const message = (candidate as { message?: unknown }).message;
     if (typeof message === "string" && message.trim().startsWith("[")) {
       try {
-        const parsed = JSON.parse(message);
-        if (Array.isArray(parsed) && parsed[0]?.message) return parsed;
+        const parsed = JSON.parse(message) as unknown;
+        if (
+          Array.isArray(parsed) &&
+          parsed[0] &&
+          typeof parsed[0] === "object" &&
+          "message" in parsed[0]
+        ) {
+          return parsed as Array<{ path?: unknown; message?: string }>;
+        }
       } catch {
         /* ignore */
       }
