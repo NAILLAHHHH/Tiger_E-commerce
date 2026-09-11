@@ -9,10 +9,12 @@ import Logo from "@/components/layout/Logo";
 import { whatsappUrl } from "@/lib/contact";
 import { selectCartCount, useCartStore } from "@/store/cart-store";
 
+const CONTACT_HREF = whatsappUrl("Hi, I have a question about TygaMart.");
+
 const links = [
   { href: "/", label: "Home" },
   { href: "/shop", label: "Shop" },
-  { href: "/wholesale", label: "Wholesale" },
+  { href: "/shop?new=1", label: "New arrivals" },
 ];
 
 export default function Header() {
@@ -50,7 +52,7 @@ export default function Header() {
           </p>
           <div className="flex flex-wrap items-center justify-center gap-2">
             <a
-              href={whatsappUrl("Hi, I have a question about TygaStyle.")}
+              href={CONTACT_HREF}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 rounded-full bg-[#128C7E] px-3 py-1 font-semibold transition-colors hover:bg-[#0e6b60]"
@@ -78,16 +80,27 @@ export default function Header() {
             <Logo />
           </div>
 
-          <nav className="hidden items-center gap-8 md:flex">
+          <nav className="hidden items-center gap-6 lg:gap-8 md:flex">
             {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-sm font-medium text-body transition-colors hover:text-brand"
+                className={clsx(
+                  "text-sm font-medium transition-colors hover:text-brand",
+                  isActive(pathname, link.href) ? "text-brand" : "text-body",
+                )}
               >
                 {link.label}
               </Link>
             ))}
+            <a
+              href={CONTACT_HREF}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-body transition-colors hover:text-brand"
+            >
+              Contact
+            </a>
           </nav>
 
           <div className="flex flex-1 items-center justify-end gap-2 sm:gap-3 md:max-w-md md:flex-initial lg:max-w-lg">
@@ -146,10 +159,7 @@ export default function Header() {
           >
             <ul className="flex flex-col">
               {links.map((link) => {
-                const active =
-                  link.href === "/"
-                    ? pathname === "/"
-                    : pathname.startsWith(link.href);
+                const active = isActive(pathname, link.href);
                 return (
                   <li key={link.href}>
                     <Link
@@ -170,12 +180,32 @@ export default function Header() {
                   </li>
                 );
               })}
+              <li>
+                <a
+                  href={CONTACT_HREF}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center justify-between rounded-[5px] px-3 py-3 text-base font-medium text-dark transition-colors hover:bg-gray-1 hover:text-brand"
+                >
+                  Contact
+                  <span aria-hidden className="text-muted">
+                    ›
+                  </span>
+                </a>
+              </li>
             </ul>
           </nav>
         </div>
       )}
     </header>
   );
+}
+
+function isActive(pathname: string, href: string) {
+  if (href === "/") return pathname === "/";
+  if (href === "/shop") return pathname === "/shop";
+  return false;
 }
 
 function SearchSkeleton({ className }: { className?: string }) {

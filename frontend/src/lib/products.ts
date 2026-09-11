@@ -10,7 +10,6 @@ import {
   shouldUseStrapi,
 } from "@/lib/config";
 import { strapiFetch } from "@/lib/strapi/client";
-import { productSupportsBulk } from "@/lib/pricing";
 import { createClient } from "@/lib/supabase/server";
 import type { Category, Product } from "@/types/database";
 
@@ -21,16 +20,12 @@ function filterProducts(
     categorySlug?: string;
     limit?: number;
     newOnly?: boolean;
-    wholesaleOnly?: boolean;
     query?: string;
   },
 ): Product[] {
   let items = [...products];
   if (options?.featured) items = items.filter((p) => p.is_featured);
   if (options?.newOnly) items = items.filter((p) => p.is_new);
-  if (options?.wholesaleOnly) {
-    items = items.filter(productSupportsBulk);
-  }
   if (options?.categorySlug) {
     items = items.filter((p) => p.category?.slug === options.categorySlug);
   }
@@ -61,15 +56,11 @@ function filterMockProducts(options?: {
   categorySlug?: string;
   limit?: number;
   newOnly?: boolean;
-  wholesaleOnly?: boolean;
   query?: string;
 }): Product[] {
   let items = [...mockProducts];
   if (options?.featured) items = items.filter((p) => p.is_featured);
   if (options?.newOnly) items = items.filter((p) => p.is_new);
-  if (options?.wholesaleOnly) {
-    items = items.filter(productSupportsBulk);
-  }
   if (options?.categorySlug) {
     items = getMockProductsByCategory(options.categorySlug);
   }
@@ -132,6 +123,7 @@ export async function getProducts(options?: {
   categorySlug?: string;
   limit?: number;
   query?: string;
+  newOnly?: boolean;
 }): Promise<Product[]> {
   if (shouldUseMockData()) return filterMockProducts(options);
 
@@ -179,19 +171,4 @@ export async function getNewArrivals(limit = 8): Promise<Product[]> {
   }
 
   return filterMockProducts({ newOnly: true, limit });
-}
-
-export async function getWholesaleProducts(): Promise<Product[]> {
-  if (shouldUseMockData()) return filterMockProducts({ wholesaleOnly: true });
-
-  if (shouldUseStrapi()) {
-    try {
-      const products = await fetchApiProducts();
-      return filterProducts(products, { wholesaleOnly: true });
-    } catch {
-      return filterMockProducts({ wholesaleOnly: true });
-    }
-  }
-
-  return filterMockProducts({ wholesaleOnly: true });
 }
