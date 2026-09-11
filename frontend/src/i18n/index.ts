@@ -1,5 +1,7 @@
 import { en, rw, type MessageKey } from "./messages";
 
+export type { MessageKey };
+
 export const LOCALE_COOKIE = "tygamart_locale";
 export const LOCALES = ["en", "rw"] as const;
 export type Locale = (typeof LOCALES)[number];
