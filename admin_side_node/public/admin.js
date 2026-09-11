@@ -669,13 +669,8 @@
       if (!$("#vProduct")?.value) throw new Error("Choose a product.");
       if (!$("#vCode")?.value?.trim()) throw new Error("Item code is required.");
       const priceForOne = Number($("#vPrice").value);
-      const bulkRaw = $("#vBulk").value;
-      const priceForBulk = bulkRaw === "" ? null : Number(bulkRaw);
       if (!Number.isFinite(priceForOne) || priceForOne < 1) {
         throw new Error("Price for one must be at least 1 (cannot be 0).");
-      }
-      if (priceForBulk != null && (!Number.isFinite(priceForBulk) || priceForBulk < 1)) {
-        throw new Error("Bulk price must be at least 1, or leave it empty.");
       }
       const howManyLeft = Number($("#vStock").value);
       const prev = id ? cache.variants.find((v) => v.id === id) : null;
@@ -693,8 +688,6 @@
         productId: $("#vProduct").value,
         itemCode: $("#vCode").value,
         priceForOne,
-        priceForBulk,
-        minQuantityForBulk: Number($("#vBulkMin").value || 10),
         howManyLeft,
         photoUrls: collectMediaUrls("vPhotos"),
         videoUrls: collectMediaUrls("vVideos"),
@@ -704,8 +697,7 @@
         const stockOrPrice =
           prev &&
           (payload.howManyLeft !== prev.howManyLeft ||
-            payload.priceForOne !== prev.priceForOne ||
-            payload.priceForBulk !== prev.priceForBulk);
+            payload.priceForOne !== prev.priceForOne);
         if (stockOrPrice) {
           const reason = await reasonPrompt("Reason for stock/price change?");
           if (!reason) throw new Error("A reason is required when changing stock or price.");
@@ -972,7 +964,7 @@
       hero_slides: [
         {
           tag: "New Collection",
-          title: "TygaStyle Essentials",
+          title: "TygaMart Essentials",
           subtitle: "Retail per piece or bulk from 10+ units.",
           cta: "Shop New Arrivals",
           href: "/shop",
@@ -1574,7 +1566,7 @@
     );
   }
 
-  function optionsCheckboxesHtml(kind, selectedIds, checkboxClass) {
+  function optionsPickersHtml(kind, selectedIds, inputClass, groupPrefix) {
     if (!kind) {
       return `<p class="muted">Choose a category first. Options come from that category's product kind.</p>`;
     }
@@ -1584,9 +1576,10 @@
       return `<p class="muted">${esc(kind.name)} has no options yet. Add them under Product kind. You can still save a single SKU.</p>`;
     }
     return attrs
-      .map(
-        (a) =>
-          `<div style="min-width:100%"><strong>${esc(a.name)}</strong></div>` +
+      .map((a) => {
+        const chosen = (a.values || []).find((val) => selectedIds.has(val.id));
+        return (
+          `<div style="min-width:100%"><strong>${esc(a.name)}</strong><span class="muted"> — pick one</span></div>` +
           (a.values || [])
             .map((val) => {
               const hex =
@@ -1594,19 +1587,31 @@
               const swatch = hex
                 ? `<span class="opt-swatch" style="background:${esc(hex)}"></span>`
                 : "";
-              return `<label><input class="${checkboxClass}" type="checkbox" value="${val.id}" ${selectedIds.has(val.id) ? "checked" : ""} /> ${swatch}${esc(val.label)}</label>`;
+              const checked = chosen?.id === val.id ? "checked" : "";
+              return `<label><input class="${inputClass}" type="radio" name="${esc(groupPrefix)}-${a.id}" value="${val.id}" ${checked} /> ${swatch}${esc(val.label)}</label>`;
             })
-            .join(""),
-      )
+            .join("")
+        );
+      })
       .join("");
   }
 
   function variantOptionsHtml(productId, selectedIds) {
-    return optionsCheckboxesHtml(kindForProduct(productId), selectedIds, "v-opt");
+    return optionsPickersHtml(
+      kindForProduct(productId),
+      selectedIds,
+      "v-opt",
+      "v-opt",
+    );
   }
 
-  function productVariantOptionsHtml(categoryId, selectedIds) {
-    return optionsCheckboxesHtml(kindForCategory(categoryId), selectedIds, "pv-opt");
+  function productVariantOptionsHtml(categoryId, selectedIds, groupPrefix) {
+    return optionsPickersHtml(
+      kindForCategory(categoryId),
+      selectedIds,
+      "pv-opt",
+      groupPrefix,
+    );
   }
 
   function productVariantCardHtml(key, categoryId) {
@@ -1622,19 +1627,13 @@
         <div class="field"><label>${req("Price for one")}</label>
           <input class="pv-price" type="number" min="1" step="1" value="1" required />
         </div>
-        <div class="field"><label>Bulk price</label>
-          <input class="pv-bulk" type="number" min="1" step="1" placeholder="Optional" />
-        </div>
-        <div class="field"><label>Bulk minimum</label>
-          <input class="pv-bulkmin" type="number" value="10" />
-        </div>
         <div class="field"><label>${req("Stock")}</label>
           <input class="pv-stock" type="number" min="1" step="1" value="1" required />
         </div>
         <div class="pv-span">${photosFieldHtml(`pvPhotos-${key}`, [])}</div>
         <div class="pv-span">${videosFieldHtml(`pvVideos-${key}`, [])}</div>
-        <div class="pv-span field"><label>Options</label>
-          <div class="check-row pv-options">${productVariantOptionsHtml(categoryId, new Set())}</div>
+        <div class="pv-span field"><label>Options — one value per option</label>
+          <div class="check-row pv-options">${productVariantOptionsHtml(categoryId, new Set(), `pv-opt-${key}`)}</div>
         </div>
       </div>
     </article>`;
@@ -1660,7 +1659,12 @@
       const selected = new Set(
         [...wrap.querySelectorAll(".pv-opt:checked")].map((el) => el.value),
       );
-      wrap.innerHTML = productVariantOptionsHtml(categoryId, selected);
+      const key = wrap.closest(".pv-card")?.dataset.key || "x";
+      wrap.innerHTML = productVariantOptionsHtml(
+        categoryId,
+        selected,
+        `pv-opt-${key}`,
+      );
     });
   }
 
@@ -1694,14 +1698,9 @@
       used.add(itemCode.toLowerCase());
 
       const priceForOne = Number(card.querySelector(".pv-price")?.value);
-      const bulkRaw = card.querySelector(".pv-bulk")?.value;
-      const priceForBulk = bulkRaw === "" ? null : Number(bulkRaw);
       const howManyLeft = Number(card.querySelector(".pv-stock")?.value);
       if (!Number.isFinite(priceForOne) || priceForOne < 1) {
         throw new Error(`Variant ${itemCode}: price for one must be at least 1.`);
-      }
-      if (priceForBulk != null && (!Number.isFinite(priceForBulk) || priceForBulk < 1)) {
-        throw new Error(`Variant ${itemCode}: bulk price must be at least 1, or leave it empty.`);
       }
       if (!Number.isFinite(howManyLeft) || howManyLeft < 1) {
         throw new Error(`Variant ${itemCode}: stock must be at least 1.`);
@@ -1709,8 +1708,6 @@
       drafts.push({
         itemCode,
         priceForOne,
-        priceForBulk,
-        minQuantityForBulk: Number(card.querySelector(".pv-bulkmin")?.value || 10),
         howManyLeft,
         photoUrls,
         videoUrls,
@@ -1818,12 +1815,10 @@
           </div>
           <div class="field"><label>${req("Item code")}</label><input id="vCode" value="${esc(v?.itemCode || "")}" required /></div>
           <div class="field"><label>${req("Price for one")}</label><input id="vPrice" type="number" min="1" step="1" value="${v?.priceForOne ?? 1}" required /></div>
-          <div class="field"><label>Bulk price</label><input id="vBulk" type="number" min="1" step="1" value="${v?.priceForBulk ?? ""}" placeholder="Optional" /></div>
-          <div class="field"><label>Bulk minimum</label><input id="vBulkMin" type="number" value="${v?.minQuantityForBulk ?? 10}" /></div>
           <div class="field"><label>${req("Stock")}</label><input id="vStock" type="number" min="1" step="1" value="${v?.howManyLeft ?? 1}" required /></div>
           ${photosFieldHtml("vPhotos", variantPhotoUrls(v))}
           ${videosFieldHtml("vVideos", variantVideoList(v))}
-          <div class="full field"><label>Options values</label>
+          <div class="full field"><label>Options — one value per option</label>
             <div class="check-row" id="vKindOptions">
               ${variantOptionsHtml(v?.productId || v?.product?.id || cache.products[0]?.id, selectedIds)}
             </div>
