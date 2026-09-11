@@ -179,7 +179,7 @@ export default function CartPageClient() {
       <div className="rounded-2xl bg-surface py-16 text-center shadow-[var(--shadow-soft)]">
         <p className="text-lg font-medium text-dark">Your cart is empty</p>
         <p className="mt-2 text-sm text-muted">
-          Browse our catalog for retail or bulk orders.
+          Browse our catalog.
         </p>
         <Link href="/shop" className="btn-primary mt-6 inline-flex">
           Continue shopping
@@ -226,8 +226,8 @@ export default function CartPageClient() {
                   .filter(Boolean)
                   .join(" · ")}
               </p>
-              <p className="text-xs text-muted capitalize">
-                {item.pricingMode} · {formatPrice(item.unitPrice)}/unit
+              <p className="text-xs text-muted">
+                {formatPrice(item.unitPrice)} / piece
               </p>
               <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-2">
                 <div className="flex items-center gap-2">

@@ -92,12 +92,27 @@ export async function assertOptionValuesMatchKind(
   const allowed = await allowedAttributeIdsForProduct(productId);
   const values = await prisma.attributeValue.findMany({
     where: { id: { in: valueIds } },
-    select: { id: true, attributeId: true, label: true },
+    select: {
+      id: true,
+      attributeId: true,
+      label: true,
+      attribute: { select: { name: true } },
+    },
   });
   const extra = values.find((v) => !allowed.has(v.attributeId));
   if (extra) {
     throw new Error(
       `Option value "${extra.label}" does not belong to this product's kind.`,
     );
+  }
+
+  const seen = new Set<string>();
+  for (const value of values) {
+    if (seen.has(value.attributeId)) {
+      throw new Error(
+        `Pick only one ${value.attribute.name} for this variant.`,
+      );
+    }
+    seen.add(value.attributeId);
   }
 }

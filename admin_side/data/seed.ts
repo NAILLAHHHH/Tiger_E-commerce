@@ -97,7 +97,7 @@ export const seedProducts: SeedProduct[] = [
     ],
   },
   {
-    name: "TygaStyle Tee Set",
+    name: "TygaMart Tee Set",
     link_name: "tygastyle-tee-set",
     description: "Graphic tee set — per piece and bulk available.",
     photo: "/products/21-tygastyle-tee-set.png",

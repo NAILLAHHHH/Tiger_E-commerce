@@ -8,7 +8,7 @@ type Props = {
 };
 
 export default function ContactCta({
-  message = "Hi, I'd like to get in touch about TygaStyle.",
+  message = "Hi, I'd like to get in touch about TygaMart.",
   className = "",
   size = "full",
 }: Props) {
@@ -34,8 +34,7 @@ export default function ContactCta({
         Need help? Text us on WhatsApp
       </p>
       <p className="mt-1 text-sm text-muted">
-        Questions about sizes, bulk orders, or delivery — we&apos;re happy to
-        help.
+        Questions about sizes or delivery — we&apos;re happy to help.
       </p>
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <a

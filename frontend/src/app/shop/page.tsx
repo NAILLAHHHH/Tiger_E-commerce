@@ -6,22 +6,23 @@ import { getCategories, getProducts } from "@/lib/products";
 import { getRatingSummaries } from "@/lib/reviews";
 
 type Props = {
-  searchParams: Promise<{ category?: string; q?: string }>;
+  searchParams: Promise<{ category?: string; q?: string; new?: string }>;
 };
 
 export const metadata: Metadata = {
   title: "Shop",
   description:
-    "Browse products by category. Buy one unit or many at a lower price.",
+    "Browse products by category. Pick your options and quantity.",
 };
 
 export default async function ShopPage({ searchParams }: Props) {
   const params = await searchParams;
   const categorySlug = params.category?.trim() || undefined;
   const query = params.q?.trim() || undefined;
+  const newOnly = params.new === "1" || params.new === "true";
 
   const [products, categories, ratings] = await Promise.all([
-    getProducts({ categorySlug, query }),
+    getProducts({ categorySlug, query, newOnly }),
     getCategories(),
     getRatingSummaries(),
   ]);
@@ -31,19 +32,23 @@ export default async function ShopPage({ searchParams }: Props) {
     ? `Results for “${query}”`
     : activeCategory
       ? activeCategory.name
-      : "Shop all";
+      : newOnly
+        ? "New arrivals"
+        : "Shop all";
   const pageDescription = query
     ? `Products matching “${query}”.`
     : activeCategory
       ? `Products in ${activeCategory.name}${activeCategory.attribute_set?.name ? ` · ${activeCategory.attribute_set.name}` : ""} — pick your options and quantity.`
-      : "Every product can have its own options (size, color, pack, storage…). Buy one or order many at a lower price.";
+      : newOnly
+        ? "The latest pieces marked as new."
+        : "Every product can have its own options (size, color, pack, storage…). Pick your options and quantity.";
 
   return (
     <div className="container-custom py-10">
       <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-brand">
-            TygaStyle shop
+            TygaMart shop
           </p>
           {activeCategory?.attribute_set?.name && !query && (
             <p className="mt-2 text-xs font-medium text-body">
@@ -77,19 +82,6 @@ export default async function ShopPage({ searchParams }: Props) {
               Clear search
             </Link>
           )}
-        </div>
-
-        <div className="rounded-xl border border-gray-3 bg-gray-1 px-5 py-4 lg:max-w-sm">
-          <p className="text-sm font-medium text-dark">Buying for a shop or event?</p>
-          <p className="mt-1 text-xs text-muted">
-            Many items have a lower price when you order more pieces.
-          </p>
-          <Link
-            href="/wholesale"
-            className="mt-3 inline-flex text-sm font-medium text-brand hover:text-brand-dark"
-          >
-            See bulk prices →
-          </Link>
         </div>
       </div>
 

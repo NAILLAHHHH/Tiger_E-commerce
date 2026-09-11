@@ -52,7 +52,7 @@ export const seedHomepageScalars: SeedHomepageScalars = {
 export const seedHeroSlides: SeedHeroSlide[] = [
   {
     tag: "New Collection",
-    title: "TygaStyle Essentials",
+    title: "TygaMart Essentials",
     subtitle:
       "Tees, hoodies, chinos & suits — retail per piece or bulk from 10+ units.",
     cta: "Shop New Arrivals",

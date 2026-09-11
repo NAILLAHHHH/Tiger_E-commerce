@@ -82,7 +82,7 @@ export async function POST(request: Request) {
             ],
       how_many: item.quantity,
       price_each: item.unitPrice,
-      bought_as: item.pricingMode === "wholesale" ? "many_pieces" : "one_piece",
+      bought_as: "one_piece",
       row_total: item.rowTotal,
       image_url: resolveProductImage(item.image),
     })),

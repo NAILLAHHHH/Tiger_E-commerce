@@ -4,12 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  bulkSavingsPercent,
   colorStockTotal,
-  colorSupportsBulk,
   formatPrice,
-  lowestBulkMinimumForColor,
-  lowestBulkPriceForColor,
   lowestPerPiecePriceForColor,
   stockLabel,
 } from "@/lib/pricing";
@@ -24,22 +20,19 @@ import type { Product, RatingSummary } from "@/types/database";
 
 type Props = {
   product: Product;
-  /** Retail shop vs wholesale catalog — changes which price is highlighted. */
-  emphasis?: "retail" | "wholesale";
   rating?: RatingSummary;
 };
 
-export default function ProductCard({
-  product,
-  emphasis = "retail",
-  rating,
-}: Props) {
+export default function ProductCard({ product, rating }: Props) {
   const variants = product.variants ?? [];
   const colors = useMemo(
     () => getProductColors(variants, product.image_url),
     [variants, product.image_url],
   );
-  const [activeColor, setActiveColor] = useState(colors[0]?.color ?? "");
+  const [activeColor, setActiveColor] = useState(() => {
+    const inStock = colors.find((c) => colorStockTotal(variants, c.color) > 0);
+    return inStock?.color ?? colors[0]?.color ?? "";
+  });
   const [activeImage, setActiveImage] = useState(0);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
@@ -49,8 +42,11 @@ export default function ProductCard({
       return;
     }
     if (colors.some((c) => c.color === activeColor)) return;
-    setActiveColor(colors[0]?.color ?? "");
-  }, [colors, activeColor]);
+    const inStock = colors.find(
+      (c) => colorStockTotal(variants, c.color) > 0,
+    );
+    setActiveColor(inStock?.color ?? colors[0]?.color ?? "");
+  }, [colors, activeColor, variants]);
 
   const images = useMemo(
     () => getCardImages(product, activeColor || undefined),
@@ -65,19 +61,6 @@ export default function ProductCard({
     () => lowestPerPiecePriceForColor(variants, activeColor),
     [variants, activeColor],
   );
-  const bulkPrice = useMemo(
-    () => lowestBulkPriceForColor(variants, activeColor),
-    [variants, activeColor],
-  );
-  const bulkMin = useMemo(
-    () => lowestBulkMinimumForColor(variants, activeColor),
-    [variants, activeColor],
-  );
-  const hasBulk = colorSupportsBulk(variants, activeColor);
-  const savings = hasBulk && bulkPrice != null
-    ? bulkSavingsPercent(perPiece, bulkPrice)
-    : null;
-  const isWholesaleView = emphasis === "wholesale" && hasBulk;
 
   useEffect(() => {
     setActiveImage(0);
@@ -125,16 +108,6 @@ export default function ProductCard({
         {product.is_new && (
           <span className="badge badge-new absolute left-3 top-3 z-10">
             New
-          </span>
-        )}
-        {hasBulk && !isWholesaleView && (
-          <span className="badge badge-wholesale absolute right-3 top-3 z-10">
-            Bulk price
-          </span>
-        )}
-        {isWholesaleView && savings != null && savings > 0 && (
-          <span className="badge badge-sale absolute right-3 top-3 z-10">
-            Save {savings}%
           </span>
         )}
         <Link href={`/shop/${product.slug}`} className="relative block h-full w-full">
@@ -197,35 +170,12 @@ export default function ProductCard({
           </div>
         )}
 
-        {isWholesaleView ? (
-          <div className="mt-2">
-            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-              <span className="text-lg font-semibold text-brand">
-                {formatPrice(bulkPrice!)}
-              </span>
-              <span className="text-xs text-muted">per piece · {bulkMin}+ pcs</span>
-            </div>
-            <p className="mt-1 text-xs text-muted">
-              Single piece {formatPrice(perPiece)}
-              {savings != null && savings > 0 && ` · ${savings}% less than 1 pc`}
-            </p>
-          </div>
-        ) : (
-          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="text-lg font-semibold text-brand">
-              {formatPrice(perPiece)}
-            </span>
-            <span className="text-xs text-muted">per piece</span>
-            {hasBulk && (
-              <>
-                <span className="text-xs text-muted">·</span>
-                <span className="text-sm font-medium text-dark">
-                  {formatPrice(bulkPrice!)} when buying {bulkMin}+
-                </span>
-              </>
-            )}
-          </div>
-        )}
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="text-lg font-semibold text-brand">
+            {formatPrice(perPiece)}
+          </span>
+          <span className="text-xs text-muted">per piece</span>
+        </div>
 
         <p className="mt-1 text-xs text-muted">{stockLabel(totalStock)}</p>
       </div>

@@ -9,8 +9,7 @@ export default function Footer() {
         <div className="max-w-sm">
           <Logo height={64} onDark />
           <p className="mt-5 text-sm leading-relaxed text-meta-4">
-            Quality apparel for retail shoppers and bulk buyers. Per-piece or
-            wholesale — inventory synced in real time.
+            Quality apparel with live inventory by size and color.
           </p>
         </div>
 
@@ -26,10 +25,10 @@ export default function Footer() {
             </li>
             <li>
               <Link
-                href="/wholesale"
+                href="/shop?new=1"
                 className="transition-colors hover:text-white"
               >
-                Wholesale
+                New arrivals
               </Link>
             </li>
           </ul>
@@ -64,8 +63,7 @@ export default function Footer() {
             Get in touch
           </h4>
           <p className="text-sm leading-relaxed text-meta-4">
-            Need help with sizes, bulk orders, or delivery? Message us on
-            WhatsApp.
+            Need help with sizes or delivery? Message us on WhatsApp.
           </p>
           <a
             href={whatsappUrl()}
@@ -80,7 +78,7 @@ export default function Footer() {
 
       <div className="border-t border-dark-4 py-5">
         <div className="container-custom flex flex-col items-center gap-3 text-xs text-meta-5 sm:flex-row sm:justify-between">
-          <p>© {new Date().getFullYear()} TygaStyle. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} TygaMart. All rights reserved.</p>
           <div className="flex items-center gap-3">
             <Link href="/privacy" className="transition-colors hover:text-white">
               Privacy Policy

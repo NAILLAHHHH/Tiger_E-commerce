@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate TygaStyle deployment plan as PDF and DOCX."""
+"""Generate TygaMart deployment plan as PDF and DOCX."""
 
 from pathlib import Path
 
@@ -43,7 +43,7 @@ def rwf(usd_amount: float) -> str:
 # Shared content
 # ---------------------------------------------------------------------------
 
-TITLE = "TygaStyle — Production Deployment Plan"
+TITLE = "TygaMart — Production Deployment Plan"
 SUBTITLE = "Tiger E-commerce hosting proposal · July 2026"
 INTRO = (
     "Boss-ready hosting plan for the Tiger E-commerce monorepo: Next.js "
@@ -344,7 +344,7 @@ def build_docx(path: Path) -> None:
     r.font.color.rgb = RGBColor(89, 89, 89)
 
     sign = doc.add_paragraph()
-    sign.add_run("\nPrepared for internal review · Tiger E-commerce / TygaStyle").italic = True
+    sign.add_run("\nPrepared for internal review · Tiger E-commerce / TygaMart").italic = True
 
     doc.save(path)
 
@@ -490,7 +490,7 @@ def build_pdf(path: Path) -> None:
         topMargin=16 * mm,
         bottomMargin=16 * mm,
         title=TITLE,
-        author="Tiger E-commerce / TygaStyle",
+        author="Tiger E-commerce / TygaMart",
     )
     story = []
     story.append(Paragraph(TITLE, styles["DocTitle"]))
@@ -603,7 +603,7 @@ def build_pdf(path: Path) -> None:
     story.append(Paragraph(FOOTER_NOTE, styles["FooterNote"]))
     story.append(
         Paragraph(
-            "<i>Prepared for internal review · Tiger E-commerce / TygaStyle</i>",
+            "<i>Prepared for internal review · Tiger E-commerce / TygaMart</i>",
             styles["FooterNote"],
         )
     )
@@ -612,8 +612,8 @@ def build_pdf(path: Path) -> None:
 
 
 def main() -> None:
-    pdf_path = OUT_DIR / "TygaStyle-Deployment-Plan.pdf"
-    docx_path = OUT_DIR / "TygaStyle-Deployment-Plan.docx"
+    pdf_path = OUT_DIR / "TygaMart-Deployment-Plan.pdf"
+    docx_path = OUT_DIR / "TygaMart-Deployment-Plan.docx"
     build_pdf(pdf_path)
     build_docx(docx_path)
     print(f"Wrote {pdf_path}")

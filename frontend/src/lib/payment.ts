@@ -1,4 +1,4 @@
-/** MTN MoMo Pay merchant code (TygaStyle) */
+/** MTN MoMo Pay merchant code (TygaMart) */
 export const MOMO_MERCHANT_CODE = "55066";
 
 /** Build the full USSD string — customer enters their MoMo PIN after dialing. */

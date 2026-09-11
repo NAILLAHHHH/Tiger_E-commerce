@@ -54,7 +54,7 @@ const products = [
     ],
   },
   {
-    name: 'TygaStyle Tee Set',
+    name: 'TygaMart Tee Set',
     link_name: 'tygastyle-tee-set',
     description: 'Graphic tee set — per piece and bulk available.',
     highlight_on_homepage: 1,
