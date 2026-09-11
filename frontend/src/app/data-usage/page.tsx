@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import LegalPageLayout, { LegalSection } from "@/components/legal/LegalPageLayout";
 import { getTranslator } from "@/i18n/server";
-import { WHATSAPP_DISPLAY, whatsappUrl } from "@/lib/contact";
+import { STORE_ADDRESS, WHATSAPP_DISPLAY, whatsappUrl } from "@/lib/contact";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getTranslator();
@@ -161,7 +161,7 @@ function DataUsageEn() {
           >
             WhatsApp ({WHATSAPP_DISPLAY})
           </a>
-          .
+          , or visit us at {STORE_ADDRESS}.
         </p>
       </LegalSection>
     </>
@@ -302,7 +302,7 @@ function DataUsageRw() {
           >
             WhatsApp ({WHATSAPP_DISPLAY})
           </a>
-          .
+          , cyangwa dusure {STORE_ADDRESS}.
         </p>
       </LegalSection>
     </>

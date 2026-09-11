@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Logo from "@/components/layout/Logo";
 import { getTranslator } from "@/i18n/server";
-import { whatsappUrl } from "@/lib/contact";
+import { mapsUrl, STORE_ADDRESS, whatsappUrl } from "@/lib/contact";
 
 export default async function Footer() {
   const { t } = await getTranslator();
@@ -68,6 +68,19 @@ export default async function Footer() {
           <p className="text-sm leading-relaxed text-meta-4">
             {t("footer.helpSizes")}
           </p>
+          <address className="mt-4 not-italic">
+            <p className="text-xs font-semibold uppercase tracking-wider text-white">
+              {t("footer.visitUs")}
+            </p>
+            <a
+              href={mapsUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1.5 block text-sm leading-relaxed text-meta-4 transition-colors hover:text-white"
+            >
+              {STORE_ADDRESS}
+            </a>
+          </address>
           <a
             href={whatsappUrl()}
             target="_blank"

@@ -9,10 +9,17 @@ export const WHATSAPP_DISPLAY = "0783559238";
 /** Digits for wa.me links — Rwanda +250, drop leading 0 */
 export const WHATSAPP_WA_ME = "250783559238";
 
+/** Physical shop address */
+export const STORE_ADDRESS = "Mu Mujyi, Quartier Matheus, KN 72 St, TygaStyle";
+
 export function whatsappUrl(message?: string): string {
   const base = `https://wa.me/${WHATSAPP_WA_ME}`;
   if (!message?.trim()) return base;
   return `${base}?text=${encodeURIComponent(message.trim())}`;
+}
+
+export function mapsUrl(): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(STORE_ADDRESS)}`;
 }
 
 export type OrderWhatsAppDetails = {

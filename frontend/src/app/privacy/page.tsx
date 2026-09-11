@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import LegalPageLayout, { LegalSection } from "@/components/legal/LegalPageLayout";
 import { getTranslator } from "@/i18n/server";
-import { WHATSAPP_DISPLAY, whatsappUrl } from "@/lib/contact";
+import { STORE_ADDRESS, WHATSAPP_DISPLAY, whatsappUrl } from "@/lib/contact";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getTranslator();
@@ -32,8 +32,9 @@ function PrivacyEn() {
       <LegalSection title="1. Who we are">
         <p>
           TygaMart (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;)
-          operates this online store for apparel. If you
-          have questions about this policy or your data, contact us on{" "}
+          operates this online store for apparel. Our shop is at{" "}
+          {STORE_ADDRESS}. If you have questions about this policy or your
+          data, contact us on{" "}
           <a
             href={whatsappUrl("Hi, I have a question about my privacy.")}
             target="_blank"
@@ -197,8 +198,8 @@ function PrivacyRw() {
       <LegalSection title="1. Turi bande">
         <p>
           TygaMart (&ldquo;twebwe&rdquo;) ikoresha iyi duka y&apos;imyenda kuri
-          internet. Niba ufite ibibazo kuri iyi politiki cyangwa amakuru yawe,
-          tuvugishe kuri{" "}
+          internet. Duka yacu iherereye {STORE_ADDRESS}. Niba ufite ibibazo
+          kuri iyi politiki cyangwa amakuru yawe, tuvugishe kuri{" "}
           <a
             href={whatsappUrl("Muraho, mfite ikibazo ku banga ryanjye.")}
             target="_blank"

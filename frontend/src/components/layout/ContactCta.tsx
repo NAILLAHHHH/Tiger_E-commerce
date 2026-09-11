@@ -1,7 +1,7 @@
 "use client";
 
 import { useT } from "@/i18n/LocaleProvider";
-import { whatsappUrl } from "@/lib/contact";
+import { mapsUrl, STORE_ADDRESS, whatsappUrl } from "@/lib/contact";
 
 type Props = {
   message?: string;
@@ -41,6 +41,17 @@ export default function ContactCta({
       </p>
       <p className="mt-1 text-sm text-muted">
         {t("contact.sizesDelivery")}
+      </p>
+      <p className="mt-2 text-sm text-muted">
+        {t("contact.visitUs")}:{" "}
+        <a
+          href={mapsUrl()}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium text-dark hover:underline"
+        >
+          {STORE_ADDRESS}
+        </a>
       </p>
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <a

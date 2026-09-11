@@ -40,6 +40,7 @@ export const en = {
   "footer.getInTouch": "Get in touch",
   "footer.helpSizes":
     "Need help with sizes or delivery? Message us on WhatsApp.",
+  "footer.visitUs": "Visit us",
   "footer.chatWhatsApp": "Chat on WhatsApp",
   "footer.rights": "© {year} TygaMart. All rights reserved.",
 
@@ -123,6 +124,7 @@ export const en = {
   "contact.needHelp": "Need help? Text us on WhatsApp",
   "contact.sizesDelivery":
     "Questions about sizes or delivery — we're happy to help.",
+  "contact.visitUs": "Visit us",
   "contact.chat": "Chat on WhatsApp",
 
   "cart.title": "Shopping Cart",
@@ -298,6 +300,7 @@ export const rw = {
   "footer.getInTouch": "Tuvugishe",
   "footer.helpSizes":
     "Ukeneye ubufasha ku ngano cyangwa order? Twoherereze kuri WhatsApp.",
+  "footer.visitUs": "Dusure",
   "footer.chatWhatsApp": "Twandikire kuri WhatsApp",
   "footer.rights": "© {year} TygaMart. Uburenganzira bwose burabitswe.",
 
@@ -382,6 +385,7 @@ export const rw = {
   "contact.needHelp": "Ukeneye ubufasha? Twoherereze kuri WhatsApp",
   "contact.sizesDelivery":
     "Ibibazo ku ngano cyangwa order — turagufasha.",
+  "contact.visitUs": "Dusure",
   "contact.chat": "Twandikire kuri WhatsApp",
 
   "cart.title": "Agatebo",
