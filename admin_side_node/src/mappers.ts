@@ -57,10 +57,11 @@ export function mapVariant(v: VariantWithOptions, productId: string) {
 
   const size =
     options.find((o) => o.code === "size")?.value ?? v.size ?? "";
-  const color =
-    options.find((o) => o.code === "color")?.value ?? v.color ?? "";
-  const colorHex =
-    options.find((o) => o.code === "color")?.meta?.hex ?? v.colorDot ?? null;
+  const swatch = options.find(
+    (o) => o.display_type === "swatch" || o.code === "color",
+  );
+  const color = swatch?.value ?? v.color ?? "";
+  const colorHex = swatch?.meta?.hex ?? v.colorDot ?? null;
 
   return {
     id: v.id,
