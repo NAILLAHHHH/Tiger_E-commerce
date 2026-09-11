@@ -16,6 +16,7 @@ import {
 import { resolveProductImage } from "@/lib/images";
 import ColorSwatches from "@/components/shop/ColorSwatches";
 import StarRating from "@/components/shop/StarRating";
+import { useT } from "@/i18n/LocaleProvider";
 import type { Product, RatingSummary } from "@/types/database";
 
 type Props = {
@@ -24,6 +25,7 @@ type Props = {
 };
 
 export default function ProductCard({ product, rating }: Props) {
+  const { t } = useT();
   const variants = product.variants ?? [];
   const colors = useMemo(
     () => getProductColors(variants, product.image_url),
@@ -107,7 +109,7 @@ export default function ProductCard({ product, rating }: Props) {
       >
         {product.is_new && (
           <span className="badge badge-new absolute left-3 top-3 z-10">
-            New
+            {t("badge.new")}
           </span>
         )}
         <Link href={`/shop/${product.slug}`} className="relative block h-full w-full">
@@ -144,7 +146,7 @@ export default function ProductCard({ product, rating }: Props) {
             href={`/shop/${product.slug}`}
             className="btn-primary w-full text-center text-xs"
           >
-            View product
+            {t("card.viewProduct")}
           </Link>
         </div>
       </div>
@@ -174,10 +176,10 @@ export default function ProductCard({ product, rating }: Props) {
           <span className="text-lg font-semibold text-brand">
             {formatPrice(perPiece)}
           </span>
-          <span className="text-xs text-muted">per piece</span>
+          <span className="text-xs text-muted">{t("card.perPiece")}</span>
         </div>
 
-        <p className="mt-1 text-xs text-muted">{stockLabel(totalStock)}</p>
+        <p className="mt-1 text-xs text-muted">{stockLabel(totalStock, t)}</p>
       </div>
     </article>
   );

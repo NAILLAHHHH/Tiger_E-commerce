@@ -1,5 +1,6 @@
 import ProductDetailClient from "@/components/shop/ProductDetailClient";
 import ProductReviews from "@/components/shop/ProductReviews";
+import { getTranslator } from "@/i18n/server";
 import { getProductBySlug } from "@/lib/products";
 import {
   getRatingSummaryForProduct,
@@ -18,6 +19,7 @@ export default async function ProductPage({ params }: Props) {
 
   if (!product) notFound();
 
+  const { t } = await getTranslator();
   const [reviews, summary] = await Promise.all([
     getReviewsForProduct(product.id),
     getRatingSummaryForProduct(product.id),
@@ -27,11 +29,11 @@ export default async function ProductPage({ params }: Props) {
     <div className="container-custom py-10">
       <nav className="mb-6 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
         <Link href="/" className="hover:text-brand">
-          Home
+          {t("pdp.home")}
         </Link>
         <span>/</span>
         <Link href="/shop" className="hover:text-brand">
-          Shop
+          {t("pdp.shop")}
         </Link>
         <span>/</span>
         <span className="min-w-0 break-words text-dark">{product.name}</span>

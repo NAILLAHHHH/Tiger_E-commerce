@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import ProductCard from "@/components/shop/ProductCard";
 import ShopCategoryNav from "@/components/shop/ShopCategoryNav";
+import { getTranslator } from "@/i18n/server";
 import { getCategories, getProducts } from "@/lib/products";
 import { getRatingSummaries } from "@/lib/reviews";
 
@@ -9,17 +10,20 @@ type Props = {
   searchParams: Promise<{ category?: string; q?: string; new?: string }>;
 };
 
-export const metadata: Metadata = {
-  title: "Shop",
-  description:
-    "Browse products by category. Pick your options and quantity.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getTranslator();
+  return {
+    title: t("meta.shopTitle"),
+    description: t("meta.shopDescription"),
+  };
+}
 
 export default async function ShopPage({ searchParams }: Props) {
   const params = await searchParams;
   const categorySlug = params.category?.trim() || undefined;
   const query = params.q?.trim() || undefined;
   const newOnly = params.new === "1" || params.new === "true";
+  const { t } = await getTranslator();
 
   const [products, categories, ratings] = await Promise.all([
     getProducts({ categorySlug, query, newOnly }),
@@ -29,37 +33,42 @@ export default async function ShopPage({ searchParams }: Props) {
 
   const activeCategory = categories.find((cat) => cat.slug === categorySlug);
   const pageTitle = query
-    ? `Results for “${query}”`
+    ? t("shop.resultsFor", { q: query })
     : activeCategory
       ? activeCategory.name
       : newOnly
-        ? "New arrivals"
-        : "Shop all";
+        ? t("shop.newArrivals")
+        : t("shop.all");
   const pageDescription = query
-    ? `Products matching “${query}”.`
+    ? t("shop.matching", { q: query })
     : activeCategory
-      ? `Products in ${activeCategory.name}${activeCategory.attribute_set?.name ? ` · ${activeCategory.attribute_set.name}` : ""} — pick your options and quantity.`
+      ? activeCategory.attribute_set?.name
+        ? t("shop.inCategoryKind", {
+            name: activeCategory.name,
+            kind: activeCategory.attribute_set.name,
+          })
+        : t("shop.inCategory", { name: activeCategory.name })
       : newOnly
-        ? "The latest pieces marked as new."
-        : "Every product can have its own options (size, color, pack, storage…). Pick your options and quantity.";
+        ? t("shop.latestPieces")
+        : t("shop.pickOptions");
 
   return (
     <div className="container-custom py-10">
       <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-brand">
-            TygaMart shop
+            {t("shop.eyebrow")}
           </p>
           {activeCategory?.attribute_set?.name && !query && (
             <p className="mt-2 text-xs font-medium text-body">
               <span className="font-semibold uppercase tracking-wider text-muted">
-                Kind
+                {t("shop.kind")}
               </span>
               <span className="mx-1.5 text-gray-3">·</span>
               {activeCategory.attribute_set.name}
               <span className="mx-1.5 text-gray-3">·</span>
               <span className="font-semibold uppercase tracking-wider text-muted">
-                Category
+                {t("shop.category")}
               </span>
               <span className="mx-1.5 text-gray-3">·</span>
               {activeCategory.name}
@@ -71,15 +80,17 @@ export default async function ShopPage({ searchParams }: Props) {
           </p>
           <p className="mt-3 text-sm text-body">
             {products.length}{" "}
-            {products.length === 1 ? "product" : "products"}
-            {activeCategory && !query ? ` in ${activeCategory.name}` : ""}
+            {products.length === 1 ? t("shop.product") : t("shop.products")}
+            {activeCategory && !query
+              ? ` ${t("shop.inName", { name: activeCategory.name })}`
+              : ""}
           </p>
           {query && (
             <Link
               href={categorySlug ? `/shop?category=${categorySlug}` : "/shop"}
               className="mt-2 inline-flex text-sm font-medium text-brand hover:text-brand-dark"
             >
-              Clear search
+              {t("shop.clearSearch")}
             </Link>
           )}
         </div>
@@ -96,18 +107,18 @@ export default async function ShopPage({ searchParams }: Props) {
           {products.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-gray-3 bg-gray-1 px-6 py-16 text-center">
               <p className="text-lg font-medium text-dark">
-                {query ? "No matches" : "Nothing here yet"}
+                {query ? t("shop.noMatches") : t("shop.nothingHere")}
               </p>
               <p className="mt-2 text-sm text-muted">
                 {query
-                  ? `Nothing matched “${query}”. Try another word or browse categories.`
+                  ? t("shop.noMatchHint", { q: query })
                   : activeCategory
-                    ? `No products in ${activeCategory.name} right now.`
-                    : "Check back soon — new items are added regularly."}
+                    ? t("shop.noProductsIn", { name: activeCategory.name })
+                    : t("shop.checkBack")}
               </p>
               {(activeCategory || query) && (
                 <Link href="/shop" className="btn-primary mt-6 inline-flex">
-                  View all products
+                  {t("shop.viewAll")}
                 </Link>
               )}
             </div>

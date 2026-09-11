@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useT } from "@/i18n/LocaleProvider";
 import { resolveProductImage } from "@/lib/images";
 import type { HeroSlide } from "@/types/homepage";
 
@@ -17,6 +18,7 @@ export default function HeroCarousel({
   secondaryCta,
   secondaryHref,
 }: Props) {
+  const { t } = useT();
   const [active, setActive] = useState(0);
 
   useEffect(() => {
@@ -63,7 +65,7 @@ export default function HeroCarousel({
                 <button
                   key={i}
                   type="button"
-                  aria-label={`Go to slide ${i + 1}`}
+                  aria-label={t("hero.goToSlide", { n: i + 1 })}
                   onClick={() => setActive(i)}
                   className={`h-1.5 rounded-full transition-all ${
                     i === active

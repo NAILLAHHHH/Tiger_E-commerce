@@ -1,19 +1,34 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import LegalPageLayout, { LegalSection } from "@/components/legal/LegalPageLayout";
+import { getTranslator } from "@/i18n/server";
 import { WHATSAPP_DISPLAY, whatsappUrl } from "@/lib/contact";
 
-export const metadata: Metadata = {
-  title: "Data Usage",
-  description:
-    "What data TygaMart stores on your device and on our servers when you shop.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getTranslator();
+  return {
+    title: t("legal.dataUsageTitle"),
+    description: t("legal.dataUsageDescription"),
+  };
+}
 
 const LAST_UPDATED = "July 28, 2026";
 
-export default function DataUsagePage() {
+export default async function DataUsagePage() {
+  const { t, locale } = await getTranslator();
   return (
-    <LegalPageLayout title="Data Usage" lastUpdated={LAST_UPDATED}>
+    <LegalPageLayout
+      title={t("legal.dataUsageTitle")}
+      lastUpdated={t("legal.lastUpdated", { date: LAST_UPDATED })}
+    >
+      {locale === "rw" ? <DataUsageRw /> : <DataUsageEn />}
+    </LegalPageLayout>
+  );
+}
+
+function DataUsageEn() {
+  return (
+    <>
       <LegalSection title="Overview">
         <p>
           This page explains what information TygaMart uses when you browse,
@@ -120,8 +135,10 @@ export default function DataUsagePage() {
       <LegalSection title="Cookies">
         <p>
           We do not currently set marketing or tracking cookies. The cart uses
-          browser local storage (not cookies) to remember your items. If we add
-          cookies in the future, we will update this page.
+          browser local storage (not cookies) to remember your items. Your
+          language choice is stored in a cookie so the site stays in English or
+          Kinyarwanda. If we add more cookies in the future, we will update this
+          page.
         </p>
       </LegalSection>
 
@@ -147,6 +164,147 @@ export default function DataUsagePage() {
           .
         </p>
       </LegalSection>
-    </LegalPageLayout>
+    </>
+  );
+}
+
+function DataUsageRw() {
+  return (
+    <>
+      <LegalSection title="Incamake">
+        <p>
+          Iyi paji isobanura amakuru TygaMart ikoresha iyo ureba, ugura, kandi
+          wishyura — n&apos;aho ayo makuru abikwa. Ku burenganzira bwagutse
+          n&apos;amategeko, reba{" "}
+          <Link href="/privacy" className="font-medium text-brand hover:underline">
+            Politiki y&apos;ibanga
+          </Link>
+          .
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Amakuru abikwa kuri telefoni yawe">
+        <p>
+          Amakuru amwe aguma muri browser yawe kugira ngo urubuga rukore neza:
+        </p>
+        <ul className="list-disc space-y-1 pl-5">
+          <li>
+            <strong>Agatebo:</strong> amazina y&apos;ibicuruzwa, ID z&apos;amavariyanti,
+            ingano, amabara, umubare, n&apos;ibiciro bibikwa muri{" "}
+            <strong>local storage</strong> ya browser kugira ngo ibicuruzwa
+            bigume mu gatebo niba ufunze cyangwa usubira nyuma.
+          </li>
+        </ul>
+        <p>
+          Ushobora gusiba aya makuru igihe icyo ari cyo cyose ukuramo ibicuruzwa
+          mu gatebo cyangwa ukasiba amakuru y&apos;uru rubuga muri browser yawe.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Amakuru yoherejwe ku ma servers yacu">
+        <p>
+          Iyo utanga urutumwa, ibi bikurikira byoherezwa ku sisitemu yacu kandi
+          bibikwa nk&apos;igice cy&apos;urutumwa:
+        </p>
+        <ul className="list-disc space-y-1 pl-5">
+          <li>Amazina yose</li>
+          <li>Numero ya telefoni (hamwe na kode y&apos;igihugu)</li>
+          <li>Aderesi yo gutangiraho (niba wayitanze)</li>
+          <li>Ibisobanuro (niba wabitanze)</li>
+          <li>
+            Ibicuruzwa: izina, ingano, ibara, umubare, n&apos;igiciro icyo gihe
+          </li>
+        </ul>
+        <p>
+          Nyuma yo gutanga urutumwa, ushobora gufungura WhatsApp wohereze
+          ubutumwa bwuzuye incamake y&apos;urutumwa. Uwo butumwa bwubakwa kuri
+          telefoni yawe; kuwohereza ni amahitamo yawe kandi bikoreshwa na
+          WhatsApp.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Ibitekerezo ku bicuruzwa">
+        <p>
+          Niba wanditse igitekerezo ku gicuruzwa, tubika izina ryawe, amanota,
+          inyandiko, n&apos;igicuruzwa byerekeye, ku ma servers yacu kugira ngo
+          abandi bakiriya babisoma.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Inkuru">
+        <p>
+          Niba winjije imeyili mu kwiyandikisha ku ipaji y&apos;ahabanza, iyo
+          aderesi ikoreshwa twohereze amakuru y&apos;ibicuruzwa bishya
+          n&apos;ibyarongoye (igihe kwiyandikisha gikora). Ushobora kutwaka
+          guhagarika imeyili igihe icyo ari cyo cyose.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Amakuru yo kwishyura">
+        <p>
+          TygaMart <strong>ntiyikusanya</strong> cyangwa kubika nimero
+          z&apos;amakarita yo muri banki kuri uru rubuga. Gutanga urutumwa
+          bikoresha <strong>MTN Mobile Money (MoMo)</strong>: wishyura kuri
+          telefoni yawe binyuze muri USSD cyangwa porogaramu ya MoMo. MTN
+          ikora iyo nzira hakurikijwe amabwiriza n&apos;politiki yabo.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Serivisi z&apos;abandi">
+        <p>Dukoresha izi serivisi kugira ngo iduka ikore:</p>
+        <ul className="list-disc space-y-1 pl-5">
+          <li>
+            <strong>Hosting / sisitemu:</strong> amakuru y&apos;amatumwa
+            n&apos;ibicuruzwa abikwa ku ma servers ateganye inventory n&apos;ishyura.
+          </li>
+          <li>
+            <strong>WhatsApp:</strong> ikoreshwa mu bufasha n&apos;gukurikirana
+            urutumwa. Amakuru wohereje kuri WhatsApp agengwa n&apos;amabwiriza ya
+            WhatsApp.
+          </li>
+          <li>
+            <strong>MTN MoMo:</strong> ikoreshwa mu kwishyura. Amakuru
+            y&apos;iyishyurwa akorwa na MTN.
+          </li>
+        </ul>
+        <p>
+          Ntitukoresha tracker z&apos;amamafaranga cyangwa analytics z&apos;abandi
+          ku rubuga rwacu ubu.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Cookies">
+        <p>
+          Ntitushyiraho cookies z&apos;amamafaranga cyangwa izo gukurikirana ubu.
+          Agatebo gakoresha local storage ya browser (si cookies) kwibuka
+          ibicuruzwa. Ururimi wahisemo rubikwa muri cookie kugira ngo urubuga
+          rugume mu Cyongereza cyangwa mu Kinyarwanda. Niba twongeyeho izindi
+          cookies, tuzavugurura iyi paji.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Amahitamo yawe">
+        <ul className="list-disc space-y-1 pl-5">
+          <li>Siba agatebo cyangwa amakuru ya browser kugira ngo ukuremo agatebo</li>
+          <li>Tuvugishe usabe cyangwa usibe amakuru y&apos;urutumwa cyangwa ibitekerezo</li>
+          <li>Vana mu imeyili z&apos;amamafaranga iyo iyo nzira ihari</li>
+          <li>
+            Hitamo niba wohereza ubutumwa bwa WhatsApp nyuma yo gutanga urutumwa
+          </li>
+        </ul>
+        <p>
+          Ku bisabwa by&apos;ibanga, twoherereze kuri{" "}
+          <a
+            href={whatsappUrl("Muraho, mfite ikibazo ku ikoreshwa ry'amakuru.")}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-brand hover:underline"
+          >
+            WhatsApp ({WHATSAPP_DISPLAY})
+          </a>
+          .
+        </p>
+      </LegalSection>
+    </>
   );
 }

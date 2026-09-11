@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useT } from "@/i18n/LocaleProvider";
 
 type Props = {
   className?: string;
@@ -12,6 +13,7 @@ export default function HeaderSearch({
   className,
   inputId = "site-search",
 }: Props) {
+  const { t } = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
   const urlQuery = searchParams.get("q") ?? "";
@@ -34,7 +36,7 @@ export default function HeaderSearch({
   return (
     <form onSubmit={submit} role="search" className={className}>
       <label htmlFor={inputId} className="sr-only">
-        Search products
+        {t("search.label")}
       </label>
       <div className="flex items-center gap-2 rounded-[5px] border border-gray-3 bg-gray-1 px-3 py-2">
         <svg
@@ -56,7 +58,7 @@ export default function HeaderSearch({
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="I am shopping for…"
+          placeholder={t("search.placeholder")}
           className="min-w-0 flex-1 bg-transparent text-sm text-dark placeholder:text-muted outline-none"
           autoComplete="off"
         />
@@ -68,9 +70,9 @@ export default function HeaderSearch({
               if (urlQuery) router.push("/shop");
             }}
             className="text-xs text-muted hover:text-dark"
-            aria-label="Clear search"
+            aria-label={t("search.clear")}
           >
-            Clear
+            {t("search.clear")}
           </button>
         )}
       </div>

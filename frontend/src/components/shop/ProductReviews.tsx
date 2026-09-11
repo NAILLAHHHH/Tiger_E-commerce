@@ -5,6 +5,7 @@ import StarRating, {
   InteractiveStarRating,
 } from "@/components/shop/StarRating";
 import { summarizeReviews } from "@/lib/reviews";
+import { useT } from "@/i18n/LocaleProvider";
 import type { ProductReview, RatingSummary } from "@/types/database";
 
 type Props = {
@@ -14,9 +15,9 @@ type Props = {
   initialSummary: RatingSummary;
 };
 
-function formatReviewDate(iso: string): string {
+function formatReviewDate(iso: string, locale: string): string {
   try {
-    return new Intl.DateTimeFormat("en", {
+    return new Intl.DateTimeFormat(locale === "rw" ? "rw-RW" : "en", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -32,6 +33,7 @@ export default function ProductReviews({
   initialReviews,
   initialSummary,
 }: Props) {
+  const { t, locale } = useT();
   const [reviews, setReviews] = useState(initialReviews);
   const [filterStars, setFilterStars] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -81,7 +83,7 @@ export default function ProductReviews({
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(json.error ?? "Could not submit review");
+        throw new Error(json.error ?? t("reviews.submitError"));
       }
 
       const review = json.review as ProductReview;
@@ -93,7 +95,7 @@ export default function ProductReviews({
       setComment("");
       setStars(5);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(err instanceof Error ? err.message : t("reviews.genericError"));
     } finally {
       setSubmitting(false);
     }
@@ -105,9 +107,9 @@ export default function ProductReviews({
     <section id="reviews" className="scroll-mt-28 border-t border-gray-3 pt-12">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="section-title">Customer reviews</h2>
+          <h2 className="section-title">{t("reviews.title")}</h2>
           <p className="mt-1 text-sm text-muted">
-            Real feedback on {productName}
+            {t("reviews.realFeedback", { name: productName })}
           </p>
         </div>
         <button
@@ -119,13 +121,13 @@ export default function ProductReviews({
           }}
           className="btn-outline mt-2 sm:mt-0"
         >
-          {showForm ? "Cancel" : "Write a review"}
+          {showForm ? t("reviews.cancel") : t("reviews.write")}
         </button>
       </div>
 
       {success && (
         <p className="mt-4 rounded-[5px] border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-          Thanks — your review is now live.
+          {t("reviews.thanks")}
         </p>
       )}
 
@@ -135,12 +137,12 @@ export default function ProductReviews({
           className="mt-6 space-y-4 rounded-xl border border-gray-3 bg-gray-1 p-5"
         >
           <div>
-            <p className="mb-2 text-sm font-medium text-dark">Your rating</p>
+            <p className="mb-2 text-sm font-medium text-dark">{t("reviews.yourRating")}</p>
             <InteractiveStarRating value={stars} onChange={setStars} />
           </div>
           <div>
             <label htmlFor="review-name" className="mb-1.5 block text-sm font-medium text-dark">
-              Name
+              {t("reviews.name")}
             </label>
             <input
               id="review-name"
@@ -148,26 +150,27 @@ export default function ProductReviews({
               onChange={(e) => setName(e.target.value)}
               required
               maxLength={60}
-              placeholder="How should we show your name?"
+              placeholder={t("reviews.namePlaceholder")}
               className="w-full rounded-[5px] border border-gray-3 bg-surface px-3 py-2.5 text-sm text-dark outline-none focus:border-brand"
             />
           </div>
           <div>
             <label htmlFor="review-title" className="mb-1.5 block text-sm font-medium text-dark">
-              Headline <span className="font-normal text-muted">(optional)</span>
+              {t("reviews.headline")}{" "}
+              <span className="font-normal text-muted">{t("reviews.optional")}</span>
             </label>
             <input
               id="review-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={80}
-              placeholder="Sum it up in a few words"
+              placeholder={t("reviews.headlinePlaceholder")}
               className="w-full rounded-[5px] border border-gray-3 bg-surface px-3 py-2.5 text-sm text-dark outline-none focus:border-brand"
             />
           </div>
           <div>
             <label htmlFor="review-comment" className="mb-1.5 block text-sm font-medium text-dark">
-              Your review
+              {t("reviews.yourReview")}
             </label>
             <textarea
               id="review-comment"
@@ -177,7 +180,7 @@ export default function ProductReviews({
               minLength={10}
               maxLength={2000}
               rows={4}
-              placeholder="What did you like? How was the fit and quality?"
+              placeholder={t("reviews.commentPlaceholder")}
               className="w-full resize-y rounded-[5px] border border-gray-3 bg-surface px-3 py-2.5 text-sm text-dark outline-none focus:border-brand"
             />
           </div>
@@ -187,7 +190,7 @@ export default function ProductReviews({
             disabled={submitting}
             className="btn-primary disabled:opacity-50"
           >
-            {submitting ? "Submitting…" : "Submit review"}
+            {submitting ? t("reviews.submitting") : t("reviews.submit")}
           </button>
         </form>
       )}
@@ -204,8 +207,8 @@ export default function ProductReviews({
               <StarRating rating={displaySummary.average} size="md" />
               <p className="mt-1 text-xs text-muted">
                 {displaySummary.count === 0
-                  ? "No reviews yet"
-                  : `${displaySummary.count} ${displaySummary.count === 1 ? "rating" : "ratings"}`}
+                  ? t("reviews.noYet")
+                  : `${displaySummary.count} ${displaySummary.count === 1 ? t("reviews.rating") : t("reviews.ratings")}`}
               </p>
             </div>
           </div>
@@ -230,7 +233,7 @@ export default function ProductReviews({
                     }`}
                   >
                     <span className="w-10 shrink-0 font-medium text-body">
-                      {star} star
+                      {t("reviews.star", { n: star })}
                     </span>
                     <span className="h-2 flex-1 overflow-hidden rounded-full bg-gray-2">
                       <span
@@ -252,7 +255,7 @@ export default function ProductReviews({
               onClick={() => setFilterStars(null)}
               className="mt-3 text-xs font-medium text-brand hover:text-brand-dark"
             >
-              Clear filter
+              {t("reviews.clearFilter")}
             </button>
           )}
         </div>
@@ -261,11 +264,11 @@ export default function ProductReviews({
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-body">
               {visible.length}{" "}
-              {visible.length === 1 ? "review" : "reviews"}
-              {filterStars != null ? ` · ${filterStars} stars` : ""}
+              {visible.length === 1 ? t("reviews.review") : t("reviews.reviews")}
+              {filterStars != null ? ` ${t("reviews.starsFilter", { n: filterStars })}` : ""}
             </p>
             <label className="flex items-center gap-2 text-sm text-muted">
-              Sort by
+              {t("reviews.sortBy")}
               <select
                 value={sort}
                 onChange={(e) =>
@@ -273,18 +276,18 @@ export default function ProductReviews({
                 }
                 className="rounded-[5px] border border-gray-3 bg-surface px-2 py-1.5 text-sm text-dark"
               >
-                <option value="newest">Most recent</option>
-                <option value="highest">Highest rated</option>
-                <option value="lowest">Lowest rated</option>
+                <option value="newest">{t("reviews.newest")}</option>
+                <option value="highest">{t("reviews.highest")}</option>
+                <option value="lowest">{t("reviews.lowest")}</option>
               </select>
             </label>
           </div>
 
           {visible.length === 0 ? (
             <div className="rounded-xl border border-dashed border-gray-3 bg-gray-1 px-6 py-12 text-center">
-              <p className="font-medium text-dark">No reviews yet</p>
+              <p className="font-medium text-dark">{t("reviews.noYet")}</p>
               <p className="mt-1 text-sm text-muted">
-                Be the first to share how this product worked for you.
+                {t("reviews.emptyHint")}
               </p>
             </div>
           ) : (
@@ -297,7 +300,7 @@ export default function ProductReviews({
                       {review.customer_name}
                     </span>
                     <span className="text-xs text-muted">
-                      {formatReviewDate(review.created_at)}
+                      {formatReviewDate(review.created_at, locale)}
                     </span>
                   </div>
                   {review.title && (

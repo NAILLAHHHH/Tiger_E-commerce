@@ -1,4 +1,5 @@
 import type { ProductVariant } from "@/types/database";
+import type { Translator } from "@/i18n";
 import { getSwatchAxisCode } from "@/lib/product-media";
 import { optionValue } from "@/lib/variant-options";
 
@@ -52,8 +53,8 @@ export function formatPrice(amount: number): string {
   return `RWF ${roundMoney(amount).toLocaleString("en-US")}`;
 }
 
-export function stockLabel(total: number): string {
-  if (total <= 0) return "Out of stock";
-  if (total <= 10) return `Only ${total} left`;
-  return "In stock";
+export function stockLabel(total: number, t: Translator): string {
+  if (total <= 0) return t("stock.out");
+  if (total <= 10) return t("stock.left", { n: total });
+  return t("stock.in");
 }

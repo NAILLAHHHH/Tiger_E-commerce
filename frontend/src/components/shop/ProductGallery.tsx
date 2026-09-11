@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useT } from "@/i18n/LocaleProvider";
 import { resolveProductImage } from "@/lib/images";
 import type { GalleryItem } from "@/types/database";
 
@@ -28,6 +29,7 @@ export default function ProductGallery({
   seekToken,
   onActiveChange,
 }: Props) {
+  const { t } = useT();
   const HOVER_ZOOM_PERCENT = 280;
   const HOVER_LENS_SIZE_PX = 120;
   const [active, setActive] = useState(0);
@@ -185,7 +187,7 @@ export default function ProductGallery({
                   type="button"
                   onClick={toggleVideoPlayback}
                   className="relative block h-full w-full"
-                  aria-label={isVideoPlaying ? "Pause video" : "Play video"}
+                  aria-label={isVideoPlaying ? t("gallery.pause") : t("gallery.play")}
                 >
                   <video
                     ref={videoRef}
@@ -212,7 +214,7 @@ export default function ProductGallery({
                   type="button"
                   onClick={toggleVideoMuted}
                   className="absolute bottom-3 right-3 z-20 rounded-full bg-dark/65 p-2 text-white hover:bg-dark/80"
-                  aria-label={isVideoMuted ? "Unmute video" : "Mute video"}
+                  aria-label={isVideoMuted ? t("gallery.unmute") : t("gallery.mute")}
                 >
                   {isVideoMuted ? (
                     <VolumeOffIcon className="h-5 w-5" />
@@ -229,7 +231,7 @@ export default function ProductGallery({
                 onMouseMove={updateHoverZoom}
                 onMouseLeave={() => setHoverZoomActive(false)}
                 className="relative block h-full w-full cursor-zoom-in lg:cursor-crosshair"
-                aria-label="Zoom image"
+                aria-label={t("gallery.zoom")}
               >
                 <Image
                   src={currentImageUrl}
@@ -269,7 +271,7 @@ export default function ProductGallery({
                   type="button"
                   onClick={() => goTo(active - 1)}
                   className="absolute left-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-surface/90 text-dark shadow-sm transition-opacity hover:bg-surface"
-                  aria-label="Previous image"
+                  aria-label={t("gallery.prev")}
                 >
                   ‹
                 </button>
@@ -277,7 +279,7 @@ export default function ProductGallery({
                   type="button"
                   onClick={() => goTo(active + 1)}
                   className="absolute right-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-surface/90 text-dark shadow-sm transition-opacity hover:bg-surface"
-                  aria-label="Next image"
+                  aria-label={t("gallery.next")}
                 >
                   ›
                 </button>
@@ -290,7 +292,7 @@ export default function ProductGallery({
                   <button
                     key={`${item.type}-${item.url}-${i}`}
                     type="button"
-                    aria-label={`Go to slide ${i + 1}`}
+                    aria-label={t("hero.goToSlide", { n: i + 1 })}
                     onClick={() => setActive(i)}
                     className={`h-1.5 rounded-full transition-all ${
                       i === active ? "w-6 bg-brand" : "w-1.5 bg-white/70 hover:bg-white"
@@ -311,10 +313,10 @@ export default function ProductGallery({
                 onClick={() => setActive(i)}
                 aria-label={
                   item.type === "video"
-                    ? "Product video"
+                    ? t("gallery.productVideo")
                     : item.color
-                      ? `${item.color} photo`
-                      : `Photo ${i + 1}`
+                      ? t("gallery.colorPhoto", { color: item.color })
+                      : t("gallery.photoN", { n: i + 1 })
                 }
                 aria-pressed={i === active}
                 className={`relative aspect-square w-[22%] min-w-[4.5rem] max-w-[5.5rem] shrink-0 overflow-hidden rounded-md border-2 ${
@@ -345,7 +347,7 @@ export default function ProductGallery({
           className="fixed inset-0 z-50 flex items-center justify-center bg-dark/95 p-4"
           role="dialog"
           aria-modal="true"
-          aria-label="Zoomed product image"
+          aria-label={t("gallery.zoomed")}
           onClick={() => {
             setZoomOpen(false);
             setZoomScale(1);
@@ -354,7 +356,7 @@ export default function ProductGallery({
           <button
             type="button"
             className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-2xl text-white hover:bg-white/20"
-            aria-label="Close zoom"
+            aria-label={t("gallery.closeZoom")}
             onClick={() => {
               setZoomOpen(false);
               setZoomScale(1);
@@ -389,7 +391,7 @@ export default function ProductGallery({
               <button
                 type="button"
                 className="absolute left-4 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-2xl text-white hover:bg-white/20"
-                aria-label="Previous"
+                aria-label={t("gallery.prevShort")}
                 onClick={(e) => {
                   e.stopPropagation();
                   goTo(active - 1);
@@ -401,7 +403,7 @@ export default function ProductGallery({
               <button
                 type="button"
                 className="absolute right-4 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-2xl text-white hover:bg-white/20"
-                aria-label="Next"
+                aria-label={t("gallery.nextShort")}
                 onClick={(e) => {
                   e.stopPropagation();
                   goTo(active + 1);

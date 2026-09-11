@@ -6,6 +6,7 @@ type Props = {
   title: string;
   products: Product[];
   viewAllHref?: string;
+  viewAllLabel?: string;
   ratings?: Record<string, RatingSummary>;
 };
 
@@ -13,6 +14,7 @@ export default function ProductSection({
   title,
   products,
   viewAllHref,
+  viewAllLabel = "View all →",
   ratings,
 }: Props) {
   return (
@@ -24,7 +26,7 @@ export default function ProductSection({
             href={viewAllHref}
             className="text-sm font-medium text-brand hover:text-brand-dark"
           >
-            View all →
+            {viewAllLabel}
           </Link>
         )}
       </div>

@@ -10,9 +10,15 @@ type Props = {
   height?: number;
   /** Use red-only mark that sits cleanly on dark backgrounds */
   onDark?: boolean;
+  ariaLabel?: string;
 };
 
-export default function Logo({ className, height = 72, onDark = false }: Props) {
+export default function Logo({
+  className,
+  height = 72,
+  onDark = false,
+  ariaLabel = "TygaMart",
+}: Props) {
   const width = Math.round(height * ASPECT);
   const src = onDark
     ? "/tygamart-logo-on-dark.png"
@@ -22,7 +28,7 @@ export default function Logo({ className, height = 72, onDark = false }: Props) 
     <Link
       href="/"
       className={clsx("inline-flex shrink-0 items-center", className)}
-      aria-label="TygaMart home"
+      aria-label={ariaLabel}
     >
       <Image
         src={src}

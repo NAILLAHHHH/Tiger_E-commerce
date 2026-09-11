@@ -6,6 +6,8 @@ import ProductSection from "@/components/home/ProductSection";
 import PromoBanners from "@/components/home/PromoBanners";
 import ContactCta from "@/components/layout/ContactCta";
 import { getHomepageContent } from "@/lib/homepage";
+import { getTranslator } from "@/i18n/server";
+import { localizeHomepage } from "@/i18n/localize-homepage";
 import {
   getCategories,
   getNewArrivals,
@@ -14,7 +16,8 @@ import {
 import { getRatingSummaries } from "@/lib/reviews";
 
 export default async function HomePage() {
-  const homepage = await getHomepageContent();
+  const { t, locale } = await getTranslator();
+  const homepage = localizeHomepage(await getHomepageContent(), locale);
 
   const [categories, newArrivals, featured, ratings] = await Promise.all([
     getCategories(),
@@ -36,6 +39,7 @@ export default async function HomePage() {
         title={homepage.newArrivalsTitle}
         products={newArrivals}
         viewAllHref="/shop"
+        viewAllLabel={t("home.viewAll")}
         ratings={ratings}
       />
       <PromoBanners banners={homepage.promoBanners} />
@@ -43,6 +47,7 @@ export default async function HomePage() {
         title={homepage.featuredTitle}
         products={featured}
         viewAllHref="/shop"
+        viewAllLabel={t("home.viewAll")}
         ratings={ratings}
       />
       <Newsletter

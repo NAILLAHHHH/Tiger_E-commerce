@@ -1,5 +1,6 @@
 import { cartOptionsLabel } from "@/lib/variant-options";
 import { formatPrice, lineTotal } from "@/lib/pricing";
+import { translate, type Locale, type MessageKey, type Vars } from "@/i18n";
 import type { CartItem } from "@/types/database";
 
 /** Customer WhatsApp (Rwanda local format) */
@@ -26,22 +27,27 @@ export type OrderWhatsAppDetails = {
 };
 
 /** Pre-filled WhatsApp message for a placed order (customer sends to the shop). */
-export function buildOrderWhatsAppMessage(details: OrderWhatsAppDetails): string {
+export function buildOrderWhatsAppMessage(
+  details: OrderWhatsAppDetails,
+  locale: Locale = "en",
+): string {
+  const t = (key: MessageKey, vars?: Vars) => translate(locale, key, vars);
+
   const lines: string[] = [
-    `Hey! I just made an order ${details.orderNumber}`,
+    t("wa.orderHello", { ref: details.orderNumber }),
     "",
-    `Name: ${details.customerName.trim()}`,
-    `Phone: ${details.phone.trim()}`,
+    t("wa.name", { name: details.customerName.trim() }),
+    t("wa.phone", { phone: details.phone.trim() }),
   ];
 
   if (details.address?.trim()) {
-    lines.push(`Address: ${details.address.trim()}`);
+    lines.push(t("wa.address", { address: details.address.trim() }));
   }
   if (details.notes?.trim()) {
-    lines.push(`Notes: ${details.notes.trim()}`);
+    lines.push(t("wa.notes", { notes: details.notes.trim() }));
   }
 
-  lines.push("", "Here's what I ordered:");
+  lines.push("", t("wa.ordered"));
   for (const item of details.items) {
     const amount = formatPrice(lineTotal(item.unitPrice, item.quantity));
     const opts = cartOptionsLabel(item);
@@ -52,12 +58,12 @@ export function buildOrderWhatsAppMessage(details: OrderWhatsAppDetails): string
     );
   }
 
-  lines.push("", `Total: ${formatPrice(details.total)}`);
+  lines.push("", t("wa.total", { total: formatPrice(details.total) }));
 
   if (details.summaryUrl?.trim()) {
-    lines.push("", "Order details:", details.summaryUrl.trim());
+    lines.push("", t("wa.details"), details.summaryUrl.trim());
   }
 
-  lines.push("", "Thanks!");
+  lines.push("", t("wa.thanks"));
   return lines.join("\n");
 }
