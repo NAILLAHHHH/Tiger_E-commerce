@@ -6,7 +6,7 @@ import { WHATSAPP_DISPLAY, whatsappUrl } from "@/lib/contact";
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description:
-    "How TygaStyle collects, uses, stores, and protects your personal information.",
+    "How TygaMart collects, uses, stores, and protects your personal information.",
 };
 
 const LAST_UPDATED = "July 28, 2026";
@@ -16,8 +16,8 @@ export default function PrivacyPage() {
     <LegalPageLayout title="Privacy Policy" lastUpdated={LAST_UPDATED}>
       <LegalSection title="1. Who we are">
         <p>
-          TygaStyle (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;)
-          operates this online store for retail and wholesale apparel. If you
+          TygaMart (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;)
+          operates this online store for apparel. If you
           have questions about this policy or your data, contact us on{" "}
           <a
             href={whatsappUrl("Hi, I have a question about my privacy.")}

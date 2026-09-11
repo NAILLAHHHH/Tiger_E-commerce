@@ -11,9 +11,9 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "TygaStyle | Retail & Wholesale Apparel",
+  title: "TygaMart | Shop Apparel",
   description:
-    "TygaStyle — shop clothing per piece or in bulk. Live inventory by size and color.",
+    "TygaMart — shop clothing with live inventory by size and color.",
 };
 
 export default function RootLayout({

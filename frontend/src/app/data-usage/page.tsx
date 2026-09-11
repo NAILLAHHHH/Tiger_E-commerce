@@ -6,7 +6,7 @@ import { WHATSAPP_DISPLAY, whatsappUrl } from "@/lib/contact";
 export const metadata: Metadata = {
   title: "Data Usage",
   description:
-    "What data TygaStyle stores on your device and on our servers when you shop.",
+    "What data TygaMart stores on your device and on our servers when you shop.",
 };
 
 const LAST_UPDATED = "July 28, 2026";
@@ -16,7 +16,7 @@ export default function DataUsagePage() {
     <LegalPageLayout title="Data Usage" lastUpdated={LAST_UPDATED}>
       <LegalSection title="Overview">
         <p>
-          This page explains what information TygaStyle uses when you browse,
+          This page explains what information TygaMart uses when you browse,
           shop, and checkout — and where that data is stored. For broader
           privacy rights and legal terms, see our{" "}
           <Link href="/privacy" className="font-medium text-brand hover:underline">
@@ -78,7 +78,7 @@ export default function DataUsagePage() {
       <LegalSection title="Newsletter">
         <p>
           If you enter your email in the newsletter signup on our homepage, that
-          address is used to send you updates about new products and bulk deals
+          address is used to send you updates about new products and restocks
           (when the subscription is active). You can ask us to stop sending
           emails at any time.
         </p>
@@ -86,7 +86,7 @@ export default function DataUsagePage() {
 
       <LegalSection title="Payment data">
         <p>
-          TygaStyle does <strong>not</strong> collect or store bank card
+          TygaMart does <strong>not</strong> collect or store bank card
           numbers on this website. Checkout uses{" "}
           <strong>MTN Mobile Money (MoMo)</strong>: you complete payment on your
           phone via USSD or the MoMo app. MTN processes that transaction under
