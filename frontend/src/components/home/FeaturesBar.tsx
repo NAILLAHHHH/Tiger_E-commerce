@@ -27,6 +27,7 @@ function iconName(feature: FeatureItem): IconName {
   if (
     hay.includes("support") ||
     hay.includes("help") ||
+    hay.includes("ubufasha") ||
     hay.includes("💬") ||
     hay.includes("chat")
   ) {

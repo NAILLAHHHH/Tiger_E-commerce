@@ -1,24 +1,40 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import LegalPageLayout, { LegalSection } from "@/components/legal/LegalPageLayout";
-import { WHATSAPP_DISPLAY, whatsappUrl } from "@/lib/contact";
+import { getTranslator } from "@/i18n/server";
+import { STORE_ADDRESS, WHATSAPP_DISPLAY, whatsappUrl } from "@/lib/contact";
 
-export const metadata: Metadata = {
-  title: "Privacy Policy",
-  description:
-    "How TygaMart collects, uses, stores, and protects your personal information.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getTranslator();
+  return {
+    title: t("legal.privacyTitle"),
+    description: t("legal.privacyDescription"),
+  };
+}
 
 const LAST_UPDATED = "July 28, 2026";
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const { t, locale } = await getTranslator();
   return (
-    <LegalPageLayout title="Privacy Policy" lastUpdated={LAST_UPDATED}>
+    <LegalPageLayout
+      title={t("legal.privacyTitle")}
+      lastUpdated={t("legal.lastUpdated", { date: LAST_UPDATED })}
+    >
+      {locale === "rw" ? <PrivacyRw /> : <PrivacyEn />}
+    </LegalPageLayout>
+  );
+}
+
+function PrivacyEn() {
+  return (
+    <>
       <LegalSection title="1. Who we are">
         <p>
           TygaMart (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;)
-          operates this online store for apparel. If you
-          have questions about this policy or your data, contact us on{" "}
+          operates this online store for apparel. Our shop is at{" "}
+          {STORE_ADDRESS}. If you have questions about this policy or your
+          data, contact us on{" "}
           <a
             href={whatsappUrl("Hi, I have a question about my privacy.")}
             target="_blank"
@@ -172,6 +188,171 @@ export default function PrivacyPage() {
           page.
         </p>
       </LegalSection>
-    </LegalPageLayout>
+    </>
   );
 }
+
+function PrivacyRw() {
+  return (
+    <>
+      <LegalSection title="1. Turi bande">
+        <p>
+          TygaMart (&ldquo;twebwe&rdquo;) ikoresha iyi duka y&apos;imyenda kuri
+          internet. Duka yacu iherereye {STORE_ADDRESS}. Niba ufite ibibazo
+          kuri iyi politiki cyangwa amakuru yawe, tuvugishe kuri{" "}
+          <a
+            href={whatsappUrl("Muraho, mfite ikibazo ku banga ryanjye.")}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-brand hover:underline"
+          >
+            WhatsApp ({WHATSAPP_DISPLAY})
+          </a>
+          .
+        </p>
+      </LegalSection>
+
+      <LegalSection title="2. Amakuru dukusanya">
+        <p>Dushobora gukusanya aya makuru iyo ukoresha urubuga rwacu:</p>
+        <ul className="list-disc space-y-1 pl-5">
+          <li>
+            <strong>Amakuru y&apos;urutumwa:</strong> amazina, telefoni, aderesi
+            yo gutangiraho, ibisobanuro (niba ubitanze), n&apos;ibicuruzwa ugura.
+          </li>
+          <li>
+            <strong>Ibitekerezo:</strong> izina ryawe, amanota, n&apos;inyandiko
+            iyo wohereza igitekerezo ku gicuruzwa.
+          </li>
+          <li>
+            <strong>Inkuru:</strong> imeyili yawe niba wiyandikishije kugira ngo
+            ukirebe ibishya n&apos;amamafaranga.
+          </li>
+          <li>
+            <strong>Agatebo:</strong> ibicuruzwa, ingano, amabara, n&apos;umubare
+            bibikwa muri browser yawe kugira ngo agatebo kagume iyo usubira.
+          </li>
+          <li>
+            <strong>Ubutumwa bw&apos;ubufasha:</strong> amakuru uhitamo gusangiza
+            iyo utwandikiye kuri WhatsApp cyangwa izindi nzira.
+          </li>
+        </ul>
+        <p>
+          Ntitukusanya nimero z&apos;amakarita yo kwishyura kuri uru rubuga.
+          Kwishyura bikorwa kuri telefoni yawe binyuze muri MTN Mobile Money
+          (MoMo).
+        </p>
+      </LegalSection>
+
+      <LegalSection title="3. Uko dukoresha amakuru yawe">
+        <p>Dukoresha amakuru yawe kugira ngo:</p>
+        <ul className="list-disc space-y-1 pl-5">
+          <li>Dutunganye kandi dutange ibyo watumije</li>
+          <li>Dukuvugishe ku gutanga, kwishyura, cyangwa ibibazo by&apos;urutumwa</li>
+          <li>Twerekane kandi tugenzure ibitekerezo</li>
+          <li>Twohereze imeyili z&apos;amamafaranga niba wiyandikishije</li>
+          <li>Tuzamura ibicuruzwa, stock, n&apos;uburyo dukorera abakiriya</li>
+          <li>Dusubize ibibazo n&apos;ubufasha usaba</li>
+        </ul>
+      </LegalSection>
+
+      <LegalSection title="4. Impamvu y&apos;amategeko">
+        <p>
+          Dukoresha amakuru yawe kugira ngo duhure amasezerano (gutanga
+          urutumwa), ku nshingano yawe (inkuru, ibitekerezo, ubutumwa bwa
+          WhatsApp), no aho bikenewe mu nyungu zacu zemewe (gukoresha iduka,
+          kurwanya ubuhumanyi, no kunoza serivisi).
+        </p>
+      </LegalSection>
+
+      <LegalSection title="5. Uko dusangiza amakuru">
+        <p>
+          Ntitugurisha amakuru yawe. Dushobora gusangiza amakuru gusa iyo
+          bikenewe gukoresha iduka, urugero:
+        </p>
+        <ul className="list-disc space-y-1 pl-5">
+          <li>
+            N&apos;abakora hosting na serivisi z&apos;inyuma zibika neza amateka
+            y&apos;amatumwa n&apos;ibitekerezo
+          </li>
+          <li>
+            Na MTN MoMo iyo wishyura binyuze muri serivisi yabo (politiki yabo
+            y&apos;ibanga ikoreshwa kuri iyo nzira)
+          </li>
+          <li>
+            Na WhatsApp / Meta iyo ufungura ikiganiro (politiki yabo ikoreshwa
+            ku butumwa wohereje kuri uru rubuga)
+          </li>
+          <li>Iyo amategeko abisaba cyangwa kugira ngo turinde uburenganzira bwacu</li>
+        </ul>
+      </LegalSection>
+
+      <LegalSection title="6. Igihe tubika amakuru">
+        <p>
+          Tubika amateka y&apos;amatumwa igihe gikenewe kugira ngo dutange,
+          dukemure impaka, kandi duhure amategeko y&apos;ibaruramari. Ibitekerezo
+          bibikwa gihe bikiri ku rubuga. Imeyili z&apos;inkuru zibikwa kugeza
+          uvanye cyangwa usaba ko duzisiba. Agatebo muri browser kaguma kugeza
+          ukasiba cyangwa ukuremo ibicuruzwa.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="7. Uburenganzira bwawe">
+        <p>Ushobora kutwaka:</p>
+        <ul className="list-disc space-y-1 pl-5">
+          <li>Kureba amakuru dufite kuri wowe</li>
+          <li>Gukosora amakuru atari yo</li>
+          <li>Gusiba amakuru aho tudasabwa kubika</li>
+          <li>Gukuraho uruhushya rw&apos;amamafaranga igihe icyo ari cyo cyose</li>
+        </ul>
+        <p>
+          Kugira ngo usabe, twoherereze kuri{" "}
+          <a
+            href={whatsappUrl("Muraho, ndifuza gusaba ibijyanye n'ibanga.")}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-brand hover:underline"
+          >
+            WhatsApp
+          </a>
+          . Tuzasubiza mu gihe gikwiye.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="8. Umutekano">
+        <p>
+          Dufata ingamba zikwiye kurinda amakuru yawe, harimo umuyoboro utekanye
+          (HTTPS) n&apos;uburenganzira bwo kugera ku sisitemu zacu. Ariko nta
+          nzira yo kohereza cyangwa kubika ihagije 100%.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="9. Abana">
+        <p>
+          Iyi duka ntabwo yagenewe abana bari munsi y&apos;imyaka 16. Ntitukusanya
+          amakuru y&apos;abana tuzi. Niba wemera ko umwana yaduha amakuru,
+          twandikire kugira ngo tuyasibe.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="10. Impinduka kuri iyi politiki">
+        <p>
+          Dushobora kuvugurura iyi Politiki y&apos;ibanga. Itariki y&apos;aho
+          yavuguruwe iyo hejuru izahinduka. Gukomeza gukoresha urubuga nyuma
+          y&apos;impinduka bisobanura ko wemeye politiki nshya.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="11. Ibindi bisobanuro">
+        <p>
+          Kugira ngo usobanukirwe amakuru abikwa kuri telefoni yawe ugereranyije
+          n&apos;ayo ku ma servers yacu, reba{" "}
+          <Link href="/data-usage" className="font-medium text-brand hover:underline">
+            Ikoreshwa ry&apos;amakuru
+          </Link>
+          .
+        </p>
+      </LegalSection>
+    </>
+  );
+}
+

@@ -15,6 +15,8 @@ import {
 import ColorSwatches from "@/components/shop/ColorSwatches";
 import ProductGallery from "@/components/shop/ProductGallery";
 import StarRating from "@/components/shop/StarRating";
+import { useT } from "@/i18n/LocaleProvider";
+import { localizeOptionName } from "@/i18n/localize-label";
 import { useCartStore } from "@/store/cart-store";
 import type {
   ColorOption,
@@ -33,6 +35,7 @@ export default function ProductDetailClient({
   product,
   ratingSummary,
 }: Props) {
+  const { t } = useT();
   const variants = product.variants ?? [];
   const axes = useMemo(() => getProductOptionAxes(variants), [variants]);
 
@@ -155,13 +158,13 @@ export default function ProductDetailClient({
             </span>
             <span className="text-muted">
               ({ratingSummary.count}{" "}
-              {ratingSummary.count === 1 ? "review" : "reviews"})
+              {ratingSummary.count === 1 ? t("pdp.review") : t("pdp.reviews")})
             </span>
           </a>
         )}
         <p className="mt-2 text-sm text-muted">
-          {stockLabel(product.total_stock ?? 0)}
-          {selectedVariant && ` · Code: ${selectedVariant.sku}`}
+          {stockLabel(product.total_stock ?? 0, t)}
+          {selectedVariant && ` · ${t("pdp.code", { sku: selectedVariant.sku })}`}
         </p>
 
         {product.description && (
@@ -174,7 +177,7 @@ export default function ProductDetailClient({
           <span className="text-3xl font-bold text-brand">
             {formatPrice(unitPrice)}
           </span>
-          <span className="text-sm text-muted">per piece</span>
+          <span className="text-sm text-muted">{t("pdp.perPiece")}</span>
         </div>
 
         {swatchAxis && colors.length > 0 && (
@@ -188,7 +191,9 @@ export default function ProductDetailClient({
 
         {selectAxes.map((axis) => (
           <div key={axis.code} className="mt-4">
-            <p className="mb-2 text-sm font-medium text-dark">{axis.name}</p>
+            <p className="mb-2 text-sm font-medium text-dark">
+              {localizeOptionName(axis.name, t)}
+            </p>
             <div className="flex flex-wrap gap-2">
               {axis.values.map((value) => {
                 const candidate = {
@@ -230,7 +235,7 @@ export default function ProductDetailClient({
         ))}
 
         <div className="mt-6">
-          <p className="mb-2 text-sm font-medium text-dark">Quantity</p>
+          <p className="mb-2 text-sm font-medium text-dark">{t("pdp.quantity")}</p>
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -250,7 +255,7 @@ export default function ProductDetailClient({
             </button>
             {selectedVariant && (
               <span className="text-xs text-muted">
-                {selectedVariant.stock_quantity} available
+                {t("pdp.available", { n: selectedVariant.stock_quantity })}
               </span>
             )}
           </div>
@@ -264,7 +269,7 @@ export default function ProductDetailClient({
           }
           className="btn-primary mt-8 w-full py-3 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Add to cart — {formatPrice(lineTotal(unitPrice, quantity))}
+          {t("pdp.addToCart", { price: formatPrice(lineTotal(unitPrice, quantity)) })}
         </button>
       </div>
     </div>

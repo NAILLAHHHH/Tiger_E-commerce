@@ -1,4 +1,7 @@
-import { whatsappUrl } from "@/lib/contact";
+"use client";
+
+import { useT } from "@/i18n/LocaleProvider";
+import { mapsUrl, STORE_ADDRESS, whatsappUrl } from "@/lib/contact";
 
 type Props = {
   message?: string;
@@ -8,20 +11,23 @@ type Props = {
 };
 
 export default function ContactCta({
-  message = "Hi, I'd like to get in touch about TygaMart.",
+  message,
   className = "",
   size = "full",
 }: Props) {
+  const { t } = useT();
+  const text = message ?? t("wa.contactDefault");
+
   if (size === "compact") {
     return (
       <a
-        href={whatsappUrl(message)}
+        href={whatsappUrl(text)}
         target="_blank"
         rel="noopener noreferrer"
         className={`inline-flex items-center gap-2 rounded-full bg-[#25D366] px-4 py-2 text-sm font-semibold text-white shadow-md transition-transform hover:scale-[1.02] hover:shadow-lg ${className}`}
       >
         <WhatsAppIcon className="h-5 w-5" />
-        WhatsApp us
+        {t("contact.whatsappUs")}
       </a>
     );
   }
@@ -31,20 +37,31 @@ export default function ContactCta({
       className={`rounded-2xl border border-gray-3 bg-gray-1 p-5 ${className}`}
     >
       <p className="text-sm font-semibold text-dark">
-        Need help? Text us on WhatsApp
+        {t("contact.needHelp")}
       </p>
       <p className="mt-1 text-sm text-muted">
-        Questions about sizes or delivery — we&apos;re happy to help.
+        {t("contact.sizesDelivery")}
+      </p>
+      <p className="mt-2 text-sm text-muted">
+        {t("contact.visitUs")}:{" "}
+        <a
+          href={mapsUrl()}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium text-dark hover:underline"
+        >
+          {STORE_ADDRESS}
+        </a>
       </p>
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <a
-          href={whatsappUrl(message)}
+          href={whatsappUrl(text)}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 rounded-[5px] bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#1fb855]"
         >
           <WhatsAppIcon className="h-4 w-4" />
-          Chat on WhatsApp
+          {t("contact.chat")}
         </a>
       </div>
     </div>

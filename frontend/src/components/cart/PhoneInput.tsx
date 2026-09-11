@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useT } from "@/i18n/LocaleProvider";
 import { COUNTRY_DIALS, type CountryDial } from "@/lib/phone";
 
 type PhoneInputProps = {
@@ -22,23 +23,36 @@ export default function PhoneInput({
   required,
   invalid,
 }: PhoneInputProps) {
+  const { t, locale } = useT();
   const listId = useId();
   const searchId = useId();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+  const regionNames = useMemo(
+    () => new Intl.DisplayNames([locale === "rw" ? "rw" : "en"], { type: "region" }),
+    [locale],
+  );
+  const countries = useMemo(
+    () =>
+      COUNTRY_DIALS.map((c) => ({
+        ...c,
+        name: regionNames.of(c.code) ?? c.name,
+      })),
+    [regionNames],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return COUNTRY_DIALS;
-    return COUNTRY_DIALS.filter(
+    if (!q) return countries;
+    return countries.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
         c.dial.includes(q) ||
         c.code.toLowerCase().includes(q) ||
         `+${c.dial}`.includes(q),
     );
-  }, [query]);
+  }, [query, countries]);
 
   useEffect(() => {
     if (open) {
@@ -92,7 +106,7 @@ export default function PhoneInput({
           onNationalNumberChange(e.target.value.replace(/[^\d\s]/g, ""))
         }
         onFocus={() => setOpen(false)}
-        placeholder="Phone number"
+        placeholder={t("phone.placeholder")}
         className="min-w-0 flex-1 rounded-r-lg bg-transparent px-3 py-2 text-sm text-dark outline-none placeholder:text-muted"
       />
 
@@ -100,14 +114,14 @@ export default function PhoneInput({
         <>
           <button
             type="button"
-            aria-label="Close country list"
+            aria-label={t("phone.closeList")}
             className="fixed inset-0 z-10 cursor-default"
             onClick={() => setOpen(false)}
           />
           <div className="absolute left-0 right-0 top-full z-20 mt-1 w-full min-w-0 overflow-hidden rounded-lg border border-gray-3 bg-surface shadow-[var(--shadow-card)] sm:right-auto sm:w-72">
             <div className="border-b border-gray-2 p-2">
               <label htmlFor={searchId} className="sr-only">
-                Search countries
+                {t("phone.searchCountries")}
               </label>
               <input
                 ref={searchRef}
@@ -115,7 +129,7 @@ export default function PhoneInput({
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search country or code…"
+                placeholder={t("phone.searchPlaceholder")}
                 className="w-full rounded-md border border-gray-3 bg-gray-1 px-2.5 py-1.5 text-sm outline-none focus:border-brand"
               />
             </div>
@@ -125,7 +139,7 @@ export default function PhoneInput({
               className="max-h-56 overflow-auto py-1"
             >
               {filtered.length === 0 ? (
-                <li className="px-3 py-2 text-sm text-muted">No matches</li>
+                <li className="px-3 py-2 text-sm text-muted">{t("phone.noMatches")}</li>
               ) : (
                 filtered.map((c) => (
                   <li

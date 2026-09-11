@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { resolveProductImage } from "@/lib/images";
+import { useT } from "@/i18n/LocaleProvider";
 import type { ColorOption } from "@/types/database";
 
 type Props = {
@@ -62,6 +63,7 @@ export default function ColorSwatches({
   vertical = false,
   className = "",
 }: Props) {
+  const { t } = useT();
   if (colors.length <= 1) return null;
 
   if (compact) {
@@ -76,7 +78,7 @@ export default function ColorSwatches({
         onClick={(e) => e.preventDefault()}
         onKeyDown={(e) => e.stopPropagation()}
         role="list"
-        aria-label="Available colors"
+        aria-label={t("pdp.availableColors")}
       >
         {visible.map((c) => (
           <button
@@ -111,7 +113,7 @@ export default function ColorSwatches({
 
   return (
     <div className={className}>
-      <p className="mb-2 text-sm font-medium text-dark">Color</p>
+      <p className="mb-2 text-sm font-medium text-dark">{t("pdp.color")}</p>
       <div className="flex flex-wrap gap-2">
         {colors.map((c) => (
           <button
