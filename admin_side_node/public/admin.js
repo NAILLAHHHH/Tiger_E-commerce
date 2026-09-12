@@ -1480,6 +1480,10 @@
     addMediaRow,
     addProductVariantRow,
     removeProductVariantRow,
+    generateProductVariants,
+    toggleGenAttr,
+    syncGenCount,
+    applyGenDefaultsToDrafts,
     syncProductVariantOptions,
     onUploadToRow,
     onUploadMany,
@@ -1614,7 +1618,32 @@
     );
   }
 
-  function productVariantCardHtml(key, categoryId) {
+  function productVariantCardHtml(key, categoryId, preset) {
+    const combo = preset?.combo || [];
+    const price = preset?.price ?? 1;
+    const stock = preset?.stock ?? 1;
+    const media = `${photosFieldHtml(`pvPhotos-${key}`, [])}${videosFieldHtml(`pvVideos-${key}`, [])}`;
+    if (combo.length) {
+      const ids = combo.map((c) => c.id).join(",");
+      const labels = combo.map((c) => c.label).join(" · ");
+      const comboKey = [...combo.map((c) => c.id)].sort().join("|");
+      return `<article class="pv-card pv-card-compact" data-key="${key}" data-combo="${esc(comboKey)}" data-value-ids="${esc(ids)}" data-value-labels="${esc(combo.map((c) => c.label).join("||"))}">
+        <div class="pv-compact">
+          <div class="field"><label>${req("Item code")}</label>
+            <input class="pv-code" placeholder="Auto from name + options if empty" />
+          </div>
+          <div class="pv-combo-chip">${esc(labels)}</div>
+          <div class="field"><label>${req("Price for one")}</label>
+            <input class="pv-price" type="number" min="1" step="1" value="${esc(price)}" required />
+          </div>
+          <div class="field"><label>${req("Stock")}</label>
+            <input class="pv-stock" type="number" min="1" step="1" value="${esc(stock)}" required />
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="removeProductVariantRow(this)">Remove</button>
+        </div>
+        <details class="pv-more"><summary>Photos &amp; videos (optional)</summary>${media}</details>
+      </article>`;
+    }
     return `<article class="pv-card" data-key="${key}">
       <div class="pv-card-head">
         <strong>New variant</strong>
@@ -1625,10 +1654,10 @@
           <input class="pv-code" placeholder="Auto from name + options if empty" />
         </div>
         <div class="field"><label>${req("Price for one")}</label>
-          <input class="pv-price" type="number" min="1" step="1" value="1" required />
+          <input class="pv-price" type="number" min="1" step="1" value="${esc(price)}" required />
         </div>
         <div class="field"><label>${req("Stock")}</label>
-          <input class="pv-stock" type="number" min="1" step="1" value="1" required />
+          <input class="pv-stock" type="number" min="1" step="1" value="${esc(stock)}" required />
         </div>
         <div class="pv-span">${photosFieldHtml(`pvPhotos-${key}`, [])}</div>
         <div class="pv-span">${videosFieldHtml(`pvVideos-${key}`, [])}</div>
@@ -1637,6 +1666,208 @@
         </div>
       </div>
     </article>`;
+  }
+
+  function kindHasOptionValues(kind) {
+    if (!kind) return false;
+    const allowed = kindAttributeIds(kind);
+    return cache.attributes.some(
+      (a) => allowed.has(a.id) && (a.values || []).length,
+    );
+  }
+
+  function comboKeyFromIds(ids) {
+    return [...ids].filter(Boolean).sort().join("|");
+  }
+
+  function savedComboKeys(productId) {
+    return new Set(
+      variantsForProduct(productId).map((v) =>
+        comboKeyFromIds(
+          (v.optionValues || []).map(
+            (ov) => ov.attributeValueId || ov.attributeValue?.id,
+          ),
+        ),
+      ),
+    );
+  }
+
+  function draftComboKeys() {
+    return new Set(
+      [...document.querySelectorAll(".pv-card")]
+        .map((card) => {
+          if (card.dataset.combo) return card.dataset.combo;
+          return comboKeyFromIds(
+            [...card.querySelectorAll(".pv-opt:checked")].map((el) => el.value),
+          );
+        })
+        .filter(Boolean),
+    );
+  }
+
+  function productVariantGeneratorHtml(categoryId, selectedIds) {
+    const kind = kindForCategory(categoryId);
+    if (!kind) {
+      return `<p class="muted">Choose a category first. Options come from that category's product kind.</p>`;
+    }
+    const allowed = kindAttributeIds(kind);
+    const attrs = cache.attributes.filter((a) => allowed.has(a.id));
+    if (!attrs.length) {
+      return `<p class="muted">${esc(kind.name)} has no options yet. Use “Add one variant” for a single SKU.</p>`;
+    }
+    const chosen = selectedIds instanceof Set ? selectedIds : new Set();
+    return attrs
+      .map((a) => {
+        const values = a.values || [];
+        if (!values.length) {
+          return `<div class="pv-gen-attr"><strong>${esc(a.name)}</strong><p class="muted">No values yet. Add them under Options.</p></div>`;
+        }
+        return `<div class="pv-gen-attr">
+          <div class="pv-gen-attr-head">
+            <strong>${esc(a.name)}</strong>
+            <button type="button" class="pv-gen-link" onclick="toggleGenAttr('${a.id}', true)">All</button>
+            <button type="button" class="pv-gen-link" onclick="toggleGenAttr('${a.id}', false)">None</button>
+          </div>
+          <div class="check-row">
+            ${values
+              .map((val) => {
+                const hex =
+                  val.meta && typeof val.meta === "object" ? val.meta.hex : "";
+                const swatch = hex
+                  ? `<span class="opt-swatch" style="background:${esc(hex)}"></span>`
+                  : "";
+                const checked = chosen.has(val.id) ? "checked" : "";
+                return `<label><input class="pv-gen-opt" data-attr="${a.id}" type="checkbox" value="${val.id}" ${checked} onchange="syncGenCount()" /> ${swatch}${esc(val.label)}</label>`;
+              })
+              .join("")}
+          </div>
+        </div>`;
+      })
+      .join("");
+  }
+
+  function selectedGenGroups() {
+    const byAttr = new Map();
+    document.querySelectorAll(".pv-gen-opt:checked").forEach((el) => {
+      const attrId = el.dataset.attr;
+      if (!byAttr.has(attrId)) byAttr.set(attrId, []);
+      const label = (el.closest("label")?.textContent || "").trim();
+      byAttr.get(attrId).push({ id: el.value, label });
+    });
+    return [...byAttr.values()];
+  }
+
+  function cartesianCombos(groups) {
+    if (!groups.length) return [];
+    return groups.reduce((acc, group) => {
+      if (!group.length) return acc;
+      if (!acc.length) return group.map((item) => [item]);
+      return acc.flatMap((combo) => group.map((item) => [...combo, item]));
+    }, []);
+  }
+
+  function genComboCount() {
+    const groups = selectedGenGroups();
+    if (!groups.length) return 0;
+    return groups.reduce((n, g) => n * g.length, 1);
+  }
+
+  function syncGenCount() {
+    const n = genComboCount();
+    const btn = $("#pvGenBtn");
+    if (!btn) return;
+    btn.textContent = n
+      ? `Create ${n} variant${n === 1 ? "" : "s"}`
+      : "Create variants";
+  }
+
+  function toggleGenAttr(attrId, on) {
+    document
+      .querySelectorAll(`.pv-gen-opt[data-attr="${attrId}"]`)
+      .forEach((el) => {
+        el.checked = !!on;
+      });
+    syncGenCount();
+  }
+
+  function applyGenDefaultsToDrafts() {
+    const price = $("#pvGenPrice")?.value;
+    const stock = $("#pvGenStock")?.value;
+    let n = 0;
+    document.querySelectorAll(".pv-card").forEach((card) => {
+      const priceEl = card.querySelector(".pv-price");
+      const stockEl = card.querySelector(".pv-stock");
+      if (price && priceEl) priceEl.value = price;
+      if (stock && stockEl) stockEl.value = stock;
+      n += 1;
+    });
+    if (!n) {
+      toast("Create variants first, then apply price and stock.", "error");
+      return;
+    }
+    toast(`Applied to ${n} draft${n === 1 ? "" : "s"}`);
+  }
+
+  function generateProductVariants() {
+    const groups = selectedGenGroups();
+    if (!groups.length) {
+      showFormError(
+        "Tick at least one option you sell — for example every size and color — then create the combinations.",
+      );
+      return;
+    }
+    const list = $("#pvList");
+    if (!list) return;
+    const combos = cartesianCombos(groups);
+    const productId =
+      editing?.type === "product" && editing.id ? editing.id : null;
+    const used = new Set([...savedComboKeys(productId), ...draftComboKeys()]);
+    const price = Number($("#pvGenPrice")?.value);
+    const stock = Number($("#pvGenStock")?.value);
+    if (!Number.isFinite(price) || price < 1) {
+      showFormError("Price for each new variant must be at least 1.");
+      return;
+    }
+    if (!Number.isFinite(stock) || stock < 1) {
+      showFormError("Stock for each new variant must be at least 1.");
+      return;
+    }
+    let added = 0;
+    let skipped = 0;
+    for (const combo of combos) {
+      const key = comboKeyFromIds(combo.map((c) => c.id));
+      if (used.has(key)) {
+        skipped += 1;
+        continue;
+      }
+      used.add(key);
+      pvKeySeq += 1;
+      list.insertAdjacentHTML(
+        "beforeend",
+        productVariantCardHtml(pvKeySeq, $("#fCategory")?.value, {
+          combo,
+          price,
+          stock,
+        }),
+      );
+      added += 1;
+    }
+    clearFormError();
+    if (!added) {
+      toast(
+        skipped
+          ? "Those combinations are already listed."
+          : "Nothing new to create.",
+        "error",
+      );
+      return;
+    }
+    toast(
+      skipped
+        ? `Added ${added} draft${added === 1 ? "" : "s"} · ${skipped} already listed`
+        : `Added ${added} draft${added === 1 ? "" : "s"}`,
+    );
+    list.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
   function addProductVariantRow() {
@@ -1655,6 +1886,22 @@
 
   function syncProductVariantOptions() {
     const categoryId = $("#fCategory")?.value;
+    const gen = $("#pvGenOptions");
+    if (gen) {
+      const selected = new Set(
+        [...document.querySelectorAll(".pv-gen-opt:checked")].map((el) => el.value),
+      );
+      gen.innerHTML = productVariantGeneratorHtml(categoryId, selected);
+      syncGenCount();
+    }
+    document.querySelectorAll(".pv-card-compact").forEach((card) => card.remove());
+    if (kindHasOptionValues(kindForCategory(categoryId))) {
+      document.querySelectorAll(".pv-card:not(.pv-card-compact)").forEach((card) => {
+        const picked = card.querySelector(".pv-opt:checked");
+        const typed = card.querySelector(".pv-code")?.value?.trim();
+        if (!picked && !typed) card.remove();
+      });
+    }
     document.querySelectorAll(".pv-card .pv-options").forEach((wrap) => {
       const selected = new Set(
         [...wrap.querySelectorAll(".pv-opt:checked")].map((el) => el.value),
@@ -1677,13 +1924,35 @@
     for (const card of document.querySelectorAll(".pv-card")) {
       const key = card.dataset.key;
       const typedCode = card.querySelector(".pv-code")?.value?.trim() || "";
-      const optionLabels = [...card.querySelectorAll(".pv-opt:checked")]
+      const fromDataIds = (card.dataset.valueIds || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const fromDataLabels = (card.dataset.valueLabels || "")
+        .split("||")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const radioLabels = [...card.querySelectorAll(".pv-opt:checked")]
         .map((el) => slugifyClient(el.closest("label")?.textContent))
         .filter(Boolean);
+      const optionLabels = fromDataLabels.length
+        ? fromDataLabels.map((label) => slugifyClient(label)).filter(Boolean)
+        : radioLabels;
+      const attributeValueIds = fromDataIds.length
+        ? fromDataIds
+        : [...card.querySelectorAll(".pv-opt:checked")].map((el) => el.value);
       const photoUrls = collectMediaUrls(`pvPhotos-${key}`);
       const videoUrls = collectMediaUrls(`pvVideos-${key}`);
       const isOnlyCard = document.querySelectorAll(".pv-card").length === 1;
-      if (!typedCode && !optionLabels.length && !photoUrls.length && !videoUrls.length && !isOnlyCard) {
+      const hasCombo = Boolean(fromDataIds.length);
+      if (
+        !typedCode &&
+        !optionLabels.length &&
+        !photoUrls.length &&
+        !videoUrls.length &&
+        !hasCombo &&
+        !isOnlyCard
+      ) {
         continue;
       }
       let itemCode = typedCode;
@@ -1711,9 +1980,7 @@
         howManyLeft,
         photoUrls,
         videoUrls,
-        attributeValueIds: [...card.querySelectorAll(".pv-opt:checked")].map(
-          (el) => el.value,
-        ),
+        attributeValueIds,
       });
     }
     return drafts;
@@ -1757,7 +2024,8 @@
     const categoryId = p?.category_id || p?.category?.id || "";
     const existing = p ? variantsForProduct(p.id) : [];
     pvKeySeq += 1;
-    const startWithDraft = !existing.length;
+    const hasOptions = kindHasOptionValues(kindForCategory(categoryId));
+    const startWithDraft = !existing.length && !hasOptions;
     return `<div class="edit-layout">
       <div class="panel">
         <div class="form-grid">
@@ -1782,10 +2050,25 @@
           </div>
           <div class="full field pv-section">
             <label>${req("Variants (SKUs)")}</label>
-            <p class="muted" style="margin:0 0 .65rem">Shoppers buy a variant — options, price, and stock — not the product name alone. Add at least one. Variant photos/videos are optional; otherwise the product media is used.</p>
+            <p class="muted" style="margin:0 0 .65rem">Shoppers buy a variant — options, price, and stock — not the product name alone. Tick every size, color, or other option you sell, set one price and stock, then create all combinations at once.</p>
             ${existingVariantsHtml(p?.id)}
+            <div class="pv-gen" id="pvGen">
+              <div id="pvGenOptions">${productVariantGeneratorHtml(categoryId, new Set())}</div>
+              <div class="pv-gen-defaults">
+                <div class="field"><label>Price for each new variant</label>
+                  <input id="pvGenPrice" type="number" min="1" step="1" value="1" />
+                </div>
+                <div class="field"><label>Stock for each new variant</label>
+                  <input id="pvGenStock" type="number" min="1" step="1" value="1" />
+                </div>
+              </div>
+              <div class="pv-gen-actions">
+                <button type="button" class="btn btn-primary btn-sm" id="pvGenBtn" onclick="generateProductVariants()">Create variants</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="applyGenDefaultsToDrafts()">Apply price &amp; stock to drafts</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="addProductVariantRow()">Add one variant</button>
+              </div>
+            </div>
             <div id="pvList">${startWithDraft ? productVariantCardHtml(pvKeySeq, categoryId) : ""}</div>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="addProductVariantRow()">Add variant</button>
           </div>
           <input type="hidden" id="fPublished" value="${published ? "1" : "0"}" />
         </div>
