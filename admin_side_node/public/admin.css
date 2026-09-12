@@ -441,12 +441,75 @@ table.cm tbody tr.clickable { cursor: pointer; }
 .pv-section { margin-top: .25rem; }
 .pv-existing { margin-bottom: .75rem; overflow-x: auto; }
 .pv-table { margin: 0; }
+.pv-gen {
+  border: 1px solid var(--neutral150);
+  border-radius: 8px;
+  background: var(--neutral0);
+  padding: 1rem;
+  margin-bottom: .75rem;
+}
+.pv-gen-attr { margin-bottom: .9rem; }
+.pv-gen-attr:last-child { margin-bottom: 0; }
+.pv-gen-attr-head {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  margin-bottom: .4rem;
+}
+.pv-gen-attr-head strong { font-size: .85rem; }
+.pv-gen-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--primary600);
+  cursor: pointer;
+  font-size: .8rem;
+  font-weight: 600;
+}
+.pv-gen-link:hover { color: var(--primary700); }
+.pv-gen-defaults {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .85rem;
+  margin-top: .35rem;
+}
+.pv-gen-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  align-items: center;
+}
 .pv-card {
   border: 1px solid var(--neutral150);
   border-radius: 8px;
   background: var(--neutral100);
   margin-bottom: .75rem;
   overflow: hidden;
+}
+.pv-card-compact .pv-compact {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1.3fr) minmax(7rem, 1fr) 7.5rem 6.5rem auto;
+  gap: .65rem;
+  align-items: end;
+  padding: .85rem 1rem;
+}
+.pv-card-compact .pv-compact .field { margin-bottom: 0; }
+.pv-combo-chip {
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--neutral800);
+  padding-bottom: .45rem;
+}
+.pv-more {
+  padding: 0 1rem .9rem;
+  border-top: 1px solid var(--neutral150);
+}
+.pv-more summary {
+  cursor: pointer;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--neutral600);
+  padding-top: .65rem;
 }
 .pv-card-head {
   display: flex;
@@ -840,6 +903,8 @@ table.cm tbody tr.clickable { cursor: pointer; }
   .content { padding: 1rem .85rem 2.5rem; }
   .form-grid { grid-template-columns: 1fr; padding: 1rem; }
   .pv-card-grid { grid-template-columns: 1fr; }
+  .pv-gen-defaults { grid-template-columns: 1fr; }
+  .pv-card-compact .pv-compact { grid-template-columns: 1fr 1fr; }
   .media-row { grid-template-columns: 1fr; }
   .page-header { flex-direction: column; align-items: stretch; }
   .page-header h1 { font-size: 1.45rem; }
