@@ -11,6 +11,9 @@ import {
   requireCategoryKind,
   syncProductsKindForCategory,
   allowedAttributeIdsForProduct,
+  uniqueProductLinkName,
+  uniqueCategoryLinkName,
+  uniqueVariantItemCode,
 } from "../lib/catalog.js";
 import { logPriceChanges, logStockChange, syncOrderStock } from "../services/orders.js";
 import { saveUpload } from "../services/upload.js";
@@ -375,7 +378,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
     const row = await prisma.category.create({
       data: {
         name: body.name,
-        linkName: slugify(body.name),
+        linkName: await uniqueCategoryLinkName(body.name),
         listPosition: body.listPosition ?? 0,
         photoUrl: body.photoUrl ?? null,
         published: body.published ?? false,
@@ -402,7 +405,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
         where: { id },
         data: {
           ...body,
-          ...(body.name ? { linkName: slugify(body.name) } : {}),
+          ...(body.name ? { linkName: await uniqueCategoryLinkName(body.name, id) } : {}),
         },
         include: { attributeSet: true },
       });
@@ -703,7 +706,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
     const row = await prisma.product.create({
       data: {
         name: body.name,
-        linkName: slugify(body.name),
+        linkName: await uniqueProductLinkName(body.name),
         description: body.description ?? null,
         photoUrl: media.photoUrl ?? null,
         extraPhotoUrls: media.extraPhotoUrls ?? [],
@@ -765,7 +768,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
       where: { id },
       data: {
         ...rest,
-        ...(body.name ? { linkName: slugify(body.name) } : {}),
+        ...(body.name ? { linkName: await uniqueProductLinkName(body.name, id) } : {}),
         ...(attributeSetId ? { attributeSetId } : {}),
         ...media,
       },
@@ -880,7 +883,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
     const row = await prisma.productVariant.create({
       data: {
         productId: body.productId,
-        itemCode: body.itemCode,
+        itemCode: await uniqueVariantItemCode(body.itemCode),
         priceForOne,
         priceForBulk,
         minQuantityForBulk: body.minQuantityForBulk ?? 10,
@@ -1033,7 +1036,9 @@ export async function registerAdminRoutes(app: FastifyInstance) {
     const row = await prisma.productVariant.update({
       where: { id },
       data: {
-        ...(body.itemCode ? { itemCode: body.itemCode } : {}),
+        ...(body.itemCode
+          ? { itemCode: await uniqueVariantItemCode(body.itemCode, id) }
+          : {}),
         ...(nextPriceForOne != null ? { priceForOne: nextPriceForOne } : {}),
         ...(body.priceForBulk !== undefined
           ? { priceForBulk: nextPriceForBulk ?? null }
