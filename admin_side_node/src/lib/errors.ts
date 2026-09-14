@@ -18,9 +18,9 @@ const UNIQUE_MESSAGES: Record<string, string> = {
 };
 
 const UNIQUE_BY_MODEL: Record<string, string> = {
-  Product: "A product with this name already exists.",
-  Category: "A category with this name already exists.",
-  ProductVariant: "This item code is already used by another variant.",
+  Product: "That product could not be saved. Try again.",
+  Category: "That category could not be saved. Try again.",
+  ProductVariant: "That variant could not be saved. Try again.",
   Attribute: "An option with this name already exists.",
   AttributeSet: "A product kind with this name already exists.",
   AttributeValue: "This option already has that value.",

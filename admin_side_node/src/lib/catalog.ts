@@ -1,4 +1,61 @@
 import { prisma } from "../db.js";
+import { slugify } from "./utils.js";
+
+async function uniqueSuffixed(
+  base: string,
+  taken: (candidate: string) => Promise<boolean>,
+): Promise<string> {
+  let value = base;
+  let n = 2;
+  while (await taken(value)) {
+    value = `${base}-${n}`;
+    n += 1;
+  }
+  return value;
+}
+
+/** URL slugs must stay unique; display names may repeat. */
+export async function uniqueProductLinkName(
+  name: string,
+  excludeId?: string,
+): Promise<string> {
+  const base = slugify(name) || "product";
+  return uniqueSuffixed(base, async (linkName) => {
+    const existing = await prisma.product.findUnique({
+      where: { linkName },
+      select: { id: true },
+    });
+    return Boolean(existing && existing.id !== excludeId);
+  });
+}
+
+export async function uniqueCategoryLinkName(
+  name: string,
+  excludeId?: string,
+): Promise<string> {
+  const base = slugify(name) || "category";
+  return uniqueSuffixed(base, async (linkName) => {
+    const existing = await prisma.category.findUnique({
+      where: { linkName },
+      select: { id: true },
+    });
+    return Boolean(existing && existing.id !== excludeId);
+  });
+}
+
+export async function uniqueVariantItemCode(
+  itemCode: string,
+  excludeId?: string,
+): Promise<string> {
+  const base = itemCode.trim() || "sku";
+  return uniqueSuffixed(base, async (code) => {
+    const existing = await prisma.productVariant.findUnique({
+      where: { itemCode: code },
+      select: { id: true },
+    });
+    return Boolean(existing && existing.id !== excludeId);
+  });
+}
 
 export async function findAttributeSetByLabel(label: string) {
   const code = label

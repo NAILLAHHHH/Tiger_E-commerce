@@ -15,6 +15,9 @@ import {
   findAttributeSetByLabel,
   kindHasAttributeCode,
   syncProductsKindForCategory,
+  uniqueProductLinkName,
+  uniqueCategoryLinkName,
+  uniqueVariantItemCode,
 } from "../lib/catalog.js";
 import { logStockChange, nextOrderReference } from "../services/orders.js";
 
@@ -380,7 +383,10 @@ async function importRows(key: ContentKey, csvText: string) {
           result.errors.push(`Row ${i + 2}: unknown product kind "${kindLabel}"`);
           continue;
         }
-        const existing = await prisma.category.findFirst({ where: { name } });
+        const linkNameFromRow = row.link_name?.trim();
+        const existing = linkNameFromRow
+          ? await prisma.category.findUnique({ where: { linkName: linkNameFromRow } })
+          : null;
         if (existing) {
           await prisma.category.update({
             where: { id: existing.id },
@@ -395,7 +401,7 @@ async function importRows(key: ContentKey, csvText: string) {
           await prisma.category.create({
             data: {
               name,
-              linkName: slugify(name),
+              linkName: await uniqueCategoryLinkName(name),
               listPosition: parseInteger(row.list_position, 0),
               published: true,
               attributeSetId: kind.id,
@@ -446,7 +452,10 @@ async function importRows(key: ContentKey, csvText: string) {
           categoryId,
           attributeSetId,
         };
-        const existing = await prisma.product.findFirst({ where: { name } });
+        const linkNameFromRow = row.link_name?.trim();
+        const existing = linkNameFromRow
+          ? await prisma.product.findUnique({ where: { linkName: linkNameFromRow } })
+          : null;
         if (existing) {
           await prisma.product.update({ where: { id: existing.id }, data });
           result.updated += 1;
@@ -454,7 +463,7 @@ async function importRows(key: ContentKey, csvText: string) {
           await prisma.product.create({
             data: {
               name,
-              linkName: slugify(name),
+              linkName: await uniqueProductLinkName(name),
               published: true,
               ...data,
             },
@@ -576,7 +585,7 @@ async function importRows(key: ContentKey, csvText: string) {
           const created = await prisma.productVariant.create({
             data: {
               productId: product.id,
-              itemCode,
+              itemCode: await uniqueVariantItemCode(itemCode),
               priceForOne,
               priceForBulk,
               minQuantityForBulk: parseInteger(row.min_quantity_for_bulk, 10),
