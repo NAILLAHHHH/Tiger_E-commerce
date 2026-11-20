@@ -1,10 +1,11 @@
 export const en = {
-  "meta.title": "TygaMart | Shop Apparel",
+  "meta.title": "TygaMart Rwanda | Shop Clothing & Apparel Online in Kigali",
   "meta.description":
-    "TygaMart — shop clothing with live inventory by size and color.",
-  "meta.shopTitle": "Shop",
+    "Shop quality clothing, fashion, apparel, Supermarket items and accessories for men, women, and kids online at TygaMart Rwanda. Live stock by size and color with MTN MoMo Pay and fast delivery in Kigali.",
+  "meta.shopTitle":
+    "Shop All Clothing & Apparel And Supermarkets items in Kigali",
   "meta.shopDescription":
-    "Browse products by category. Pick your options and quantity.",
+    "Browse men's, women's, and kids' apparel by category, size, and color. Order online in Rwanda with MTN MoMo.",
   "meta.orderTitle": "Order {ref}",
   "meta.orderDescription": "Order summary for {ref}",
 
@@ -29,8 +30,7 @@ export const en = {
   "search.placeholder": "I am shopping for…",
   "search.clear": "Clear",
 
-  "footer.tagline":
-    "Quality apparel with live inventory by size and color.",
+  "footer.tagline": "Quality apparel with live inventory by size and color.",
   "footer.shop": "Shop",
   "footer.allProducts": "All Products",
   "footer.newArrivals": "New arrivals",
@@ -57,8 +57,7 @@ export const en = {
   "shop.newArrivals": "New arrivals",
   "shop.resultsFor": "Results for “{q}”",
   "shop.matching": "Products matching “{q}”.",
-  "shop.inCategory":
-    "Products in {name} — pick your options and quantity.",
+  "shop.inCategory": "Products in {name} — pick your options and quantity.",
   "shop.inCategoryKind":
     "Products in {name} · {kind} — pick your options and quantity.",
   "shop.inKind": "Products in {name} — pick your options and quantity.",
@@ -173,8 +172,7 @@ export const en = {
     "Dial the code below on your MTN line, then enter your MoMo PIN to confirm.",
   "momo.amount": "Amount to pay",
   "momo.ussd": "USSD code",
-  "momo.useRef":
-    "Use order reference {ref} if asked for a payment note.",
+  "momo.useRef": "Use order reference {ref} if asked for a payment note.",
   "momo.noted": "Payment noted — we'll confirm once MoMo is received.",
   "momo.copied": "Copied!",
   "momo.copy": "Copy code",
@@ -214,8 +212,7 @@ export const en = {
   "reviews.newest": "Most recent",
   "reviews.highest": "Highest rated",
   "reviews.lowest": "Lowest rated",
-  "reviews.emptyHint":
-    "Be the first to share how this product worked for you.",
+  "reviews.emptyHint": "Be the first to share how this product worked for you.",
   "reviews.submitError": "Could not submit review",
   "reviews.genericError": "Something went wrong",
 
@@ -260,14 +257,14 @@ export const en = {
 export type MessageKey = keyof typeof en;
 
 export const rw = {
-  "meta.title": "TygaMart | Gura imyenda",
+  "meta.title": "TygaMart Rwanda | Gura Imyenda Online i Kigali no mu Rwanda",
   "meta.description":
-    "TygaMart — gura imyenda ufite stock ihari ku ngano n'ibara.",
-  "meta.shopTitle": "Isoko",
+    "Gura imyenda myiza, ibikoresho byo munzu ndetse nibiribwa nkibyo mwisoko ubigurire online kuri TygaMart Rwanda. Reba ibihari ukurikije taille n'ibara, wishyure na MTN MoMo tukugezeho aho uri hose muri Kigali.",
+  "meta.shopTitle": "Gura Imyenda Yose",
   "meta.shopDescription":
-    "Shakisha ibicuruzwa ku byiciro. Hitamo amahitamo n'umubare.",
-  "meta.orderTitle": "Urutumwa {ref}",
-  "meta.orderDescription": "Incamake y'urutumwa {ref}",
+    "Hitamo imyenda mu byiciro bitandukanye ukurikije taille n'ibara. Tumiza online mu Rwanda.",
+  "meta.orderTitle": "Tumiza {ref}",
+  "meta.orderDescription": "Incamake y'ubutumwa {ref}",
 
   "lang.label": "Ururimi",
   "lang.en": "EN",
@@ -290,8 +287,7 @@ export const rw = {
   "search.placeholder": "Ndashaka…",
   "search.clear": "Siba",
 
-  "footer.tagline":
-    "Imyenda myiza, stock ihari ku ngano n'ibara.",
+  "footer.tagline": "Imyenda myiza, stock ihari ku ngano n'ibara.",
   "footer.shop": "Isoko",
   "footer.allProducts": "Ibicuruzwa byose",
   "footer.newArrivals": "Ibishya",
@@ -318,8 +314,7 @@ export const rw = {
   "shop.newArrivals": "Ibishya",
   "shop.resultsFor": "Ibisubizo bya “{q}”",
   "shop.matching": "Ibicuruzwa bihuye na “{q}”.",
-  "shop.inCategory":
-    "Ibicuruzwa muri {name} — hitamo amahitamo n'umubare.",
+  "shop.inCategory": "Ibicuruzwa muri {name} — hitamo amahitamo n'umubare.",
   "shop.inCategoryKind":
     "Ibicuruzwa muri {name} · {kind} — hitamo amahitamo n'umubare.",
   "shop.inKind": "Ibicuruzwa muri {name} — hitamo amahitamo n'umubare.",
@@ -337,8 +332,7 @@ export const rw = {
   "shop.noMatchHint":
     "Nta kintu gihuye na “{q}”. Gerageza irindi jambo cyangwa shakisha ibyiciro.",
   "shop.noProductsIn": "Nta bicuruzwa biri muri {name} ubu.",
-  "shop.checkBack":
-    "Subira vuba — ibicuruzwa bishya birashyirwaho buri gihe.",
+  "shop.checkBack": "Subira vuba — ibicuruzwa bishya birashyirwaho buri gihe.",
   "shop.viewAll": "Reba ibicuruzwa byose",
   "shop.browse": "Shakisha",
   "shop.allProducts": "Ibicuruzwa byose",
@@ -385,8 +379,7 @@ export const rw = {
 
   "contact.whatsappUs": "Twandikire kuri WhatsApp",
   "contact.needHelp": "Ukeneye ubufasha? Twoherereze kuri WhatsApp",
-  "contact.sizesDelivery":
-    "Ibibazo ku ngano cyangwa order — turagufasha.",
+  "contact.sizesDelivery": "Ibibazo ku ngano cyangwa order — turagufasha.",
   "contact.visitUs": "Dusure",
   "contact.chat": "Twandikire kuri WhatsApp",
 
@@ -402,8 +395,7 @@ export const rw = {
   "cart.momoPay": "MTN MoMo Pay",
   "cart.total": "Igiteranyo cyose",
   "cart.placeOrder": "Tanga urutumwa",
-  "cart.payAfter":
-    "Ishura na MTN MoMo nyuma yo kohereza amakuru y'urutumwa.",
+  "cart.payAfter": "Ishura na MTN MoMo nyuma yo kohereza amakuru y'urutumwa.",
   "cart.fullName": "Amazina yose *",
   "cart.phone": "Telefoni / WhatsApp *",
   "cart.address": "Aderesi",
@@ -438,8 +430,7 @@ export const rw = {
   "momo.ussd": "Kode ya USSD",
   "momo.useRef":
     "Koresha referanse y'urutumwa {ref} niba basabye icyitonderwa cyo kwishyura.",
-  "momo.noted":
-    "Kwishyura kwanditswe — tuzemeza iyo MoMo yakiriwe.",
+  "momo.noted": "Kwishyura kwanditswe — tuzemeza iyo MoMo yakiriwe.",
   "momo.copied": "Byakoporowe!",
   "momo.copy": "Kopora kode",
   "momo.dial": "Kanda kuri telefoni",
@@ -462,8 +453,7 @@ export const rw = {
   "reviews.optional": "(bitari ngombwa)",
   "reviews.headlinePlaceholder": "Sobanura mu magambo make",
   "reviews.yourReview": "Igitekerezo cyawe",
-  "reviews.commentPlaceholder":
-    "Ni iki wakunze? Ingano n'ubwiza byari bite?",
+  "reviews.commentPlaceholder": "Ni iki wakunze? Ingano n'ubwiza byari bite?",
   "reviews.submit": "Ohereza igitekerezo",
   "reviews.submitting": "Birimo koherezwa…",
   "reviews.noYet": "Nta bitekerezo bihari",

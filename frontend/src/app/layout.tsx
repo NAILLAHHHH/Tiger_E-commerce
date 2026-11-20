@@ -15,9 +15,41 @@ const dmSans = DM_Sans({
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getTranslator();
+  const locale = await getLocale();
+
+  const title = t("meta.title");
+  const description = t("meta.description");
+
   return {
-    title: t("meta.title"),
-    description: t("meta.description"),
+    metadataBase: new URL("https://tygamart.rw"),
+    title: {
+      default: title,
+      template: `%s | TygaMart`,
+    },
+    description,
+    keywords: [
+      "TygaMart",
+      "TygaMart Rwanda",
+      "online shopping Rwanda",
+      "buy clothes Kigali",
+      "clothing store Kigali",
+      "apparel Rwanda",
+      "fashion Kigali",
+      "gura imyenda online Rwanda",
+      "imyenda Kigali",
+    ],
+    openGraph: {
+      title,
+      description,
+      url: "https://tygamart.rw",
+      siteName: "TygaMart",
+      locale: locale === "rw" ? "rw_RW" : "en_RW",
+      type: "website",
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
   };
 }
 
