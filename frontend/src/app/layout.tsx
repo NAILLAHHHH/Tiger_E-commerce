@@ -27,17 +27,6 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s | TygaMart`,
     },
     description,
-    keywords: [
-      "TygaMart",
-      "TygaMart Rwanda",
-      "online shopping Rwanda",
-      "buy clothes Kigali",
-      "clothing store Kigali",
-      "apparel Rwanda",
-      "fashion Kigali",
-      "gura imyenda online Rwanda",
-      "imyenda Kigali",
-    ],
     openGraph: {
       title,
       description,
@@ -45,10 +34,20 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: "TygaMart",
       locale: locale === "rw" ? "rw_RW" : "en_RW",
       type: "website",
+      images: [
+        {
+          url: "/og-image.jpg",
+          width: 500,
+          height: 500,
+          alt: "TygaMart Rwanda - Shop Clothing & Apparel Online",
+        },
+      ],
     },
-    robots: {
-      index: true,
-      follow: true,
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: ["/og-image.jpg"],
     },
   };
 }
