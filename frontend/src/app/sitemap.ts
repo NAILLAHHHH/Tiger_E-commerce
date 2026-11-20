@@ -37,21 +37,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  // 2. Dynamic product pages (/shop/[slug])
-  // Uncomment and connect to your Supabase/Neon client to fetch your product slugs:
-  /*
-  const { data: products } = await supabase.from('products').select('slug, updated_at')
-  
-  const productRoutes: MetadataRoute.Sitemap = (products ?? []).map((product) => ({
-    url: `${baseUrl}/shop/${product.slug}`,
-    lastModified: new Date(product.updated_at || new Date()),
-    changeFrequency: "weekly",
-    priority: 0.7,
-  }))
-  */
-
-  return [
-    ...staticRoutes,
-    // ...productRoutes, // Uncomment this once you add your database query above
-  ];
+  return [...staticRoutes];
 }
